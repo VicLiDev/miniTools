@@ -3,18 +3,23 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plotPts(ldata, ldata2):
+global_color = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+
+def plotPts(fileNames, dataGrp):
+    if len(fileNames) != len(dataGrp):
+        print("error: file cnt and data cnt is not equal")
+        print("file cnt is %d data cnt is %d" % (len(fileNames), (len(dataGrp))))
+        return
+
     fig = plt.figure()  # an empty figure with no Axes
     ax = fig.add_subplot()
+    loopCnt = len(fileNames)
 
-    x = list(range(len(ldata)))
-    ax.plot(x, ldata, marker=".", color="r", linestyle='', label='data1')  # Plot some data on the axes.
-    print("data size:", len(ldata))
+    for i in range(loopCnt):
+        x = list(range(len(dataGrp[i])))
+        ax.plot(x, dataGrp[i], marker=".", color=global_color[i], linestyle='', label=fileNames[i])  # Plot some data on the axes.
+        print("data %d size:%d" % (i, len(dataGrp[i])))
 
-    x2 = list(range(len(ldata2)))
-    ax.plot(x2, ldata2, marker=".", color="g", linestyle='', label='data2')  # Plot some data on the axes.
-    print("data2 size:", len(ldata2))
-    
     ax.legend()  # Add a legend.
     plt.show()
 
@@ -30,11 +35,16 @@ def loadData(fname):
     return nums
 
 def main():
-    filename = str(input("Please enter file name: "))
-    nums = loadData(filename)
-    filename = str(input("Please enter file2 name: "))
-    nums2 = loadData(filename)
-    plotPts(nums, nums2)
+    dataGrpNums = int(input("Please enter data groups of data: "))
+    dataGrp = []
+    fileNames = []
+    for i in range(dataGrpNums):
+        filename = str(input("Please enter file%d name: " % i))
+        nums = loadData(filename)
+        fileNames.append(filename)
+        dataGrp.append(nums)
+
+    plotPts(fileNames, dataGrp)
 
 if __name__ == '__main__':
     main()
