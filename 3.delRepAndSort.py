@@ -19,6 +19,7 @@ def delRep(fname):
         nums.append(cur)
     
     newNums = list(set(nums))
+    newNums.sort()
     # print(nums)
     # print(newNums)
     dumpListToFile("out"+fname, newNums)
