@@ -1,3 +1,7 @@
+#!/opt/homebrew/anaconda3/bin/python
+# 程序说明：
+# 读取多个yuv文件，并比较yuv数据是否相同
+# usage: 在代码内部修改文件列表，然后直接执行文件
 import os
 import time
 import numpy as np
@@ -111,33 +115,24 @@ def compare_yuv_data(data1, data2):
 
 
 if __name__ == "__main__":
-    filename = "yuvvideo.yuv"
-    pixformat = ""
-    width = 720
-    height = 480
-    file_size = os.stat(filename).st_size
-    frame_size = width * height * get_bits_per_pixel(pixformat) / 8 # bytes
-    frame_num = int(file_size / frame_size)
-    frame_rate = 25
-    print("file size: ", )
-    print("frame size: ", frame_size)
-    print("frame number: ", frame_num)
+    datas = []
+    filenames = ["out.yuv", "out2.yuv", "out3.yuv", "out4.yuv", "out5.yuv", "out6.yuv", "out7.yuv", "out8.yuv"]
+    for idx in range(len(filenames)):
+        pixformat = ""
+        width = 720
+        height = 480
+        file_size = os.stat(filenames[idx]).st_size
+        frame_size = width * height * get_bits_per_pixel(pixformat) / 8 # bytes
+        frame_num = int(file_size / frame_size)
+        frame_rate = 25
+        print("======== file name: ", filenames[idx], "========")
+        print("file size: ", file_size)
+        print("frame size: ", frame_size)
+        print("frame number: ", frame_num)
+        datas = datas + [yuv_import(filenames[idx], (height, width), frame_num, 0)]
 
-    filename2 = "yuvvideo2.yuv"
-
-    data = yuv_import(filename, (height, width), frame_num, 0)
-    data2 = yuv_import(filename2, (height, width), int(os.stat(filename2).st_size / frame_size), 0)
-    display_yuv(data, frame_rate)
-    # compare matrix
-    if compare_matrix(data[0][0], data2[0][1]):
-        print("main: matrix1 and matrix2 is equal")
-    else:
-        print("main: matrix1 and matrix2 is not equal")
-
-    # compare date
-    if compare_yuv_data(data, data2):
-        print("main: data1 and data2 is equal")
-    else:
-        print("main: data1 and data2 is not equal")
-
-    cv2.waitKey(0)
+    for idx in range(len(datas)):
+        if compare_yuv_data(datas[0], datas[idx]):
+            print("main: data%s and data%s is equal"%(0, idx))
+        else:
+            print("main: data%s and data%s is not equal"%(0, idx))
