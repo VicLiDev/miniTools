@@ -10,9 +10,10 @@
 #     http://c.biancheng.net/view/1120.html
 
 inputFiles=(
+0.origin.avi
 test.webm
-# test2.avi
-# test3.mp4
+test2.avi
+test3.mp4
 )
 
 fileCnt=${#inputFiles[*]}
@@ -36,6 +37,11 @@ function str_to_array()
 
 for ((loop=0; loop<fileCnt; loop++))
 do
+    if [ ! -f ${inputFiles[loop]} ];then
+        echo "file ${inputFiles[loop]} do not exist"
+        continue
+    fi
+
     echo
     echo "================ ${inputFiles[loop]}================"
     echo
@@ -81,14 +87,14 @@ do
     # eval 指令配合 echo 去掉字符串前后的空格，但好像只能保留第一列数据
     echo '==> input'
     echo "color:   "`echo yuv${inputlog#*yuv} | awk -F"," '{print $1}' | awk -F"(" '{print $1}'`
-    echo "fps:     "`echo ${inputlog%fps*} | awk '{print $NF}'`
-    echo "size:    "`echo ${inputlog} | awk '{match($0,/[0-9]+x[0-9]+/,tmp)} {print tmp[0]}'`
+    echo "fps:     "`echo ${inputlog%fps,*} | awk '{print $NF}'`
+    echo "size:    "`echo ${inputlog#*yuv} | awk 'match($0,/[0-9]+x[0-9]+/) {print substr($0, RSTART, RLENGTH)}'`
 
     echo
     echo '==> output'
     echo "color:   "`echo yuv${outputlog#*yuv} | awk -F"," '{print $1}'`
-    echo "fps:     "`echo ${outputlog%fps*} | awk '{print $NF}'`
-    echo "size:    "`echo ${outputlog} | awk '{match($0,/[0-9]+x[0-9]+/,tmp)} {print tmp[0]}'`
+    echo "fps:     "`echo ${outputlog%fps,*} | awk '{print $NF}'`
+    echo "size:    "`echo ${outputlog#*yuv} | awk 'match($0,/[0-9]+x[0-9]+/) {print substr($0, RSTART, RLENGTH)}'`
 
     echo
     echo '==> general'
