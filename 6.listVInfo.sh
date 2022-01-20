@@ -16,7 +16,8 @@
 # \n是换行符的转义序列，因此IFS最终被设置为单个换行符。
 
 IFS=$'\n'
-path=`cd $(dirname $0);pwd -P`
+# path=`cd $(dirname $0);pwd -P`
+path=`pwd`
 echo "====> the current path is:$path"
 for file in `find ./*`
 do
