@@ -29,6 +29,15 @@ else
             rkut_help
             exit
             ;;
+        # DI命令:烧写分区镜像
+        # 目前已知的分区有-s(system 分区)、-k(kernel 分区)、-b(boot 分区)、
+        # -r(recovery 分区) 、-m(misc 分区) 、 -u(uboot 分区) 、-t(trust 分区)
+        # 和-re(resource 分区)
+        'u')
+            echo "========> writing uboot <========" && echo
+            echo "File: ${IMAGE_PATH}/uboot.img"
+            sudo upgrade_tool di -u ${IMAGE_PATH}/uboot.img 
+            ;;
         'b')
             echo "========> writing boot <========" && echo
             echo "File: ${IMAGE_PATH}/boot.img"
