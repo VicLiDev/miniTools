@@ -7,6 +7,7 @@ display()
     echo "  2. 3399"
     echo "  3. 3568"
     echo "  4. 3588"
+    echo "  5. 3328"
 }
 
 display
@@ -56,6 +57,15 @@ do
                 echo "======> selected $platformNmae compile done <======"
                 break
                 ;;
+            '5')
+                platformNmae="3328"
+                echo "======> selected $platformNmae <======"
+                make ARCH=arm64 rockchip_defconfig \
+                    && make rk3328-evb-android-avb.img ARCH=arm64 BOOT_IMG=./boot_rk3328EVB.img -j20
+                echo "======> selected $platformNmae compile done <======"
+                break
+                ;;
+
             'q')
                 echo "======> quit <======"
                 exit 0
