@@ -69,7 +69,7 @@ def checkNumsInc(nums):
     return
 
 global_color  = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-global_marker = ['.', ',', 'o', 'v', '^', '<', '1', '2', '3', '4', '8']
+global_marker = ['.', 'o', 'v', '^', '<', '1', '2', '3', '4', '8', ',']
 def plotPts(fileNames, dataGrp):
     if len(fileNames) != len(dataGrp):
         print("error: file cnt and data cnt is not equal")
@@ -86,6 +86,8 @@ def plotPts(fileNames, dataGrp):
         print("%s data size:%d" % (fileNames[i], len(dataGrp[i])))
 
     ax.legend()  # Add a legend.
+    plt.axhline(10, linestyle='--', c='red')
+    plt.axvline(10)
     plt.show()
 
 
