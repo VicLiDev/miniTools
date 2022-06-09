@@ -58,7 +58,7 @@ def checkNumsInc(nums):
     lineNum = 0
     prev = 0
     cur = 0
-    print("\tnot increase in lineNum: ", end = '')
+    print("not increase in lineNum: ", end = '')
     for i in range(len(nums)):
         lineNum = lineNum + 1
         cur = nums[i]
@@ -83,7 +83,6 @@ def plotPts(fileNames, dataGrp):
     for i in range(loopCnt):
         x = list(range(len(dataGrp[i])))
         ax.plot(x, dataGrp[i], marker=global_marker[i], color=global_color[i], linestyle='', label=fileNames[i])  # Plot some data on the axes.
-        print("%s data size:%d" % (fileNames[i], len(dataGrp[i])))
 
     ax.legend()  # Add a legend.
     plt.axhline(10, linestyle='--', c='red')
@@ -106,9 +105,11 @@ def main():
     dataGrp =  loadDataGrp(fileNames)
     print("==================== result ====================")
     for i in range(dataGrpCnt):
-        print("====> %s" % fileNames[i])
-        checkNumsInc(dataGrp[i])
+        print("====> %s <====" % fileNames[i])
+        print("cnt: %d" % (len(dataGrp[i])))
+        print("avg: %d" % np.mean(dataGrp[i]))
         dataGrp[i] = delRepAndSort(dataGrp[i])
+        checkNumsInc(dataGrp[i])
         
     print()
     plotPts(fileNames, dataGrp)
