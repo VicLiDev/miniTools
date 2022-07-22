@@ -43,6 +43,16 @@ else
             echo "File: ${IMAGE_PATH}/boot.img"
             sudo upgrade_tool di -b ${IMAGE_PATH}/boot.img 
             ;;
+        'z')
+            echo "========> writing zboot <========" && echo
+            echo "File: ${IMAGE_PATH}/zboot.img"
+            sudo upgrade_tool di -b ${IMAGE_PATH}/zboot.img 
+            ;;
+        'i')
+            echo "========> writing zboot <========" && echo
+            echo "File: ${IMAGE_PATH}/update.img"
+            sudo upgrade_tool uf ${IMAGE_PATH}/update.img 
+            ;;
         'm')
             ;;
     esac
