@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 display()
 {
     echo "Please select platform:"
@@ -8,6 +10,7 @@ display()
     echo "  3. 3568"
     echo "  4. 3588"
     echo "  5. 3328"
+    echo "  6. 3288"
 }
 
 display
@@ -65,6 +68,14 @@ do
                 echo "======> selected $platformNmae compile done <======"
                 break
                 ;;
+            '6')
+                platformNmae="3288"
+                echo "======> selected $platformNmae <======"
+                make ARCH=arm rockchip_defconfig \
+                    && make ARCH=arm rk3288-evb-android-rk808-edp.img -j16
+                echo "======> selected $platformNmae compile done <======"
+                break
+                ;;
 
             'q')
                 echo "======> quit <======"
@@ -80,3 +91,5 @@ cp boot.img ~/test
 
 echo "======> download boot.img <======"
 rkut.sh b
+
+set +e

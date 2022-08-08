@@ -16,7 +16,10 @@ IMAGE_PATH=/home/lhj/test
 rkut_help(){
     echo "usage: rkut.sh <opt>"
     echo "opt:"
+    echo "  u   download uboot.img"
     echo "  b   download boot.img"
+    echo "  z   download zboot.img"
+    echo "  i   download update.img"
 }
 
 if [ $# -lt 1 ]; then
@@ -34,22 +37,22 @@ else
         # -r(recovery 分区) 、-m(misc 分区) 、 -u(uboot 分区) 、-t(trust 分区)
         # 和-re(resource 分区)
         'u')
-            echo "========> writing uboot <========" && echo
+            echo "========> writing uboot.img <========" && echo
             echo "File: ${IMAGE_PATH}/uboot.img"
             sudo upgrade_tool di -u ${IMAGE_PATH}/uboot.img 
             ;;
         'b')
-            echo "========> writing boot <========" && echo
+            echo "========> writing boot.img <========" && echo
             echo "File: ${IMAGE_PATH}/boot.img"
             sudo upgrade_tool di -b ${IMAGE_PATH}/boot.img 
             ;;
         'z')
-            echo "========> writing zboot <========" && echo
+            echo "========> writing zboot.img <========" && echo
             echo "File: ${IMAGE_PATH}/zboot.img"
             sudo upgrade_tool di -b ${IMAGE_PATH}/zboot.img 
             ;;
         'i')
-            echo "========> writing zboot <========" && echo
+            echo "========> writing update.img <========" && echo
             echo "File: ${IMAGE_PATH}/update.img"
             sudo upgrade_tool uf ${IMAGE_PATH}/update.img 
             ;;
