@@ -19,6 +19,7 @@
   --enable-libaom \
   --enable-libass \
   --enable-libfreetype \
+  --enable-debug --disable-optimizations --disable-asm --disable-stripping 
   # --enable-libmp3lame \
 
 make -j 20 && make install

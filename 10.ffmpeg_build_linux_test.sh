@@ -28,7 +28,8 @@
   --enable-libopus \
   --enable-libsvtav1 \
   --enable-libdav1d \
-  --enable-nonfree
+  --enable-nonfree \
+  --enable-debug --disable-optimizations --disable-asm --disable-stripping 
 
 make -j 20 && make install
 
