@@ -2,7 +2,7 @@
 # 程序说明：
 # 从一个或者多个文件中读取一列数字，检查这一列数字是否为递增、将数据去重排序、将数据绘制到同一个坐标系中
 # usage: <app> <file1> <file2> <file3>
-import sys
+import sys,getopt
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -73,7 +73,7 @@ global_marker = ['.', 'o', 'v', '^', '<', '1', '2', '3', '4', '8', ',']
 tab_loc_ha = ['center', 'right', 'left']
 tab_loc_va = ['center', 'top', 'bottom', 'baseline', 'center_baseline']
 
-def plotVal(fileNames, dataGrp):
+def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag):
     if len(fileNames) != len(dataGrp):
         print("error: file cnt and data cnt is not equal")
         print("file cnt is %d data cnt is %d" % (len(fileNames), (len(dataGrp))))
@@ -88,30 +88,77 @@ def plotVal(fileNames, dataGrp):
         ax.plot(x, dataGrp[i], marker=global_marker[i%len(global_marker)], \
                 color=global_color[i%len(global_color)], linestyle='', \
                 label=fileNames[i])  # Plot some data on the axes.
-        for a, b in zip(x, dataGrp[i]):
-            tab_loc_x = int(i / len(tab_loc_va))
-            tab_loc_y = int(i % len(tab_loc_va))
-            ax.text(a, b, (a, b), fontsize=10, ha=tab_loc_ha[tab_loc_x], \
-                    va=tab_loc_va[tab_loc_y], color=global_color[i%len(global_color)])
 
-    ax.legend()  # Add a legend.
-    plt.axhline(10, linestyle='--', c='red')
-    plt.axhline(20, linestyle='--', c='c')
-    plt.axvline(10)
+        if showTag == True:
+            for a, b in zip(x, dataGrp[i]):
+                tab_loc_x = int(i / len(tab_loc_va))
+                tab_loc_y = int(i % len(tab_loc_va))
+                ax.text(a, b, (a, b), fontsize=10, ha=tab_loc_ha[tab_loc_x], \
+                        va=tab_loc_va[tab_loc_y], color=global_color[i%len(global_color)])
+
+    if refLineEn == True:
+        ax.legend()  # Add a legend.
+        # plt.axhline(10, linestyle='--', c='red')
+        plt.axhline(hLine, linestyle='--', c='c')
+        plt.axvline(vLine)
+
     plt.show()
 
+def help():
+    print('opt:')
+    print('  -h,--help  print help info')
+    print('  -s     sort and delete repeate data')
+    print('  --hl   add horizontal reference line')
+    print('  --vl   add vertical reference line')
+    print('  -t     display point tag')
+    print('  -d     display diff')
+    print('  -f     input file')
 
-def main():
-    # dataGrpCnt = int(input("Please enter the cnt of data group: "))
-    # fileNames = []
-    # for i in range(dataGrpCnt):
-    #     filename = str(input("Please enter file %d name: " % i))
-    #     fileNames.append(filename)
+def main(argv):
 
-    dataGrpCnt = len(sys.argv) - 1
+    # print('para num :', len(sys.argv))
+    # print('para list:', str(sys.argv))
+
+    # control para
+    drAndSort = False
+    refLineEn = False
+    hLine = 0
+    vLine = 0
+    showTag = False
+    calcDiff = False
     fileNames = []
-    for i in range(dataGrpCnt):
-        fileNames.append(str(sys.argv[i+1]))
+    dataGrpCnt = 0
+
+    try:
+        opts, args = getopt.getopt(argv,"hsf:td", ["help=", "hl=", "vl="])
+    except getopt.GetoptError:
+        help()
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            help()
+            sys.exit()
+        elif opt in ("-s"):
+            drAndSort = True
+        elif opt in ("--hl"):
+            hLine = arg
+            refLineEn = True
+        elif opt in ("--vl"):
+            vLine = arg
+            refLineEn = True
+        elif opt in ("-t"):
+            showTag = True
+        elif opt in ("-d"):
+            calcDiff = True
+        elif opt in ("-f"):
+            fileNames.append(str(arg))
+            dataGrpCnt += 1
+
+    if dataGrpCnt == 0:
+        help()
+        sys.exit(0)
+
 
     dataGrp =  loadDataGrp(fileNames)
     print("==================== result ====================")
@@ -119,12 +166,17 @@ def main():
         print("====> %s <====" % fileNames[i])
         print("cnt: %d" % (len(dataGrp[i])))
         print("avg: %d" % np.mean(dataGrp[i]))
-        dataGrp[i] = delRepAndSort(dataGrp[i])
+        if drAndSort == True:
+            dataGrp[i] = delRepAndSort(dataGrp[i])
+        if calcDiff == True:
+            for j in range(len(dataGrp[i])-1):
+                dataGrp[i][j] = dataGrp[i][j+1] - dataGrp[i][j]
+            dataGrp[i].pop()
         checkNumsInc(dataGrp[i])
         
     print()
-    plotVal(fileNames, dataGrp)
+    plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])   # 过滤掉命令行中的文件名
