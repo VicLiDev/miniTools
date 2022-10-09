@@ -73,7 +73,7 @@ global_marker = ['.', 'o', 'v', '^', '<', '1', '2', '3', '4', '8', ',']
 tab_loc_ha = ['center', 'right', 'left']
 tab_loc_va = ['center', 'top', 'bottom', 'baseline', 'center_baseline']
 
-def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag):
+def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, calcAvg):
     if len(fileNames) != len(dataGrp):
         print("error: file cnt and data cnt is not equal")
         print("file cnt is %d data cnt is %d" % (len(fileNames), (len(dataGrp))))
@@ -95,12 +95,15 @@ def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag):
                 tab_loc_y = int(i % len(tab_loc_va))
                 ax.text(a, b, (a, b), fontsize=10, ha=tab_loc_ha[tab_loc_x], \
                         va=tab_loc_va[tab_loc_y], color=global_color[i%len(global_color)])
+        if calcAvg == True:
+            ax.legend()  # Add a legend.
+            avg = np.mean(dataGrp[i])
+            plt.axhline(avg, color=global_color[i%len(global_color)], linestyle="dashdot", label="avg: "+str(avg))
 
     if refLineEn == True:
         ax.legend()  # Add a legend.
-        # plt.axhline(10, linestyle='--', c='red')
-        plt.axhline(hLine, linestyle='--', c='c')
-        plt.axvline(vLine)
+        plt.axhline(hLine, linestyle='--', c='r')
+        plt.axvline(vLine, linestyle='--', c='orangered')
 
     plt.show()
 
@@ -112,6 +115,7 @@ def help():
     print('  --vl   add vertical reference line')
     print('  -t     display point tag')
     print('  -d     display diff')
+    print('  -a     display avg')
     print('  -f     input file')
 
 def main(argv):
@@ -126,11 +130,12 @@ def main(argv):
     vLine = 0
     showTag = False
     calcDiff = False
+    calcAvg = False
     fileNames = []
     dataGrpCnt = 0
 
     try:
-        opts, args = getopt.getopt(argv,"hsf:td", ["help=", "hl=", "vl="])
+        opts, args = getopt.getopt(argv,"hsf:tad", ["help=", "hl=", "vl="])
     except getopt.GetoptError:
         help()
         sys.exit(2)
@@ -151,6 +156,8 @@ def main(argv):
             showTag = True
         elif opt in ("-d"):
             calcDiff = True
+        elif opt in ("-a"):
+            calcAvg = True
         elif opt in ("-f"):
             fileNames.append(str(arg))
             dataGrpCnt += 1
@@ -175,7 +182,7 @@ def main(argv):
         checkNumsInc(dataGrp[i])
         
     print()
-    plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag)
+    plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, calcAvg)
 
 
 if __name__ == '__main__':
