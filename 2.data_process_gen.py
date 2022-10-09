@@ -96,14 +96,15 @@ def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, calcAvg):
                 ax.text(a, b, (a, b), fontsize=10, ha=tab_loc_ha[tab_loc_x], \
                         va=tab_loc_va[tab_loc_y], color=global_color[i%len(global_color)])
         if calcAvg == True:
-            ax.legend()  # Add a legend.
             avg = np.mean(dataGrp[i])
             plt.axhline(avg, color=global_color[i%len(global_color)], linestyle="dashdot", label="avg: "+str(avg))
 
-    if refLineEn == True:
         ax.legend()  # Add a legend.
+
+    if refLineEn == True:
         plt.axhline(hLine, linestyle='--', c='r')
         plt.axvline(vLine, linestyle='--', c='orangered')
+        ax.legend()  # Add a legend.
 
     plt.show()
 
