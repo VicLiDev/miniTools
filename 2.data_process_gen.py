@@ -174,6 +174,7 @@ def main(argv):
         print("====> %s <====" % fileNames[i])
         print("cnt: %d" % (len(dataGrp[i])))
         print("avg: %d" % np.mean(dataGrp[i]))
+        # print("sum: %d" % sum(dataGrp[i]))
         if drAndSort == True:
             dataGrp[i] = delRepAndSort(dataGrp[i])
         if calcDiff == True:

@@ -12,6 +12,7 @@ display()
     echo "  5. 3328"
     echo "  6. 3288"
     echo "  7. 3399 linux 5.10"
+    echo "  8. 3568 linux 4.19"
 }
 
 display
@@ -28,6 +29,7 @@ do
             '1')
                 platformNmae="1109/1126"
                 echo "======> selected $platformNmae <======"
+                # make ARCH=arm rockchip_defconfig \
                 make ARCH=arm rv1126_defconfig \
                     && make ARCH=arm rv1126-evb-ddr3-v13.img -j24
                 echo "======> selected $platformNmae compile done <======"
@@ -86,6 +88,18 @@ do
 
                 make ARCH=arm64 rockchip_linux_defconfig \
                     && make ARCH=arm64 rk3399-evb-ind-lpddr4-linux.img -j 20
+                echo "======> selected $platformNmae compile done <======"
+                break
+                ;;
+            '8')
+                platformNmae="3568 linux 4.19"
+                echo "======> selected $platformNmae <======"
+                # 根据 build.sh 按照本地环境修改
+                export PATH=/home/lhj/Projects/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
+                export CROSS_COMPILE=aarch64-none-linux-gnu-
+
+                make ARCH=arm64 rockchip_linux_defconfig \
+                    && make ARCH=arm64 rk3568-evb1-ddr4-v10-linux.img -j 20
                 echo "======> selected $platformNmae compile done <======"
                 break
                 ;;
