@@ -13,6 +13,7 @@ def main():
     parser.add_argument('-i', type=str, default="", help="reg excele")
     parser.add_argument('-o', type=str, default="", help="reg excele")
     parser.add_argument('-c', action='store_true', default=False, help="check reg")
+    parser.add_argument('-u', action='store_true', default=False, help="update reg name")
     parser.add_argument('-g', type=str, default="", help="generate chead")
     parser.add_argument('-p', action='store_true', default=False, help="plot reg scatter")
     args = parser.parse_args()
@@ -27,13 +28,14 @@ def main():
     regSet.sort_regs()
     regSet.sort_fields()
 
-    # write excel
-    if args.o:
-        save_regs_to_file(args.o, regSet)
-
     # check reg
     if args.c:
         regproc.check_bit_reuse(regSet)
+        regproc.check_reg_name(regSet, 0)
+
+    # update reg name
+    if args.c:
+        regproc.check_reg_name(regSet, 1)
 
     # print(regSet)
     # gen c head
@@ -47,6 +49,9 @@ def main():
     if args.p:
         scatterDisplay.plotRegs(regSet)
 
+    # write excel
+    if args.o:
+        save_regs_to_file(args.o, regSet)
     
 
 
