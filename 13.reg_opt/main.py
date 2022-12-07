@@ -16,8 +16,11 @@ def main():
     parser.add_argument('-u', action='store_true', default=False, help="update reg name")
     parser.add_argument('-g', type=str, default="", help="generate chead")
     parser.add_argument('-p', action='store_true', default=False, help="plot reg scatter")
+    parser.add_argument('--hl', type=float, nargs='+', help="reference line")
+    parser.add_argument('--vl', type=float, nargs='+', help="reference line")
     args = parser.parse_args()
     print(args)
+    print()
 
     # load excel
     if args.i == "":
@@ -47,7 +50,17 @@ def main():
 
     # plot
     if args.p:
-        scatterDisplay.plotRegs(args.i, regSet)
+        hl = []
+        vl = []
+        if type(args.hl) == type(int()):
+            hl.append(args.hl)
+        elif type(args.hl) == type(list()):
+            hl.extend(args.hl)
+        if type(args.vl) == type(int()):
+            vl.append(args.vl)
+        elif type(args.vl) == type(list()):
+            vl.extend(args.vl)
+        scatterDisplay.plotRegs(args.i, regSet, hl, vl)
 
     # write excel
     if args.o:

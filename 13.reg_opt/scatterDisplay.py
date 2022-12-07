@@ -34,7 +34,7 @@ def gen_def_point(regCnt):
 
 colorList = [20, 60, 100]
 colorList2 = ['r', 'g', 'b', 'c', 'm', 'y']
-def plotRegs(fileName, regSet):
+def plotRegs(fileName, regSet, hRefLine, vRefLine):
     # plot
     fig, ax = plt.subplots()
 
@@ -69,6 +69,12 @@ def plotRegs(fileName, regSet):
                 #            c=colorList2[j%6], edgecolor="black", marker='.', vmin=0, vmax=100)
 
     ax.scatter(regXVal, regYVal, s=regSizes, c=regColors, edgecolor="black", marker='.', vmin=0, vmax=100)
+
+    # reference line
+    for i in range(len(hRefLine)):
+        plt.axhline(hRefLine[i], linestyle='--', c='r')
+    for i in range(len(vRefLine)):
+        plt.axvline(vRefLine[i], linestyle='--', c='orangered')
 
     ax.set_xlabel('reg idx')
     ax.set_ylabel('bit0-31')
