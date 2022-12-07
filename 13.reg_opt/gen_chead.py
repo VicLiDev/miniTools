@@ -1,6 +1,6 @@
 #!/opt/homebrew/anaconda3/bin/python
 
-def add_reg(file, reg):
+def _add_reg(file, reg):
     if (len(reg.fields) == 1) and (reg.fields[0].fld_offset == 0):
         field_name = reg.fields[0].field
         reg_name = "reg" + str(int(reg.reg_offset/4)) + field_name[field_name.index("_"):]
@@ -90,7 +90,7 @@ def gen_CHead_seg(fileName, regSet, segName, begIdx, endIdx):
         last_reg_idx = cur_reg_idx - 1
 
         # add reg
-        add_reg(file, cur_reg)
+        _add_reg(file, cur_reg)
         last_reg_idx = last_reg_idx + 1
 
 
