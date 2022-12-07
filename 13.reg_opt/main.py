@@ -47,7 +47,7 @@ def main():
 
     # plot
     if args.p:
-        scatterDisplay.plotRegs(regSet)
+        scatterDisplay.plotRegs(args.i, regSet)
 
     # write excel
     if args.o:

@@ -34,7 +34,7 @@ def gen_def_point(regCnt):
 
 colorList = [20, 60, 100]
 colorList2 = ['r', 'g', 'b', 'c', 'm', 'y']
-def plotRegs(regSet):
+def plotRegs(fileName, regSet):
     # plot
     fig, ax = plt.subplots()
 
@@ -72,6 +72,6 @@ def plotRegs(regSet):
 
     ax.set_xlabel('reg idx')
     ax.set_ylabel('bit0-31')
-    ax.set_title("Register distribution")
+    ax.set_title("Register distribution: %s" % (fileName))
 
     plt.show()
