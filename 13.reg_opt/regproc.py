@@ -36,3 +36,23 @@ def check_reg_name(regSet, update):
                   % (reg_name_old, cur_reg.reg_offset, cur_reg.reg_offset, reg_name_new))
             if update:
                 regSet.regs[i] = reg_name_new
+
+
+if __name__ == '__main__':
+    while True:
+        val = input('input reg idx/offset or q(quit):').strip()
+        if val == 'q':
+            exit(0)
+        if val == '':
+            continue
+
+        try:
+            if val[:2] == '0x' or val[:2] == '0X':
+                print("offset [%s] --> idx: [%d]" % (val, int(val, 16)/4))
+            else:
+                print("idx [%s] --> offset: [0x%x]" % (val, int(val)*4))
+            print()
+        except:
+            print("invalue input {}".format(val))
+            print()
+            continue
