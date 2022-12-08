@@ -45,7 +45,7 @@ def main():
         regproc.check_reg_name(regSet, 0)
 
     # update reg name
-    if args.c:
+    if args.u:
         regproc.check_reg_name(regSet, 1)
 
     # print(regSet)
@@ -73,6 +73,7 @@ def main():
     if args.d:
         if len(fileList) != 2:
             print("2 excel is necessary")
+            exit(0)
         regSet2 = excel_rw.load_excel(fileList[1])
         scatterDisplay.plotRegsDiff(fileList[0], fileList[1], regSet, regSet2, hl, vl)
 
