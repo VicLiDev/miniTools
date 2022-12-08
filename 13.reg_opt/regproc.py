@@ -48,9 +48,9 @@ if __name__ == '__main__':
 
         try:
             if val[:2] == '0x' or val[:2] == '0X':
-                print("offset [%s] --> idx: [%d]" % (val, int(val, 16)/4))
+                print("offset [%s | %d] --> idx: [%d]" % (val, int(val, 16), int(val, 16)/4))
             else:
-                print("idx [%s] --> offset: [0x%x]" % (val, int(val)*4))
+                print("idx [%s | 0x%x] --> offset: [%d | 0x%x]" % (val, int(val), int(val)*4, int(val)*4))
             print()
         except:
             print("invalue input {}".format(val))
