@@ -50,6 +50,7 @@ class Reg:
         return ""
 
     def sort_fields(self):
+        self.fields = sorted(self.fields, key=lambda field:field.fld_size)
         self.fields = sorted(self.fields, key=lambda field:field.fld_offset)
 
     def add_field_tail(self, field):
