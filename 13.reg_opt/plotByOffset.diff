@@ -1,0 +1,31 @@
+diff --git a/13.reg_opt/scatterDisplay.py b/13.reg_opt/scatterDisplay.py
+index 13aae88..42d830f 100644
+--- a/13.reg_opt/scatterDisplay.py
++++ b/13.reg_opt/scatterDisplay.py
+@@ -44,7 +44,7 @@ def plotRegs(regSet):
+     if (regSet.regs[-1].reg_offset + 4) % 4:
+         print("error: offset %d is not a multiple of 4!" % (regSet.regs[-1].reg_offset))
+ 
+-    regCnt = int((regSet.regs[-1].reg_offset + 4) / 4)
++    regCnt = int((regSet.regs[-1].reg_offset + 4))
+     orgXVal, orgYVal, orgSizes, orgColors = gen_def_point(regCnt)
+     ax.scatter(orgXVal, orgYVal, s=orgSizes, c='w', edgecolor="black", marker='o', vmin=0, vmax=100)
+ 
+@@ -61,7 +61,7 @@ def plotRegs(regSet):
+         for j in range(0, field_cnt):
+             cur_field = cur_reg.fields[j]
+             for k in range(0, cur_field.fld_size):
+-                regXVal.append(cur_reg.reg_offset / 4)
++                regXVal.append(cur_reg.reg_offset)
+                 regYVal.append(cur_field.fld_offset + k)
+                 regSizes.append(200)
+                 regColors.append(colorList[j % 3])
+@@ -70,7 +70,7 @@ def plotRegs(regSet):
+ 
+     ax.scatter(regXVal, regYVal, s=regSizes, c=regColors, edgecolor="black", marker='.', vmin=0, vmax=100)
+ 
+-    ax.set_xlabel('reg idx')
++    ax.set_xlabel('reg offset')
+     ax.set_ylabel('bit0-31')
+     ax.set_title("Register distribution")
+ 
