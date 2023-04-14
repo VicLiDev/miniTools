@@ -10,7 +10,7 @@
 #    1. modify test cmd
 #    2. run test script and specify the test video root directory
 
-# ex: bash ~/Projects/batch_test.c /test_data/Allegro_AV1/Syntax_Main_10bits
+# ex: bash ~/Projects/batch_test.c av1 /test_data/Allegro_AV1/Syntax_Main_10bits
 
 clear
 

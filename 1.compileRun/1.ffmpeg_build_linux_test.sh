@@ -38,3 +38,10 @@ gcc ../doc/examples/decode_video.c -o decode_video\
     -L ./ffmpeg_out/lib \
     -lavcodec -lavfilter -lavformat -lavutil -lpthread -lm -lz -lX11 \
     -lva -lvdpau -lva-x11 -lva-drm -lvorbis -lvorbisenc -llzma -lswresample -lmp3lame -laom
+
+
+
+# all static build
+# ../configure --disable-ffplay --disable-indev=sndio --disable-outdev=sndio \
+#     --extra-libs='-static -L/usr/lib' --extra-cflags='--static' \
+#     --enable-gpl --enable-stripping
