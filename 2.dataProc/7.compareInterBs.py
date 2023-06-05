@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/bin/python
 #########################################################################
 # File Name: compareBs.py
 # Author: LiHongjin
@@ -8,7 +8,7 @@
 # usage:
 #       python ./% <beginFrm> <endFrm> <ctuSize>
 
-import sys
+import sys, os
 
 mc_file_line_idx = 0
 dblk_file_line_idx = 0
@@ -37,7 +37,7 @@ def readBsFromMc(bs_dic, file):
     while True:
         line = file.readline()
         if (not line):
-            print("mc reach file eof")
+            print("mc reach file eof line:%d" % (mc_file_line_idx))
             return
         mc_file_line_idx += 1
 
@@ -60,20 +60,39 @@ def readBsFromMc(bs_dic, file):
 
 
 def readBsFromDblk(bs_dic, file, ctu_size):
-    x_range = ctu_size / 4;
-    y_range = ctu_size / 4;
     global dblk_file_line_idx
+    # x_range = ctu_size / 4;
+    # y_range = ctu_size / 4;
 
-    for y in range(y_range):
-        for x in range(x_range):
-            line = file.readline()
-            if (not line):
-                print("dblk reach file eof")
-                return
-            dblk_file_line_idx += 1
-            bsV = readBit(0, 0, line)
-            bsH = readBit(1, 1, line)
-            bs_dic[(x, y)] =  [bsH, bsV, dblk_file_line_idx]
+    # for y in range(y_range):
+    #     for x in range(x_range):
+    #         line = file.readline()
+    #         if (not line):
+    #             print("dblk reach file eof")
+    #             return
+    #         dblk_file_line_idx += 1
+    #         bsV = readBit(0, 0, line)
+    #         bsH = readBit(1, 1, line)
+    #         bs_dic[(x, y)] =  [bsH, bsV, dblk_file_line_idx]
+
+    while True:
+        line = file.readline()
+        if (not line):
+            print("dblk reach file eof line:%d" % (dblk_file_line_idx))
+            return
+        dblk_file_line_idx += 1
+
+        bsV = readBit(0, 0, line)
+        bsH = readBit(1, 1, line)
+        loc_x = readBit(8, 11, line)
+        loc_y = readBit(12, 15, line)
+
+        endFlag = readBit(4, 7, line)
+        if endFlag:
+            break
+
+        bs_dic[(loc_x, loc_y)] = [bsH, bsV, dblk_file_line_idx]
+
 
 
 def compareBs(dic_a, dic_b):
@@ -89,9 +108,16 @@ def compareBs(dic_a, dic_b):
     return result
 
 def main():
+    if (int(len(sys.argv) - 1 < 2)):
+        print("error: arg cnt {} < 2".format(len(sys.argv) - 1))
+        print("usage:")
+        print("    python ./% <beginFrm> <endFrm> [<ctuSize>]    ctuSize default is 64")
+        exit(0)
     begin = int(sys.argv[1])
     end = int(sys.argv[2])
-    ctuSize = int(sys.argv[3])
+    ctuSize = 64
+    if (int(len(sys.argv) - 1 >= 3)):
+        ctuSize = int(sys.argv[3])
 
     mc_bs = {}
     dblk_bs = {}
@@ -101,8 +127,17 @@ def main():
         rootDir = "testOut/Frame"
         mc_file = rootDir + str(frmIdx + begin).zfill(4) + "/mc_data_bs_out.dat"
         dblk_file = rootDir + str(frmIdx + begin).zfill(4) + "/filterd_inter_luma_bs.dat"
-        file_mc = open(mc_file, mode='r')
-        file_dblk = open(dblk_file, mode='r')
+
+        if os.path.exists(mc_file):
+            file_mc = open(mc_file, mode='r')
+        else:
+            print("file %s is not exit" % (mc_file))
+            exit(0)
+        if os.path.exists(dblk_file):
+            file_dblk = open(dblk_file, mode='r')
+        else:
+            print("file %s is not exit" % (dblk_file))
+            exit(0)
         file_mc.seek(0, 2)
         file_dblk.seek(0, 2)
         mc_eof = file_mc.tell()
@@ -114,8 +149,6 @@ def main():
         print("======> frame %d <======" % (frmIdx + begin))
         print("==> mc file:{}".format(mc_file))
         print("==> dblk file:{}".format(dblk_file))
-        initDic(mc_bs, ctuSize)
-        initDic(dblk_bs, ctuSize)
         global mc_file_line_idx
         global dblk_file_line_idx
         mc_file_line_idx = 0
