@@ -1,6 +1,9 @@
 #!/opt/homebrew/anaconda3/bin/python
 
 # conver 16 hexadecimal bit to 10 hexadecimal val
+'''
+intput:0x3bac3
+'''
 
 import ctypes
 

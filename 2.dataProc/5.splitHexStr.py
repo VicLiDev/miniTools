@@ -2,6 +2,7 @@
 
 '''
 cat log.txt | python 15.splitHexStr.py
+echo "abc" | python 5.splitHexStr.py
 '''
 
 import os
