@@ -34,7 +34,7 @@ do
     esac
 done
 
-if [ cmd_proc == "null" ]; then
+if [ $cmd_proc == "null" ]; then
     echo "proc is null"
     exit 0
 fi

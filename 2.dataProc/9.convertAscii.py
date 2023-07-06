@@ -14,7 +14,7 @@ intput:0x9313233
 
 if __name__ == '__main__':
     while True:
-        val = input('input ascii(ex:123) or hex(ex:0x93035) or q(quit):').strip()
+        val = input('\ninput ascii(ex:123) or hex(ex:0x93035) or q(quit):').strip()
         if val == 'q':
             exit(0)
         if val == '':
@@ -22,8 +22,6 @@ if __name__ == '__main__':
 
         try:
             if val[:2] == '0x' or val[:2] == '0X':
-                print(len(val[2:]))
-
                 hexdataTmp = val[2:]
                 hexdatalist = []
                 chrdatalist = []
