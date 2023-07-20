@@ -39,30 +39,25 @@ if [ $cmd_proc == "null" ]; then
     exit 0
 fi
 
+echo "======> cmd <======"
 echo "proc: $cmd_proc"
 echo "build: $cmd_build"
 echo "build test: $cmd_build_test"
 echo "debug: $cmd_debug"
 echo "batch test: $cmd_batch"
+echo "======> cmd <======"
 
 # ============ check ============
 function resultCheck()
 {
-    checkCnt=10
-    for ((loop=0; loop<checkCnt; loop++))
+    begin=$1
+    end=$2
+    fileName=$3
+    echo "======> result check -- ${fileName} begin <======"
+    for ((loop=${begin}; loop<${end}; loop++))
     do
-        # file1="testOut/Frame000${loop}/loopfilter_sao_out_check.txt"
-        # file2="testOut/Frame000${loop}/loopfilter_sao_data.dat"
-
-        # file1="testOut/Frame000${loop}/loopfilter_data.dat"
-        # file2="testOut/Frame000${loop}/loopfilter_data_ver.dat"
-
-        # file1="testOut/Frame000${loop}/loopfilter_origin_data.dat"
-        # file2="testOut/Frame000${loop}/loopfilter_origin_data_ver.dat"
-
-        file1="testOut/Frame000${loop}/filterd_dblk_mid_ver.dat"
-        file2="Frame000${loop}/filterd_dblk_mid_ver.dat"
-
+        file1="bak/Frame000${loop}/${fileName}"
+        file2="build/Frame000${loop}/${fileName}"
         if [[ -e ${file1} ]] && [[ -e ${file2} ]]; then
             # echo "file1: ${file1}"
             # echo "file2: ${file2}"
@@ -76,6 +71,7 @@ function resultCheck()
             fi
         fi
     done
+    echo "======> result check -- ${fileName} end <======"
 }
 
 # ============ build ============
@@ -267,9 +263,9 @@ function runVp9Batch()
 function runAvcBatch()
 {
     bash ~/Projects/batch_test.sh avc /test_data/allegro_h264_stream \
+        && bash ~/Projects/batch_test.sh avc /test_data/fpga_packet/normal_resolution/h264 \
         && bash ~/Projects/batch_test.sh avc /test_data/customer_error_stream/h264 \
         && bash ~/Projects/batch_test.sh avc /test_data/error_stream_rk/err_stream_264 \
-        && bash ~/Projects/batch_test.sh avc /test_data/fpga_packet/normal_resolution/h264 \
         && bash ~/Projects/batch_test.sh avc /test_data/fpga_packet/super_resolution/encoder_test/h264 \
         && bash ~/Projects/batch_test.sh avc /test_data/fpga_packet/super_resolution/h264 \
         && bash ~/Projects/batch_test.sh avc /test_data/super_resolution_stream/h264
@@ -304,4 +300,16 @@ else
     fi
 fi
 
-# resultCheck
+resultCheck 0 5 filterd_cblk_cmd.dat
+resultCheck 0 5 filterd_cmd_parser_out_filterd_ctu_cmd.dat
+resultCheck 0 5 filterd_cmd_parser_out_col_tile_cmd.dat
+resultCheck 0 5 filterd_cmd_parser_out_fgs_tile_cmd.dat
+resultCheck 0 5 filterd_cmd_parser_out_pp_tile_cmd.dat
+resultCheck 0 5 filterd_cmd_parser_out_row_tile_cmd.dat
+resultCheck 0 5 filterd_cmd_parser_out_dblk_calc_para.dat
+resultCheck 0 5 filterd_cmd_parser_out_sao_cdef_ctu_para.dat
+resultCheck 0 5 filterd_cmd_parser_out_sao_cdef_tile_cmd.dat
+resultCheck 0 5 filterd_dblk_in_oblk_cmd.dat
+resultCheck 0 5 filterd_dblk_out_oblk_cmd.dat
+resultCheck 0 5 filterd_dblk_out_pblk_cmd.dat
+resultCheck 0 5 filterd_dblk_out_sblk_cmd.dat
