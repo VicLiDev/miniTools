@@ -20,6 +20,7 @@ rkut_help(){
     echo "  b   download boot.img"
     echo "  z   download zboot.img"
     echo "  k   download kernel.img"
+    echo "  re  download resource.img"
     echo "  i   download update.img"
 }
 
@@ -56,6 +57,11 @@ else
             echo "========> writing kernel.img <========" && echo
             echo "File: ${IMAGE_PATH}/kernel.img"
             sudo upgrade_tool di -k ${IMAGE_PATH}/kernel.img 
+            ;;
+        're')
+            echo "========> writing resource.img <========" && echo
+            echo "File: ${IMAGE_PATH}/resource.img"
+            sudo upgrade_tool di -re ${IMAGE_PATH}/resource.img 
             ;;
         'i')
             echo "========> writing update.img <========" && echo
