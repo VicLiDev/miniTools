@@ -1,10 +1,10 @@
+#!/bin/bash
 #########################################################################
 # File Name: adbdebug.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Thu Jul 21 10:03:21 2022
 #########################################################################
-#!/bin/bash
 
 help(){
     echo "<app> l : select lldb"
