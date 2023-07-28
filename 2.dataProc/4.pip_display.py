@@ -12,7 +12,8 @@ import time
 def init_pic(frmW, frmH, flag, delay=0):
     for y in range(frmH):
         for x in range(frmW):
-            print('\033[{};{}H'.format(y, x) + flag, end="", flush=True)
+            # prn is 1-base
+            print('\033[{};{}H'.format(y + 1, x + 1) + flag, end="", flush=True)
             time.sleep(delay)
         print()
 
