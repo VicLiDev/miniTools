@@ -289,10 +289,12 @@ if [ $cmd_build_test == true ]; then
     cd "${rootDir}/c_model_vp9_10bit/libvpx-1.11.0/build/" && buildVp9 && runSig vp9
 else
     if [ $cmd_build == true ]; then
+        # first letter up
         build${cmd_proc^}
     fi
     if [ $? -eq 0 ]; then
         if [ $cmd_batch == true ]; then
+            # first letter up
             run${cmd_proc^}Batch
         else
             runSig $cmd_proc $cmd_debug
