@@ -30,7 +30,7 @@ if __name__ == '__main__':
         nums_str_hex = line.split()[0]
         nums_str_bin_src = ""
         nums_str_bin_dst_split = ""
-        
+
         # convert to bin
         for loop in range(len(nums_str_hex)):
             nums_str_bin_src += str(bin(int(nums_str_hex[loop], 16))[2:]).zfill(4)
