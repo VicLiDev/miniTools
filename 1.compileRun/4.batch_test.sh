@@ -1,22 +1,62 @@
+#!/bin/bash
 #########################################################################
 # File Name: 12.batch_test.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Mon Nov 21 15:06:58 2022
 #########################################################################
-#!/bin/bash
 
 # usage:
 #    1. modify test cmd
 #    2. run test script and specify the test video root directory
 
-# ex: bash ~/Projects/batch_test.c av1 /test_data/Allegro_AV1/Syntax_Main_10bits
+# ex: bash batch_test.c av1 /test_data/Allegro_AV1/Syntax_Main_10bits
 
 clear
 
 logfile="batch_test_log.txt"
 # logfile=/dev/null
 
+curPath=`pwd`
+echo "curPath: $curPath"
+curDir=${curPath#*c_model*/}
+echo "curDir: $curDir"
+rootPath=${curPath%/$curDir}
+echo "rootPath: $rootPath"
+
+proc=$1
+
+function cdDir()
+{
+    workDir=""
+    case $1 in
+        "av1")
+            workDir="${rootPath}/c_model_av1/build/"
+            ;;
+        "avs2")
+            workDir="${rootPath}/c_model_avs2/RD19.5/"
+            ;;
+        "vp9")
+            workDir="${rootPath}/c_model_vp9_10bit/libvpx-1.11.0/build/"
+            ;;
+        "avc")
+            workDir="${rootPath}/c_model_h264_v2/jm18.6/"
+            ;;
+        "hevc")
+            workDir="${rootPath}/c_model_hevc_v2/build/"
+            ;;
+        *)
+            echo "unsupport proc: $1"
+            ;;
+    esac
+
+    if [ ! -d "$workDir" ]; then
+        echo "dir $workDir is not exist"
+        exit 0
+    else
+        cd $workDir
+    fi
+}
 
 # check result
 function av1ResultCheck()
@@ -60,8 +100,8 @@ function avcResultCheck()
 }
 
 if [ -e $logfile ]; then
-    # echo "log file have already exit, old log file while be rm"
-    # rm $logfile
+    echo "log file have already exit, old log file while be rm"
+    rm $logfile
     echo
 fi
 
@@ -73,15 +113,15 @@ date | tee -a $logfile
 rootDir=$2
 # av1 hevc avs2 vp9 avc
 testCmdAV1="./aomdec -o testOut/output.yuv -b 2 -e 5 -c av1_vdp_cfg -g av1_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d testOut"
-# testCmdHEVC="./hm -b 3 -e 5 -g hevc_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d testOut"
-# testCmdHEVC="./hm -b 3 -e 5 -g hevc_cmodel_cfg -f loopfilter=0x4000000380 -d testOut"
-testCmdHEVC="./hm -b 3 -e 5 -g hevc_cmodel_cfg -f loopfilter=0x79 -d testOut"
-testCmdAVS2="./Lbuild/bin/ldecod -o output/rec.yuv -b 0 -e 5 -c source/bin/avs2_vdp_dec_cfg -g source/bin/avs2_file_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d testOut"
-testCmdVP9="./vpxdec -o testOut/rec.yuv -b 3 -e 5 -c vp9_vdp_cfg -g vp9_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d testOut"
-testCmdAVC="./build/jm -b 3 -e 5 -c build/h264_vdp_cfg -g build/h264_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d build"
+testCmdHEVC="./hm -b 3 -e 5 -g hevc_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d testOut"
+testCmdAVS2="./Lbuild/bin/ldecod -o output/rec.yuv -b 0 -e 5 -g source/bin/avs2_file_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d testOut"
+testCmdVP9="./vpxdec -o testOut/rec.yuv -b 3 -e 5 -g vp9_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d testOut"
+testCmdAVC="./build/jm -b 3 -e 5 -g build/h264_cmodel_cfg -f loopfilter=0xFFFFFFFFFFFFFFFF -d build"
 testCmd=$testCmdAV1
 
-case $1 in
+cdDir $proc
+
+case ${proc} in
     "av1")
         testCmd=$testCmdAV1
         ;;
@@ -113,7 +153,7 @@ echo "ignore cnt: `expr $ignoreCnt`" | tee -a $logfile
 for file in `find ${rootDir}`
 do
     # ======> ignore file <======
-    # if [ -d ${file} ] \
+    # if [ -e ${file} ] \
     #     || [[ ${file} =~ pdf$ ]] \
     #     || [[ ${file} =~ pgp$ ]] \
     #     || [[ ${file} =~ html$ ]] \
@@ -131,7 +171,7 @@ do
     #     echo "ianore file: ${file}"
     # fi
 
-    if [ -d ${file} ]; then
+    if [ ! -e ${file} ]; then
         continue
     fi
 
@@ -203,7 +243,7 @@ do
         # break
     fi
     # ----- result check ------
-    case $1 in
+    case ${proc} in
         "av1")
             av1ResultCheck
             ;;

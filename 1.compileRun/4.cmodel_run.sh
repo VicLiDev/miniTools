@@ -3,7 +3,16 @@
 # example: lhjRun.sh <proc> [<b>] [<bt>] [<gdb>] [<batch>]
 clear
 
-rootDir="/local/lhj/Projects/c_model2"
+# ============ base ============
+curScriptPath=`dirname $0`
+echo "curScriptPath: $curScriptPath"
+curPath=`pwd`
+echo "curPath: $curPath"
+curDir=${curPath#*c_model*/}
+echo "curDir: $curDir"
+rootPath=${curPath%/$curDir}
+echo "rootPath: $rootPath"
+
 cmd_proc="null"
 cmd_build=false
 cmd_build_test=false
@@ -36,7 +45,6 @@ done
 
 if [ $cmd_proc == "null" ]; then
     echo "proc is null"
-    exit 0
 fi
 
 echo "======> cmd <======"
@@ -46,6 +54,38 @@ echo "build test: $cmd_build_test"
 echo "debug: $cmd_debug"
 echo "batch test: $cmd_batch"
 echo "======> cmd <======"
+
+function cdDir()
+{
+    workDir=""
+    case $1 in
+        "av1")
+            workDir="${rootPath}/c_model_av1/build/"
+            ;;
+        "avs2")
+            workDir="${rootPath}/c_model_avs2/RD19.5/"
+            ;;
+        "vp9")
+            workDir="${rootPath}/c_model_vp9_10bit/libvpx-1.11.0/build/"
+            ;;
+        "avc")
+            workDir="${rootPath}/c_model_h264_v2/jm18.6/"
+            ;;
+        "hevc")
+            workDir="${rootPath}/c_model_hevc_v2/build/"
+            ;;
+        *)
+            echo "unsupport proc: $1"
+            ;;
+    esac
+
+    if [ ! -d "$workDir" ]; then
+        echo "dir $workDir is not exist"
+        exit 0
+    else
+        cd $workDir
+    fi
+}
 
 # ============ check ============
 function resultCheck()
@@ -78,6 +118,8 @@ function resultCheck()
 
 function buildAv1()
 {
+    cdDir "av1"
+
     # rm CMake* Makefile aom* cmake_install.cmake config examples gen_src libaom_srcs.* resize_util -r
 
     # make clean &&
@@ -97,6 +139,8 @@ function buildAv1()
 
 function buildHevc()
 {
+    cdDir "hevc"
+
     # rm CMake* Makefile aom* cmake_install.cmake config examples gen_src libaom_srcs.* resize_util -r
 
     # make clean &&
@@ -112,6 +156,8 @@ function buildHevc()
 
 function buildAvs2()
 {
+    cdDir "avs2"
+
     # rm CMake* Makefile aom* cmake_install.cmake config examples gen_src libaom_srcs.* resize_util -r
     cd Lbuild
     make clean &&
@@ -126,6 +172,8 @@ function buildAvs2()
 
 function buildVp9()
 {
+    cdDir "vp9"
+
     # ./config.sh &&
     ./config.sh \
         --disable-vp8 \
@@ -148,12 +196,14 @@ function buildVp9()
         --disable-avx512 \
         --as=yasm \
         --enable-hardware &&
-        make -B -j 6
+        make -B
         # make clean &&
 }
 
 function buildAvc()
 {
+    cdDir "avc"
+
     make clean \
         && make -j 20
 }
@@ -162,6 +212,8 @@ function buildAvc()
 
 function runSig()
 {
+    cdDir $1
+
     av1Cmd="./aomdec \
         -i /path/to/video \
         -o testOut/output.yuv \
@@ -218,75 +270,75 @@ function runSig()
 
 function runAv1Batch()
 {
-    bash ~/Projects/batch_test.sh av1 /test_data/Allegro_AV1 \
-        && bash ~/Projects/batch_test.sh av1 /test_data/Allegro_AV1_2020_09_28 \
-        && bash ~/Projects/batch_test.sh av1 /test_data/movie_video_testdata/av1
+    bash ${curScriptPath}/batch_test.sh av1 /test_data/Allegro_AV1 \
+        && bash ${curScriptPath}/batch_test.sh av1 /test_data/Allegro_AV1_2020_09_28 \
+        && bash ${curScriptPath}/batch_test.sh av1 /test_data/movie_video_testdata/av1
 }
 
 function runHevcBatch()
 {
-    bash ~/Projects/batch_test.sh hevc /test_data/allegro_hevc_stream \
-        && bash ~/Projects/batch_test.sh hevc /test_data/argon_streams_hevc_rockchip \
-        && bash ~/Projects/batch_test.sh hevc /test_data/argon_streams_hevc_rockchip2 \
-        && bash ~/Projects/batch_test.sh hevc /test_data/argon_streams_hevc_rockchip4 \
-        && bash ~/Projects/batch_test.sh hevc /test_data/customer_error_stream/h265 \
-        && bash ~/Projects/batch_test.sh hevc /test_data/error_stream_rk/err_stream_265 \
-        && bash ~/Projects/batch_test.sh hevc /test_data/fpga_packet/normal_resolution/hevc \
-        && bash ~/Projects/batch_test.sh hevc /test_data/fpga_packet/super_resolution/encoder_test/hevc \
-        && bash ~/Projects/batch_test.sh hevc /test_data/fpga_packet/super_resolution/hevc \
-        && bash ~/Projects/batch_test.sh hevc /test_data/hm-15.0-anchors \
-        && bash ~/Projects/batch_test.sh hevc /test_data/mvc_stream_rk/H.265_mvc_stream \
-        && bash ~/Projects/batch_test.sh hevc /test_data/movie_video_testdata/hevc \
-        && bash ~/Projects/batch_test.sh hevc /test_data/super_resolution_stream/hevc \
-        && bash ~/Projects/batch_test.sh hevc /test_data/super_resolution_stream/encoder_test/hevc
+    bash ${curScriptPath}/batch_test.sh hevc /test_data/allegro_hevc_stream \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/argon_streams_hevc_rockchip \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/argon_streams_hevc_rockchip2 \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/argon_streams_hevc_rockchip4 \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/customer_error_stream/h265 \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/error_stream_rk/err_stream_265 \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/fpga_packet/normal_resolution/hevc \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/fpga_packet/super_resolution/encoder_test/hevc \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/fpga_packet/super_resolution/hevc \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/hm-15.0-anchors \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/mvc_stream_rk/H.265_mvc_stream \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/movie_video_testdata/hevc \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/super_resolution_stream/hevc \
+        && bash ${curScriptPath}/batch_test.sh hevc /test_data/super_resolution_stream/encoder_test/hevc
 }
 
 function runAvs2Batch()
 {
-    bash ~/Projects/batch_test.sh avs2 /test_data/AVS2_allegro \
-        && bash ~/Projects/batch_test.sh avs2 /test_data/avs2_rockchip \
-        && bash ~/Projects/batch_test.sh avs2 /test_data/avs2_standard_workgroup \
-        && bash ~/Projects/batch_test.sh avs2 /test_data/error_stream_rk/avs2_err_stream \
-        && bash ~/Projects/batch_test.sh avs2 /test_data/fpga_packet/normal_resolution/avs2 \
-        && bash ~/Projects/batch_test.sh avs2 /test_data/fpga_packet/super_resolution/avs2 \
-        && bash ~/Projects/batch_test.sh avs2 /test_data/super_resolution_stream/avs2
+    bash ${curScriptPath}/batch_test.sh avs2 /test_data/AVS2_allegro \
+        && bash ${curScriptPath}/batch_test.sh avs2 /test_data/avs2_rockchip \
+        && bash ${curScriptPath}/batch_test.sh avs2 /test_data/avs2_standard_workgroup \
+        && bash ${curScriptPath}/batch_test.sh avs2 /test_data/error_stream_rk/avs2_err_stream \
+        && bash ${curScriptPath}/batch_test.sh avs2 /test_data/fpga_packet/normal_resolution/avs2 \
+        && bash ${curScriptPath}/batch_test.sh avs2 /test_data/fpga_packet/super_resolution/avs2 \
+        && bash ${curScriptPath}/batch_test.sh avs2 /test_data/super_resolution_stream/avs2
 }
 
 function runVp9Batch()
 {
-    bash ~/Projects/batch_test.sh vp9 /test_data/argon_streams_vp9_rockchip \
-        && bash ~/Projects/batch_test.sh vp9 /test_data/fpga_packet/normal_resolution/vp9 \
-        && bash ~/Projects/batch_test.sh vp9 /test_data/fpga_packet/super_resolution/vp9 \
-        && bash ~/Projects/batch_test.sh vp9 /test_data/super_resolution_stream/vp9
+    bash ${curScriptPath}/batch_test.sh vp9 /test_data/argon_streams_vp9_rockchip \
+        && bash ${curScriptPath}/batch_test.sh vp9 /test_data/fpga_packet/normal_resolution/vp9 \
+        && bash ${curScriptPath}/batch_test.sh vp9 /test_data/fpga_packet/super_resolution/vp9 \
+        && bash ${curScriptPath}/batch_test.sh vp9 /test_data/super_resolution_stream/vp9
 }
 
 function runAvcBatch()
 {
-    bash ~/Projects/batch_test.sh avc /test_data/allegro_h264_stream \
-        && bash ~/Projects/batch_test.sh avc /test_data/fpga_packet/normal_resolution/h264 \
-        && bash ~/Projects/batch_test.sh avc /test_data/customer_error_stream/h264 \
-        && bash ~/Projects/batch_test.sh avc /test_data/error_stream_rk/err_stream_264 \
-        && bash ~/Projects/batch_test.sh avc /test_data/fpga_packet/super_resolution/encoder_test/h264 \
-        && bash ~/Projects/batch_test.sh avc /test_data/fpga_packet/super_resolution/h264 \
-        && bash ~/Projects/batch_test.sh avc /test_data/super_resolution_stream/h264
-        # && bash ~/Projects/batch_test.sh avc /test_data/super_resolution_stream/encoder_test/h264
+    bash ${curScriptPath}/batch_test.sh avc /test_data/allegro_h264_stream \
+        && bash ${curScriptPath}/batch_test.sh avc /test_data/fpga_packet/normal_resolution/h264 \
+        && bash ${curScriptPath}/batch_test.sh avc /test_data/customer_error_stream/h264 \
+        && bash ${curScriptPath}/batch_test.sh avc /test_data/error_stream_rk/err_stream_264 \
+        && bash ${curScriptPath}/batch_test.sh avc /test_data/fpga_packet/super_resolution/encoder_test/h264 \
+        && bash ${curScriptPath}/batch_test.sh avc /test_data/fpga_packet/super_resolution/h264 \
+        && bash ${curScriptPath}/batch_test.sh avc /test_data/super_resolution_stream/h264
+        # && bash ${curScriptPath}/batch_test.sh avc /test_data/super_resolution_stream/encoder_test/h264
 }
 
 # ============ main ============
 if [ $cmd_build_test == true ]; then
-    cd "${rootDir}/c_model_av1/build/" && buildAv1 && runSig av1
+    buildAv1 && runSig av1
     read -p "continue? [y/n]:" runOpt; if [ "$runOpt" == "n" ];then exit 0; fi
     
-    cd "${rootDir}/c_model_avs2/RD19.5/" && buildAvs2 && runSig avs2
+    buildAvs2 && runSig avs2
     read -p "continue? [y/n]:" runOpt; if [ "$runOpt" == "n" ];then exit 0; fi
     
-    cd "${rootDir}/c_model_h264_v2/jm18.6/" && buildAvc && runSig avc
+    buildAvc && runSig avc
     read -p "continue? [y/n]:" runOpt; if [ "$runOpt" == "n" ];then exit 0; fi
     
-    cd "${rootDir}/c_model_hevc_v2/build/" && buildHevc && runSig hevc
+    buildHevc && runSig hevc
     read -p "continue? [y/n]:" runOpt; if [ "$runOpt" == "n" ];then exit 0; fi
     
-    cd "${rootDir}/c_model_vp9_10bit/libvpx-1.11.0/build/" && buildVp9 && runSig vp9
+    buildVp9 && runSig vp9
 else
     if [ $cmd_build == true ]; then
         # first letter up

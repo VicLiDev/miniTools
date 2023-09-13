@@ -11,10 +11,10 @@ if __name__ == '__main__':
     while True:
         val = input('to set bit or q(quit): ').strip()
         if val == 'q':
-            print("final para: 0x%x" % (para))
             exit(0)
         if val == '':
             continue
 
         bitloc = int(val)
         para |= 1 << bitloc
+        print("final para: 0x%x" % (para))
