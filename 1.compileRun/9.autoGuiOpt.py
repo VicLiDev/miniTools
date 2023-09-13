@@ -15,26 +15,23 @@ except Exception as err_info:
     print(err_info)
     exit(0)
 
-
-# 定义你要周期运行的函数
-def job():
-    print("==> screen size")
-    time.sleep(1)
+def dumpInfo():
+    print("==> gui info:")
+    print("--> screen size")
     # Get the size of the primary monitor.
     screenWidth, screenHeight = pyautogui.size()
-    print(screenWidth, screenHeight)
-    time.sleep(1)
-    print()
-    
-    print("==> cur mouse loc")
-    time.sleep(1)
+    print("screen size: (%d, %d)" % (screenWidth, screenHeight))
+
+    print("--> cur mouse loc")
     # Get the XY position of the mouse.
     currentMouseX, currentMouseY = pyautogui.position()
-    print("mouse loc", currentMouseX, currentMouseY)
-    time.sleep(1)
+    print("mouse loc: (%d, %d)" % (currentMouseX, currentMouseY))
     print()
-    
-    print("==> move to button and click button")
+
+# 定义你要周期运行的函数
+def printerCheck():
+    print("==> printer check begin...")
+    print("--> move to button and click button")
     time.sleep(1)
     # Find where button.png appears on the screen and click it.
     try:
@@ -43,6 +40,27 @@ def job():
         print("errinfo:")
         print(err_info)
         print("maybe connot find button")
+    print("==> printer check finish")
+    print()
+
+def printerClean():
+    print("==> printer clean begin...")
+    print("--> move to button and click button")
+    time.sleep(1)
+    # Find where button.png appears on the screen and click it.
+    try:
+        pyautogui.click('cleaning.png')
+        time.sleep(1)
+        pyautogui.click('ok.png')
+        time.sleep(1)
+        pyautogui.click('ok.png')
+        time.sleep(15)
+        pyautogui.click('ok.png')
+    except Exception as err_info:
+        print("errinfo:")
+        print(err_info)
+        print("maybe connot find button")
+    print("==> printer clean finish")
     print()
 
 if __name__ == '__main__':
@@ -51,14 +69,18 @@ if __name__ == '__main__':
 
     # 按时间间隔执行
     # schedule.every().second.do(job)
-    # schedule.every(1).minutes.do(job)               # 每隔 1 分钟运行一次 job 函数
+    #-- schedule.every(1).second.do(printerCheck)
+    #-- schedule.every(1).second.do(printerClean)
+    # schedule.every(1).minutes.do(printerCheck)               # 每隔 1 分钟运行一次
+    # schedule.every(1).minutes.do(printerClean)               # 每隔 1 分钟运行一次
     # schedule.every().hour.do(job)                    # 每隔 1 小时运行一次 job 函数
 
     # 按时间周期执行
     # schedule.every().minute.at(":17").do(job)        # 每分钟的 17 秒时间点运行 job 函数
     # schedule.every().day.at("10:30").do(job)         # 每天在 10:30 时间点运行 job 函数
-    schedule.every().tuesday.at("20:00").do(job)        # 每周二 20:00 时间点运行 job 函数
-    schedule.every().saturday.at("20:00").do(job)      # 每周六 20:00 时间点运行 job 函数
+    schedule.every().tuesday.at("20:00").do(printerCheck)       # 每周二 20:00 时间点运行
+    schedule.every().saturday.at("20:00").do(printerCheck)      # 每周六 20:00 时间点运行
+    schedule.every().saturday.at("20:30").do(printerClean)      # 每周六 20:30 时间点运行
 
     # 在指定时间停止
     # schedule.every(1).hours.until("18:30").do(job)                                     # 每个小时运行作业，18:30后停止
@@ -76,13 +98,16 @@ if __name__ == '__main__':
     # friends = schedule.get_jobs('friend')
     # # 取消所有 daily-tasks 标签的任务
     # schedule.clear('daily-tasks')
-    
+
     # 如果某个机制触发了，你需要立即运行所有作业，可以调用schedule.run_all():
     # schedule.run_all()
     # 立即运行所有作业，每次作业间隔10秒
     # schedule.run_all(delay_seconds=10)
     all_jobs = schedule.get_jobs()
-    print(all_jobs)
+    for job_tmp in all_jobs:
+        print(job_tmp)
+
+    dumpInfo()
 
     # schedule其实就只是个定时器。在while True死循环中，schedule.run_pending()是保持schedule一直运行，去查询上面那一堆的任务
     while True:
