@@ -20,10 +20,10 @@ except Exception as err_info:
 
 # 定义你要周期运行的函数
 def job():
-    print("I'm working...")
+    print("{} I'm working...".format(datetime.datetime.now()))
 
 def job2():
-    print("I'm working2...")
+    print("{} I'm working2...".format(datetime.datetime.now()))
 
 if __name__ == '__main__':
     # 调用scedule.every(间隔).时间类型.do(job) 发布周期任务

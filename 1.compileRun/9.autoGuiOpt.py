@@ -16,7 +16,7 @@ except Exception as err_info:
     exit(0)
 
 def dumpInfo():
-    print("==> gui info:")
+    print("{} ==> gui info:".format(datetime.datetime.now()))
     print("--> screen size")
     # Get the size of the primary monitor.
     screenWidth, screenHeight = pyautogui.size()
@@ -30,7 +30,7 @@ def dumpInfo():
 
 # 定义你要周期运行的函数
 def printerCheck():
-    print("==> printer check begin...")
+    print("{} ==> printer check begin...".format(datetime.datetime.now()))
     print("--> move to button and click button")
     time.sleep(1)
     # Find where button.png appears on the screen and click it.
@@ -44,7 +44,7 @@ def printerCheck():
     print()
 
 def printerClean():
-    print("==> printer clean begin...")
+    print("{} ==> printer clean begin...".format(datetime.datetime.now()))
     print("--> move to button and click button")
     time.sleep(1)
     # Find where button.png appears on the screen and click it.
