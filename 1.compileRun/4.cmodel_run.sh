@@ -148,8 +148,8 @@ function buildHevc()
     #     make -j 10
 
     # cmake .. -DCMAKE_BUILD_TYPE=Debug -DERR_DETECT=1 -DCONFIG_HARDWARE=1 -DCMAKE_CXX_FLAGS="-Wall" &&
-        make clean &&
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DERR_DETECT=1 -DCONFIG_HARDWARE=1 &&
+    make clean
+    cmake .. -DCMAKE_BUILD_TYPE=Debug -DERR_DETECT=1 -DCONFIG_HARDWARE=1 &&
         make -j 10 &&
         make install
 }
@@ -160,8 +160,8 @@ function buildAvs2()
 
     # rm CMake* Makefile aom* cmake_install.cmake config examples gen_src libaom_srcs.* resize_util -r
     cd Lbuild
-    make clean &&
-        cmake ../source \
+    make clean
+    cmake ../source \
         -DCMAKE_BUILD_TYPE=Debug \
         -DCMAKE_C_COMPILER=/bin/cc \
         -DCMAKE_CXX_COMPILER=/bin/c++ \
@@ -204,8 +204,8 @@ function buildAvc()
 {
     cdDir "avc"
 
-    make clean \
-        && make -j 20
+    make clean
+    make -j 20
 }
 
 # ============ run ============
