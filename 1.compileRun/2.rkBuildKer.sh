@@ -117,6 +117,6 @@ echo "cur dir: `pwd`"
 cp boot.img ~/test
 
 echo "======> download boot.img <======"
-rkut.sh b
+rkUT.sh b
 
 set +e
