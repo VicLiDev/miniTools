@@ -98,9 +98,14 @@ do
 
                 if [ $? -eq 0 ]; then
                     echo "======> push lib and demo to dev <======"
-                    adb push mpp/librockchip_mpp.so.0 /usr/lib64 \
-                    adb push mpp/legacy/librockchip_vpu.so.0 /usr/lib64 \
+                    adb push mpp/librockchip_mpp.so.0 /usr/lib64
+                    adb push mpp/legacy/librockchip_vpu.so.0 /usr/lib64
                     adb push test/mpi_dec_test /usr/bin
+                    adb push test/mpi_enc_test /usr/bin
+                    adb push mpp/librockchip_mpp.so.0 /oem/usr/lib
+                    adb push mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
+                    adb push test/mpi_dec_test /oem/usr/bin
+                    adb push test/mpi_enc_test /oem/usr/bin
                 else
                     echo "======> build mpp error! <======"
                 fi
