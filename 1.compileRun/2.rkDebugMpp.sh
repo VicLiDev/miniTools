@@ -87,19 +87,20 @@ dbgLldb()
     
     # client
     debugCmdFile="debug.lldb"
-    if [ ! -e $debugCmdFile ];then
-        echo "platform select remote-android" > $debugCmdFile
-        echo "platform connect connect://${devName}:$listenP" >> $debugCmdFile
-        echo "platform settings -w /vendor/bin" >> $debugCmdFile
-        echo "file mpi_dec_test" >> $debugCmdFile
-        echo "b main" >> $debugCmdFile
-        echo "r -i" >> $debugCmdFile
+    if [ ! -e ${debugCmdFile} ];then
+        echo "platform select remote-android" > ${debugCmdFile}
+        echo "platform connect connect://${devName}:$listenP" >> ${debugCmdFile}
+        echo "platform settings -w /vendor/bin" >> ${debugCmdFile}
+        echo "file mpi_dec_test" >> ${debugCmdFile}
+        echo "b main" >> ${debugCmdFile}
+        echo "r -i" >> ${debugCmdFile}
     fi
-    lldb -s $debugCmdFile
+    lldb -s ${debugCmdFile}
 }
 
 dbgGdb()
 {
+    debugCmdFile="debug.gdb"
     # create dir
     debugDirRoot="${prjRoot}/preinstall"
     debugDirBin=""
@@ -180,41 +181,45 @@ dbgGdb()
 
     # server
     # mpp cmd
-    MppApp="mpi_dec_test"
-    MppPara=" -i /sdcard/benfan.h264"
-    MppCmd="${MppApp} ${MppPara}"
+    if [ -e ${debugCmdFile} ];then
+        MppCmd=`cat ${debugCmdFile} | grep serverCmd | sed 's/.*serverCmd: //g'`;
+    else
+        MppCmd="mpi_dec_test -i /sdcard/test.h264"
+    fi
+    echo "server cmd: ${MppCmd}"
     startSerCmd="${GdbSer} localhost:$listenP ${MppCmd}"
     adb shell $startSerCmd &
+    echo ""
 
 
     # client
-    debugCmdFile="debug.gdb"
-    if [ ! -f $debugCmdFile ];then
-        echo "# pwd: `pwd`" > $debugCmdFile
-        echo "" >> $debugCmdFile
+    if [ ! -e ${debugCmdFile} ];then
+        echo "# pwd: `pwd`" > ${debugCmdFile}
+        echo "# serverCmd: mpi_dec_test -h" >> ${debugCmdFile}
+        echo "" >> ${debugCmdFile}
 
-        echo "# local sets" >> $debugCmdFile
-        echo "# file mpi_dec_test" >> $debugCmdFile
-        echo "# set sysroot preinstall/" >> $debugCmdFile
-        echo "# set solib-search-path preinstall/vendor/lib" >> $debugCmdFile
-        echo "# cd preinstall" >> $debugCmdFile
-        echo "# file vendor/bin/mpi_dec_test" >> $debugCmdFile
-        echo "# load vendor/lib/libmpp.so" >> $debugCmdFile
-        echo "" >> $debugCmdFile
+        echo "# local sets" >> ${debugCmdFile}
+        echo "# file mpi_dec_test" >> ${debugCmdFile}
+        echo "# set sysroot preinstall/" >> ${debugCmdFile}
+        echo "# set solib-search-path preinstall/vendor/lib" >> ${debugCmdFile}
+        echo "# cd preinstall" >> ${debugCmdFile}
+        echo "# file vendor/bin/mpi_dec_test" >> ${debugCmdFile}
+        echo "# load vendor/lib/libmpp.so" >> ${debugCmdFile}
+        echo "" >> ${debugCmdFile}
 
-        echo "# target sets" >> $debugCmdFile
-        echo "target remote :${localP}" >> $debugCmdFile
-        echo "# set sysroot remote:/" >> $debugCmdFile
-        echo "set sysroot preinstall/" >> $debugCmdFile
-        echo "# set solib-search-path target:/vendor/lib:/system/lib" >> $debugCmdFile
-        echo "" >> $debugCmdFile
+        echo "# target sets" >> ${debugCmdFile}
+        echo "target remote :${localP}" >> ${debugCmdFile}
+        echo "# set sysroot remote:/" >> ${debugCmdFile}
+        echo "set sysroot preinstall/" >> ${debugCmdFile}
+        echo "# set solib-search-path target:/vendor/lib:/system/lib" >> ${debugCmdFile}
+        echo "" >> ${debugCmdFile}
 
-        echo "b main" >> $debugCmdFile
-        echo "continue" >> $debugCmdFile
-        echo "layout src" >> $debugCmdFile
+        echo "b main" >> ${debugCmdFile}
+        echo "continue" >> ${debugCmdFile}
+        echo "layout src" >> ${debugCmdFile}
     fi
     # gdb-multiarch
-    ${Gdb} --command="${debugCmdFile}"
+    ${Gdb} --command=${debugCmdFile}
 
 
     adb forward --remove tcp:${localP}
