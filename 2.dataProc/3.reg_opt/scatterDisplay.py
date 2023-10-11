@@ -11,18 +11,18 @@ def _gen_def_point(regCnt):
         xVal.append(tmp)
     del xVal[0]
     # print(xVal)
-    
+
     yVal = list(range(0, 32))
     yVal.extend(yVal * (regCnt-1))
     # print(yVal)
-    
+
     sizes = [[]]
     for i in range(0, regCnt):
         tmp = list([20] * 32)
         sizes.append(tmp)
     del sizes[0]
     # print(sizes)
-    
+
     colors = [[]]
     for i in range(0, regCnt):
         tmp = list([0] * 32)

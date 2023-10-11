@@ -6,7 +6,7 @@
 # Created Time: Wed Aug  9 16:58:55 2023
 #########################################################################
 
-set -e
+# set -e
 
 dbgToolName=""
 dbgPltName=""
@@ -153,26 +153,55 @@ dbgGdb()
 
     # proc gdb tool
     # CCToolsRoot="${HOME}/Projects/prebuilts/toolschain/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf"
-    # GdbPath="bin"
-    # GdbSer="${CCToolsRoot}/${GdbPath}/gdbserver"
+    CCToolsRoot="${HOME}/Projects/prebuilts/gcc/linux-x86"
     if [[ ${dbgPltName} == "android_32" || ${dbgPltName} == "linux_32" ]]; then
-        GdbSer="gdbserver"
+        RemoteGdbSer="gdbserver"
+
+        LocGdbSerPath="arm/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf/bin"
+        LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
+        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/gdbserver; fi
+
+        haveSer=$(adb shell which ${RemoteGdbSer})
+        if [ -z "$haveSer" ]; then
+            echo "push ${debugDirBin}/${RemoteGdbSer} to plt"
+            if [ ${dbgPltName} == "android_32" ]; then
+                adb push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
+            else # [ ${dbgPltName} == "linux_32" ]; then
+                adb push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
+                adb push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
+            fi
+        fi
     elif [[ ${dbgPltName} == "android_64" || ${dbgPltName} == "linux_64" ]]; then
-        GdbSer="gdbserver64"
+        RemoteGdbSer="gdbserver64"
+
+        LocGdbSerPath="aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin"
+        LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
+        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/gdbserver64; fi
+
+        haveSer=$(adb shell which ${RemoteGdbSer})
+        if [ -z "$haveSer" ]; then
+            echo "push ${debugDirBin}/${RemoteGdbSer} to plt"
+            if [ ${dbgPltName} == "android_64" ]; then
+                adb push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
+            else # [ ${dbgPltName} == "linux_64" ]; then
+                adb push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
+                adb push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
+            fi
+        fi
     else
-        echo "GdbSer select error"
+        echo "RemoteGdbSer select error"
     fi
 
     # CCToolsRoot="${HOME}/work/android/ndk/android-ndk-r16b"
     # GdbPath="prebuilt/linux-x86_64/bin"
     # Gdb="${CCToolsRoot}/${GdbPath}/gdb"
-    Gdb="gdb-multiarch"
+    HostGdb="gdb-multiarch"
 
     listenP="8899"
     localP="8898"
 
-    echo "selected gdbserver: ${GdbSer}"
-    echo "selected gdb: ${Gdb}"
+    echo "selected gdbserver: ${RemoteGdbSer}"
+    echo "selected gdb: ${HostGdb}"
     adb forward tcp:${localP} tcp:${listenP}
     echo "adb port map:"
     adb forward --list
@@ -187,7 +216,7 @@ dbgGdb()
         MppCmd="mpi_dec_test -i /sdcard/test.h264"
     fi
     echo "server cmd: ${MppCmd}"
-    startSerCmd="${GdbSer} localhost:$listenP ${MppCmd}"
+    startSerCmd="${RemoteGdbSer} localhost:$listenP ${MppCmd}"
     adb shell $startSerCmd &
     echo ""
 
@@ -219,7 +248,7 @@ dbgGdb()
         echo "layout src" >> ${debugCmdFile}
     fi
     # gdb-multiarch
-    ${Gdb} --command=${debugCmdFile}
+    ${HostGdb} --command=${debugCmdFile}
 
 
     adb forward --remove tcp:${localP}
@@ -238,4 +267,4 @@ if [ "$dbgToolName" = "lldb" ]; then
     dbgLldb
 fi
 
-set +e
+# set +e
