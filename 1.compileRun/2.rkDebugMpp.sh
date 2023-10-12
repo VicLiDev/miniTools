@@ -76,7 +76,8 @@ dbgLldb()
     devName=`adb devices | grep -v "List of devices attached" | cut -f 1`
     listenP="8888"
     echo "selected lldb-server: ${LldbSer}"
-    adb push ${LldbSer} /vendor/bin
+    haveSer=$(adb shell which lldb-server)
+    if [ -z "$haveSer" ]; then adb push ${LldbSer} /vendor/bin; fi
     
     
     # server
@@ -88,7 +89,10 @@ dbgLldb()
     # client
     debugCmdFile="debug.lldb"
     if [ ! -e ${debugCmdFile} ];then
-        echo "platform select remote-android" > ${debugCmdFile}
+        echo "# pwd: `pwd`" > ${debugCmdFile}
+        echo "" >> ${debugCmdFile}
+
+        echo "platform select remote-android" >> ${debugCmdFile}
         echo "platform connect connect://${devName}:$listenP" >> ${debugCmdFile}
         echo "platform settings -w /vendor/bin" >> ${debugCmdFile}
         echo "file mpi_dec_test" >> ${debugCmdFile}
@@ -101,7 +105,9 @@ dbgLldb()
 dbgGdb()
 {
     debugCmdFile="debug.gdb"
-    # create dir
+
+
+    # create host mirror
     debugDirRoot="${prjRoot}/preinstall"
     debugDirBin=""
     debugDirLib=""
@@ -114,7 +120,7 @@ dbgGdb()
         debugDirBin="${debugDirRoot}/vendor/bin"
         debugDirLib="${debugDirRoot}/vendor/lib"
         if [ -e ${debugCmdFile} ]; then
-            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
         else
             binFile="mpi_dec_test"
         fi
