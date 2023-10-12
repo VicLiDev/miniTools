@@ -21,7 +21,7 @@ selectPlatform()
     echo "  3. linux 32"
     echo "  4. linux 64"
     read -p "Please select debug plt:" plt 
-    if [ -n $plt ]; then
+    if [ -n "$plt" ]; then
         case $plt in
             '1')
                 dbgPltName="android_32"
@@ -37,6 +37,9 @@ selectPlatform()
             '4')
                 dbgPltName="linux_64"
                 ;;
+            'q')
+                exit 0
+                ;;
         esac
     else
         plt="1"
@@ -51,7 +54,7 @@ selectTool()
     echo "  1. gdb"
     echo "  2. lldb"
     read -p "Please select debug tool:" dbgTool
-    if [ -n $dbgTool ]; then
+    if [ -n "$dbgTool" ]; then
         case $dbgTool in
             '1')
                 dbgToolName="gdb"
@@ -59,10 +62,13 @@ selectTool()
             '2')
                 dbgToolName="lldb"
                 ;;
+            'q')
+                exit 0
+                ;;
         esac
     else
-        dbgTool="2"
-        dbgToolName="lldb"
+        dbgTool="1"
+        dbgToolName="gdb"
         echo "default dbg tool: $dbgToolName"
     fi
 }

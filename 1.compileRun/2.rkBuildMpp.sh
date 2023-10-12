@@ -41,6 +41,9 @@ do
                     adb push mpp/vproc/iep2/test/iep2_test /vendor/bin/
                     adb push test/mpi_dec_test /vendor/bin/
                     adb push test/mpi_enc_test /vendor/bin/
+                    adb push test/mpi_dec_mt_test /vendor/bin/
+                    adb push test/mpi_dec_multi_test /vendor/bin/
+                    adb push test/mpi_enc_mt_test /vendor/bin/
                 else
                     echo "======> build mpp error! <======"
                 fi
@@ -60,6 +63,9 @@ do
                     adb push mpp/vproc/iep2/test/iep2_test /vendor/bin/
                     adb push test/mpi_dec_test /vendor/bin/
                     adb push test/mpi_enc_test /vendor/bin/
+                    adb push test/mpi_dec_mt_test /vendor/bin/
+                    adb push test/mpi_dec_multi_test /vendor/bin/
+                    adb push test/mpi_enc_mt_test /vendor/bin/
                 else
                     echo "======> build mpp error! <======"
                 fi
@@ -79,10 +85,16 @@ do
                     adb push mpp/legacy/librockchip_vpu.so.0 /usr/lib
                     adb push test/mpi_dec_test /usr/bin
                     adb push test/mpi_enc_test /usr/bin
+                    adb push test/mpi_dec_mt_test /vendor/bin/
+                    adb push test/mpi_dec_multi_test /vendor/bin/
+                    adb push test/mpi_enc_mt_test /vendor/bin/
                     adb push mpp/librockchip_mpp.so.0 /oem/usr/lib
                     adb push mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
                     adb push test/mpi_dec_test /oem/usr/bin
                     adb push test/mpi_enc_test /oem/usr/bin
+                    adb push test/mpi_dec_mt_test /vendor/bin/
+                    adb push test/mpi_dec_multi_test /vendor/bin/
+                    adb push test/mpi_enc_mt_test /vendor/bin/
                 else
                     echo "======> build mpp error! <======"
                 fi
@@ -102,10 +114,16 @@ do
                     adb push mpp/legacy/librockchip_vpu.so.0 /usr/lib64
                     adb push test/mpi_dec_test /usr/bin
                     adb push test/mpi_enc_test /usr/bin
+                    adb push test/mpi_dec_mt_test /vendor/bin/
+                    adb push test/mpi_dec_multi_test /vendor/bin/
+                    adb push test/mpi_enc_mt_test /vendor/bin/
                     adb push mpp/librockchip_mpp.so.0 /oem/usr/lib
                     adb push mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
                     adb push test/mpi_dec_test /oem/usr/bin
                     adb push test/mpi_enc_test /oem/usr/bin
+                    adb push test/mpi_dec_mt_test /vendor/bin/
+                    adb push test/mpi_dec_multi_test /vendor/bin/
+                    adb push test/mpi_enc_mt_test /vendor/bin/
                 else
                     echo "======> build mpp error! <======"
                 fi
