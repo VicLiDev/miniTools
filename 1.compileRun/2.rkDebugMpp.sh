@@ -113,28 +113,49 @@ dbgGdb()
     if [ ${dbgPltName} == "android_32" ]; then
         debugDirBin="${debugDirRoot}/vendor/bin"
         debugDirLib="${debugDirRoot}/vendor/lib"
-        debugBin="${prjRoot}/build/android/arm/test/mpi_dec_test"
+        if [ -e ${debugCmdFile} ]; then
+            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+        else
+            binFile="mpi_dec_test"
+        fi
+        debugBin="${prjRoot}/build/android/arm/test/${binFile}"
         debugLib="${prjRoot}/build/android/arm/mpp/libmpp.so"
     elif [ ${dbgPltName} == "android_64" ]; then
         debugDirBin="${debugDirRoot}/vendor/bin"
         debugDirLib="${debugDirRoot}/vendor/lib64"
-        debugBin="${prjRoot}/build/android/aarch64/test/mpi_dec_test"
+        if [ -e ${debugCmdFile} ]; then
+            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+        else
+            binFile="mpi_dec_test"
+        fi
+        debugBin="${prjRoot}/build/android/arm/test/${binFile}"
         debugLib="${prjRoot}/build/android/aarch64/mpp/libmpp.so"
     elif [ ${dbgPltName} == "linux_32" ]; then
         debugDirBin="${debugDirRoot}/usr/bin"
         debugDirLib="${debugDirRoot}/usr/lib"
         debugDirBin2="${debugDirRoot}/oem/usr/bin"
         debugDirLib2="${debugDirRoot}/oem/usr/lib"
-        debugBin="${prjRoot}/build/linux/arm/test/mpi_dec_test"
+        if [ -e ${debugCmdFile} ]; then
+            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+        else
+            binFile="mpi_dec_test"
+        fi
+        debugBin="${prjRoot}/build/android/arm/test/${binFile}"
         debugLib="${prjRoot}/build/linux/arm/mpp/librockchip_mpp.so.0"
     elif [ ${dbgPltName} == "linux_64" ]; then
         debugDirBin="${debugDirRoot}/usr/bin"
         debugDirLib="${debugDirRoot}/usr/lib64"
         debugDirBin2="${debugDirRoot}/oem/usr/bin"
         debugDirLib2="${debugDirRoot}/oem/usr/lib64"
-        debugBin="${prjRoot}/build/linux/arm/test/mpi_dec_test"
+        if [ -e ${debugCmdFile} ]; then
+            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+        else
+            binFile="mpi_dec_test"
+        fi
+        debugBin="${prjRoot}/build/android/arm/test/${binFile}"
         debugLib="${prjRoot}/build/linux/arm/mpp/librockchip_mpp.so.0"
     fi
+    echo "exec file: ${debugBin}"
 
     if [ ! -e ${debugDirBin} ];then mkdir -p ${debugDirBin}; fi
     if [ ! -e ${debugDirLib} ];then mkdir -p ${debugDirLib}; fi
@@ -228,18 +249,16 @@ dbgGdb()
         echo "" >> ${debugCmdFile}
 
         echo "# local sets" >> ${debugCmdFile}
-        echo "# file mpi_dec_test" >> ${debugCmdFile}
-        echo "# set sysroot preinstall/" >> ${debugCmdFile}
+        echo "set sysroot preinstall/" >> ${debugCmdFile}
         echo "# set solib-search-path preinstall/vendor/lib" >> ${debugCmdFile}
         echo "# cd preinstall" >> ${debugCmdFile}
-        echo "# file vendor/bin/mpi_dec_test" >> ${debugCmdFile}
-        echo "# load vendor/lib/libmpp.so" >> ${debugCmdFile}
+        echo "# file preinstall/vendor/bin/mpi_dec_test" >> ${debugCmdFile}
+        echo "# load preinstall/vendor/lib/libmpp.so" >> ${debugCmdFile}
         echo "" >> ${debugCmdFile}
 
         echo "# target sets" >> ${debugCmdFile}
         echo "target remote :${localP}" >> ${debugCmdFile}
         echo "# set sysroot remote:/" >> ${debugCmdFile}
-        echo "set sysroot preinstall/" >> ${debugCmdFile}
         echo "# set solib-search-path target:/vendor/lib:/system/lib" >> ${debugCmdFile}
         echo "" >> ${debugCmdFile}
 
