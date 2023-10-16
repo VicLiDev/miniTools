@@ -2,11 +2,16 @@
 
 # ex: python ./main.py -i ~/Downloads/reg/rkvdec_v2_new.xlsx ~/Downloads/reg/vdpu_383_org.xlsx -d --hl 7.5 15.5 22.5
 
-import argparse
-import excel_rw
-import regproc
-import gen_chead
-import scatterDisplay
+try:
+    import argparse
+    import excel_rw
+    import regproc
+    import gen_chead
+    import scatterDisplay
+except Exception as err:
+    print("please check argparse excel_rw regproc gen_chead scatterDisplay package")
+    print(err)
+    exit(0)
 
 
 def main():
@@ -80,8 +85,8 @@ def main():
 
     # write excel
     if args.o:
-        save_regs_to_file(args.o, regSet)
-    
+        excel_rw.save_regs_to_file(args.o, regSet)
+
 
 
 if __name__ == '__main__':

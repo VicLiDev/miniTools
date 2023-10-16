@@ -1,7 +1,11 @@
 #!/opt/homebrew/anaconda3/bin/python
 
-import matplotlib.pyplot as plt
-import numpy as np
+try:
+    import matplotlib.pyplot as plt
+    import numpy as np
+except Exception as err:
+    print(err)
+    exit(0)
 
 
 def _gen_def_point(regCnt):
@@ -69,11 +73,13 @@ def plotRegs(fileName, regSet, hRefLine, vRefLine):
     # default val
     regCnt = int((regSet.regs[-1].reg_offset + 4) / 4)
     orgXVal, orgYVal, orgSizes, orgColors = _gen_def_point(regCnt)
-    ax.scatter(orgXVal, orgYVal, s=orgSizes, c='w', edgecolor="black", marker='o', vmin=0, vmax=100)
+    # ax.scatter(orgXVal, orgYVal, s=orgSizes, c='w', edgecolor="black", marker='o', vmin=0, vmax=100)
+    ax.scatter(orgXVal, orgYVal, s=orgSizes, c='w', edgecolor="black", marker='o')
 
     # plot reg
     regXVal, regYVal, regSizes, regColors = _gen_plot_reg_data(regSet.regs)
-    ax.scatter(regXVal, regYVal, s=regSizes, c=regColors, edgecolor="black", marker='.', vmin=0, vmax=100)
+    # ax.scatter(regXVal, regYVal, s=regSizes, c=regColors, edgecolor="black", marker='.', vmin=0, vmax=100)
+    ax.scatter(regXVal, regYVal, s=regSizes, c=regColors, edgecolor="black", marker='.')
 
     # reference line
     for i in range(len(hRefLine)):

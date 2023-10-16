@@ -3,7 +3,11 @@
 # func desc:
 # define field reg regset
 
-import copy
+try:
+    import copy
+except Exception as err:
+    print(err)
+    exit(0)
 
 class Field:
     def __init__(self):

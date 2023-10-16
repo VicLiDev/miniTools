@@ -3,9 +3,13 @@
 # func desc:
 # read/write reg info from/to excel
 
-import pandas as pd
-import regdef
-import copy
+try:
+    import pandas as pd
+    import regdef
+    import copy
+except Exception as err:
+    print(err)
+    exit(0)
 
 
 def load_excel(fileName):
