@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 def loadData(fname):
     f = open(fname)
     lines = f.readlines()
-    
+
     nums = []
     for line in lines:
         cur = int(line.strip('\n'))
