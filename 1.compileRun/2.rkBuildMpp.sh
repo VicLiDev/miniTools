@@ -15,6 +15,7 @@ display()
     echo "  2. android 64"
     echo "  3. linux 32"
     echo "  4. linux 64"
+    echo "  5. linux x86_64"
 }
 
 
@@ -124,6 +125,20 @@ do
                     adb push test/mpi_dec_mt_test /vendor/bin/
                     adb push test/mpi_dec_multi_test /vendor/bin/
                     adb push test/mpi_enc_mt_test /vendor/bin/
+                else
+                    echo "======> build mpp error! <======"
+                fi
+                break
+                ;;
+            '5')
+                archName="linux x86_64"
+                echo "======> selected $archName <======"
+                cd `git rev-parse --show-toplevel` \
+                    && cd build/linux/x86_64 \
+                    && ./make-Makefiles.bash
+
+                if [ $? -eq 0 ]; then
+                    echo "======> build mpp sucess! <======"
                 else
                     echo "======> build mpp error! <======"
                 fi

@@ -20,6 +20,7 @@ selectPlatform()
     echo "  2. android 64"
     echo "  3. linux 32"
     echo "  4. linux 64"
+    echo "  5. linux x86_64"
     read -p "Please select debug plt:" plt 
     if [ -n "$plt" ]; then
         case $plt in
@@ -36,6 +37,9 @@ selectPlatform()
                 ;;
             '4')
                 dbgPltName="linux_64"
+                ;;
+            '5')
+                dbgPltName="linux_x86_64"
                 ;;
             'q')
                 exit 0
@@ -152,7 +156,7 @@ dbgGdb()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/build/android/arm/test/${binFile}"
+        debugBin="${prjRoot}/build/linux/arm/test/${binFile}"
         debugLib="${prjRoot}/build/linux/arm/mpp/librockchip_mpp.so.0"
     elif [ ${dbgPltName} == "linux_64" ]; then
         debugDirBin="${debugDirRoot}/usr/bin"
@@ -164,7 +168,7 @@ dbgGdb()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/build/android/arm/test/${binFile}"
+        debugBin="${prjRoot}/build/linux/arm/test/${binFile}"
         debugLib="${prjRoot}/build/linux/arm/mpp/librockchip_mpp.so.0"
     fi
     echo "exec file: ${debugBin}"
@@ -287,12 +291,46 @@ dbgGdb()
     adb forward --list
 }
 
+dbgGdb_x86()
+{
+    debugCmdFile="debug_x86.gdb"
+
+
+    # server
+    # mpp cmd
+    HostGdb="gdb"
+    if [ -e ${debugCmdFile} ];then
+        MppCmd=`cat ${debugCmdFile} | grep serverCmd | sed 's/.*serverCmd: //g'`;
+    else
+        MppCmd="./build/linux/x86_64/test/mpi_dec_test -i ~/rk.h265"
+    fi
+    echo "run cmd: ${MppCmd}"
+    echo ""
+
+
+    # client
+    if [ ! -e ${debugCmdFile} ];then
+        echo "# pwd: `pwd`" > ${debugCmdFile}
+        echo "# serverCmd: ./build/linux/x86_64/test/mpi_dec_test -h" >> ${debugCmdFile}
+        echo "" >> ${debugCmdFile}
+
+        echo "start" >> ${debugCmdFile}
+        echo "layout src" >> ${debugCmdFile}
+    fi
+    # gdb-multiarch
+    ${HostGdb} --command=${debugCmdFile} --args ${MppCmd}
+}
+
 selectTool
 selectPlatform
 echo "tool:$dbgToolName pltName:$dbgPltName"
 
 if [ "$dbgToolName" = "gdb" ]; then
-    dbgGdb
+    if [ ${dbgPltName} != "linux_x86_64" ]; then
+        dbgGdb
+    else
+        dbgGdb_x86
+    fi
 fi
 if [ "$dbgToolName" = "lldb" ]; then
     dbgLldb
