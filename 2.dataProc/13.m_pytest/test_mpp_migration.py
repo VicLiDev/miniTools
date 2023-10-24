@@ -1,6 +1,6 @@
 #!/bin/python3
 #########################################################################
-# File Name: test_all.py
+# File Name: test_mpp_migration.py
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri Oct 20 14:54:27 2023
@@ -22,18 +22,24 @@ def buildMpp(buildDir):
     buildCmd = "bash ./build_mpp.sh  {} {}".format(buildDir, compileCmd)
     print("==> build mpp cmd: {}".format(buildCmd))
     ret, res = subprocess.getstatusoutput(buildCmd)
+    if ret :
+        print(res)
     assert ret == 0, "build error, cmd: {}".format(buildCmd)
 
 def runMpp(appDir, runProc, test_stream):
     runCmd = "bash ./run_data.sh  {} {} {}".format(appDir, runProc, test_stream)
     print("==> run mpp cmd: {}".format(runCmd))
     ret, res = subprocess.getstatusoutput(runCmd)
+    if ret :
+        print(res)
     assert ret == 0, "running error, cmd: {}".format(runCmd)
 
 def cmpData(dataDir1, dataDir2):
     cmpCmd = "~/Projects/miniTools/2.dataProc/12.cmp_dir.sh {} {}".format(dataDir1, dataDir2)
     print("==> cmp data cmd: {}".format(cmpCmd))
     ret, res = subprocess.getstatusoutput(cmpCmd)
+    if ret :
+        print(res)
     assert ret == 0, "data check error, cmp cmd: {}".format(cmpCmd)
 
 def test_sgl():
@@ -94,4 +100,4 @@ def test_batch_by_list():
         cmpData("{}/{}".format(buildDir1, curProc), "{}/{}".format(buildDir2, curProc))
 
 if __name__ == "__main__":
-    pytest.main(["./test_all.py::test_sgl", "-s", "-v", "-x"])
+    pytest.main(["./test_mpp_migration.py::test_batch_by_list", "-s", "-v", "-x"])
