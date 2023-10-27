@@ -89,8 +89,10 @@ def test_batch_by_list():
     mFile = open("source_list.txt", mode='r')
     strms = mFile.readlines()
     for curStrm in strms:   #把lines中的数据逐行读取出来
-        print()
         source = curStrm.strip()
+        if (len(source) == 0) or (source[0] == "#"):
+            continue
+        print()
         print("==> cur stream: {}".format(source))
         # run mpp
         runMpp(buildDir1, curProc, source)
