@@ -28,119 +28,173 @@ display()
     done
 }
 
-display
+curPlt="3588_android"
+selectPlt()
+{
+    while [ True ]
+    do
+        read -p "Please select platform or quit(q):" pltIdx
+        if [ "${pltIdx}" == "q" ]; then
+            echo "======> quit <======"
+            exit 0
+        elif [[ -n $pltIdx && -z `echo $pltIdx | sed 's/[0-9]//g'` ]]; then
+            curPlt=${pltList[${pltIdx}]}
+            echo "--> selected plt:${curPlt}, index:${pltIdx}"
+            break
+        else
+            curPlt=""
+            echo "--> please input num in scope 0-`expr ${#pltList[@]} - 1`"
+            continue
+        fi
+    done
+}
 
-echo "cur dir: `pwd`"
-
-while [ True ]
-do
-    read -p "Please select platform or quit(q):" pltIdx
-    if [ "${pltIdx}" == "q" ]; then
-        echo "======> quit <======"
-        exit 0
-    elif [[ -n $pltIdx && -z `echo $pltIdx | sed 's/[0-9]//g'` ]]; then
-        curPlt=${pltList[${pltIdx}]}
-        echo "--> selected plt:${curPlt}, index:${pltIdx}"
+m_arch=""
+m_config=""
+target=""
+m_make=""
+build_mod=""
+gen_cmd()
+{
+    if [ -n "`cat drivers/video/rockchip/mpp/Makefile | grep obj-m | sed \"s/#.*//g\"`" ]; then
+        # modify drivers/video/rockchip/mpp/Makefile need modify:
+        # obj-$(CONFIG_ROCKCHIP_MPP_SERVICE) --> obj-m
+        build_mod="True";
     else
-        curPlt=""
-        echo "--> please input num in scope 0-`expr ${#pltList[@]} - 1`"
-        continue
+        build_mod="False";
     fi
-
-
-    if [ -n ${curPlt} ]
-    then
+    if [ -n "${curPlt}" ]; then
         case ${curPlt} in
             '1109/1126_android')
                 echo "======> selected ${curPlt} <======"
-                # make ARCH=arm rockchip_defconfig \
-                make ARCH=arm rv1126_defconfig \
-                    && make ARCH=arm rv1126-evb-ddr3-v13.img -j24
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm"
+                m_config="rv1126_defconfig"
+                m_target="rv1126-evb-ddr3-v13.img"
+                m_make="make"
                 ;;
             '3288_android')
                 echo "======> selected ${curPlt} <======"
-                make ARCH=arm rockchip_defconfig \
-                    && make ARCH=arm rk3288-evb-android-rk808-edp.img -j16
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm"
+                m_config="rockchip_defconfig"
+                m_target="rk3288-evb-android-rk808-edp.img"
+                m_make="make"
                 ;;
             '3328_android')
                 echo "======> selected ${curPlt} <======"
-                make ARCH=arm64 rockchip_defconfig \
-                    && make rk3328-evb-android-avb.img ARCH=arm64 BOOT_IMG=./boot_rk3328EVB.img -j20
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm64"
+                m_config="rockchip_defconfig"
+                m_target="rk3328-evb-android-avb.img BOOT_IMG=./boot_rk3328EVB.img"
+                m_make="make"
                 ;;
             '3399_android')
                 echo "======> selected ${curPlt} <======"
-                make ARCH=arm64 rockchip_defconfig android-11.config disable_incfs.config \
-                    && make ARCH=arm64 BOOT_IMG=./boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img -j20
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm64"
+                m_config="rockchip_defconfig android-11.config disable_incfs.config"
+                m_target="BOOT_IMG=./boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img"
+                m_make="make"
                 ;;
             '3568_android')
                 echo "======> selected ${curPlt} <======"
-                make ARCH=arm64 rockchip_defconfig rk356x.config android-11.config \
-                    && make ARCH=arm64 rk3566-evb1-ddr4-v10.img BOOT_IMG=boot1.img -j20
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm64"
+                m_config="rockchip_defconfig rk356x.config android-11.config"
+                m_target="rk3566-evb1-ddr4-v10.img BOOT_IMG=boot1.img"
+                m_make="make"
                 ;;
             '3588_android')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
                 export PATH=/home/lhj/Projects/prebuilts/linux-x86/clang-r416183b/bin:$PATH
-                msk='make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1'
-
-                ${msk} ARCH=arm64 rockchip_defconfig android-11.config \
-                    && ${msk} ARCH=arm64 BOOT_IMG=./boot_3588.img rk3588-evb1-lp4-v10.img -j20
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm64"
+                m_config="rockchip_defconfig android-11.config"
+                m_target="BOOT_IMG=./boot_3588.img rk3588-evb1-lp4-v10.img"
+                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
             '3399_linux_5.10')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
                 export PATH=/home/lhj/Projects/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
-
-                make ARCH=arm64 rockchip_linux_defconfig \
-                    && make ARCH=arm64 rk3399-evb-ind-lpddr4-linux.img -j 20
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm64"
+                m_config="rockchip_linux_defconfig"
+                m_target="rk3399-evb-ind-lpddr4-linux.img"
+                m_make="make"
                 ;;
             '3568_linux_4.19')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
                 export PATH=/home/lhj/Projects/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
-
-                make ARCH=arm64 rockchip_linux_defconfig \
-                    && make ARCH=arm64 rk3568-evb1-ddr4-v10-linux.img -j 20
-                echo "======> selected ${curPlt} compile done <======"
-                break
+                m_arch="arm64"
+                m_config="rockchip_linux_defconfig"
+                m_target="rk3568-evb1-ddr4-v10-linux.img"
+                m_make="make"
                 ;;
             '3588_linux_5.10')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
                 export PATH=/home/lhj/Projects/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
-
-                make ARCH=arm64 rockchip_linux_defconfig \
-                    && make ARCH=arm64 rk3588-evb1-lp4-v10.img -j 20
-                echo "======> selected ${curPlt} compile done <======"
-                break
-                break
+                m_arch="arm64"
+                m_config="rockchip_linux_defconfig"
+                m_target="rk3588-evb1-lp4-v10.img"
+                m_make="make"
                 ;;
         esac
     fi
-done
+}
 
-echo "======> copy boot.img to ~/test <======"
+build_kernel_mod()
+{
+    config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
+    build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
+
+    echo "======> compild kernel begin <======"
+    echo "config cmd: ${config_cmd}"
+    echo "build  cmd: ${build_cmd}"
+    ${config_cmd} && ${build_cmd}
+    if [ $? -eq 0 ]; then break; else exit 1; fi
+    echo "config cmd: ${config_cmd}"
+    echo "build  cmd: ${build_cmd}"
+    echo "======> compild kernel done <======"
+
+    if [ "${build_mod}" == "True" ]; then
+        echo "======> compild rk_vcodec.ko begin <======"
+        build_mod_cmd="${m_make} ARCH=${m_arch} -C `pwd` M=`pwd`/drivers/video/rockchip/mpp modules"
+        echo "build mod cmd: ${build_mod_cmd}"
+        ${build_mod_cmd}
+        echo "======> compild rk_vcodec.ko done <======"
+    fi
+}
+
+download()
+{
+    echo ""
+    echo "======> copy boot.img to ~/test <======"
+    echo "cur dir: `pwd`"
+    cp boot.img ~/test
+
+    echo ""
+    echo "======> download boot.img <======"
+    rkUT.sh b
+
+    if [ "${build_mod}" == "True" ]; then
+        echo ""
+        echo "======> reload rk_vcodec.ko <======"
+        adb push drivers/video/rockchip/mpp/rk_vcodec.ko /sdcard
+        if [ -n "`adb shell lsmod | grep rk_vcodec`" ]; then
+            echo "rmmod old rk_vcodec.ko"
+            adb shell rmmod rk_vcodec.ko
+        fi
+        echo "insmod rk_vcodec.ko"
+        adb shell insmod /sdcard/rk_vcodec.ko
+    fi
+}
+
+display
 echo "cur dir: `pwd`"
-cp boot.img ~/test
-
-echo "======> download boot.img <======"
-rkUT.sh b
+selectPlt
+gen_cmd
+build_kernel_mod
+download
 
 set +e

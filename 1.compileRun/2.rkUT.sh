@@ -42,31 +42,37 @@ else
             echo "========> writing uboot.img <========" && echo
             echo "File: ${IMAGE_PATH}/uboot.img"
             sudo upgrade_tool di -u ${IMAGE_PATH}/uboot.img 
+            if [ $? -eq 0 ]; then exit 0; fi
             ;;
         'b')
             echo "========> writing boot.img <========" && echo
             echo "File: ${IMAGE_PATH}/boot.img"
             sudo upgrade_tool di -b ${IMAGE_PATH}/boot.img 
+            if [ $? -eq 0 ]; then exit 0; fi
             ;;
         'z')
             echo "========> writing zboot.img <========" && echo
             echo "File: ${IMAGE_PATH}/zboot.img"
             sudo upgrade_tool di -b ${IMAGE_PATH}/zboot.img 
+            if [ $? -eq 0 ]; then exit 0; fi
             ;;
         'k')
             echo "========> writing kernel.img <========" && echo
             echo "File: ${IMAGE_PATH}/kernel.img"
             sudo upgrade_tool di -k ${IMAGE_PATH}/kernel.img 
+            if [ $? -eq 0 ]; then exit 0; fi
             ;;
         're')
             echo "========> writing resource.img <========" && echo
             echo "File: ${IMAGE_PATH}/resource.img"
             sudo upgrade_tool di -re ${IMAGE_PATH}/resource.img 
+            if [ $? -eq 0 ]; then exit 0; fi
             ;;
         'i')
             echo "========> writing update.img <========" && echo
             echo "File: ${IMAGE_PATH}/update.img"
             sudo upgrade_tool uf ${IMAGE_PATH}/update.img 
+            if [ $? -eq 0 ]; then exit 0; fi
             ;;
         'm')
             ;;
@@ -74,6 +80,7 @@ else
 
     echo && echo "========> rebooting <========" && echo
     sudo upgrade_tool rd
+    if [ $? -eq 0 ]; then exit 0; fi
 fi
 
 
