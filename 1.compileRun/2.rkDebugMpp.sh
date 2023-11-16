@@ -262,9 +262,11 @@ dbgGdb()
     if [ ! -e ${debugCmdFile} ];then
         echo "# pwd: `pwd`" > ${debugCmdFile}
         echo "# serverCmd: mpi_dec_test -h" >> ${debugCmdFile}
+        echo "# --attach <PID>" >> ${debugCmdFile}
         echo "" >> ${debugCmdFile}
 
         echo "# local sets" >> ${debugCmdFile}
+        echo "# if --attach <pid> cancel this instruction" >> ${debugCmdFile}
         echo "set sysroot preinstall/" >> ${debugCmdFile}
         echo "# set solib-search-path preinstall/vendor/lib" >> ${debugCmdFile}
         echo "# cd preinstall" >> ${debugCmdFile}
