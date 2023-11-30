@@ -57,10 +57,10 @@ do
     md5Val2=`md5sum ${file2} | awk '{print $1}'`
     if [ $md5Val1 != $md5Val2 ]; then
         cmpRet=1
-        echo "--> [res]: ${frmIdx} file: ${fileNmae} compare faile    vimdiff ${file1} ${file2}"
+        echo -e "--> [res]: ${frmIdx} file: ${fileNmae} \033[0m\033[1;31m compare faile \033[0m    vimdiff ${file1} ${file2}"
         if [ "$diffQuit" == "q" ];then exit 1; fi
     else
-        echo "--> [res]: ${frmIdx} file: ${fileNmae} compare pass"
+        echo -e "--> [res]: ${frmIdx} file: ${fileNmae} \033[0m\033[1;32m compare pass \033[0m"
     fi
 done
 
