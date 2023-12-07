@@ -72,7 +72,7 @@ def gen_CHead_seg(fileName, regSet, segName, begIdx, endIdx):
     file.write("typedef struct %s_t {\n" % (segName))
 
     reg_cnt = len(regSet.regs)
-    last_reg_idx = -1
+    last_reg_idx = begIdx - 1
     for i in range(reg_cnt):
         # check
         cur_reg = regSet.regs[i]
@@ -91,7 +91,7 @@ def gen_CHead_seg(fileName, regSet, segName, begIdx, endIdx):
 
         # add reg
         _add_reg(file, cur_reg)
-        last_reg_idx = last_reg_idx + 1
+        last_reg_idx = cur_reg_idx
 
 
     reserve_cnt = endIdx - last_reg_idx;
