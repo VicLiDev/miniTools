@@ -16,6 +16,7 @@ pltList=(
     "3399_linux_5.10"
     "3568_linux_4.19"
     "3588_linux_5.10"
+    "3588_linux_5.10_fpga"
     )
 
 display()
@@ -103,7 +104,7 @@ gen_cmd()
             '3588_android')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
-                export PATH=/home/lhj/Projects/prebuilts/linux-x86/clang-r416183b/bin:$PATH
+                export PATH=/home/lhj/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
                 m_arch="arm64"
                 m_config="rockchip_defconfig android-11.config"
                 m_target="BOOT_IMG=./boot_3588.img rk3588-evb1-lp4-v10.img"
@@ -112,7 +113,7 @@ gen_cmd()
             '3399_linux_5.10')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
-                export PATH=/home/lhj/Projects/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
+                export PATH=/home/lhj/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_arch="arm64"
                 m_config="rockchip_linux_defconfig"
@@ -122,7 +123,7 @@ gen_cmd()
             '3568_linux_4.19')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
-                export PATH=/home/lhj/Projects/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
+                export PATH=/home/lhj/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_arch="arm64"
                 m_config="rockchip_linux_defconfig"
@@ -132,11 +133,21 @@ gen_cmd()
             '3588_linux_5.10')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
-                export PATH=/home/lhj/Projects/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
+                export PATH=/home/lhj/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_arch="arm64"
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3588-evb1-lp4-v10.img"
+                m_make="make"
+                ;;
+            '3588_linux_5.10_fpga')
+                echo "======> selected ${curPlt} <======"
+                # 根据 build.sh 按照本地环境修改
+                export PATH=/home/lhj/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
+                export CROSS_COMPILE=aarch64-none-linux-gnu-
+                m_arch="arm64"
+                m_config="rockchip_defconfig LT0=none LLVM=1 LLVM_IAS=1"
+                m_target="rk3576-fpga.img LT0=none LLVM=1 LLVM_IAS=1"
                 m_make="make"
                 ;;
         esac
@@ -152,7 +163,7 @@ build_kernel_mod()
     echo "config cmd: ${config_cmd}"
     echo "build  cmd: ${build_cmd}"
     ${config_cmd} && ${build_cmd}
-    if [ $? -eq 0 ]; then break; else exit 1; fi
+    if [ $? -ne 0 ]; then exit 1; fi
     echo "config cmd: ${config_cmd}"
     echo "build  cmd: ${build_cmd}"
     echo "======> compild kernel done <======"
