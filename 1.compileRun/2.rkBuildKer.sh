@@ -162,8 +162,17 @@ build_kernel_mod()
     echo "======> compild kernel begin <======"
     echo "config cmd: ${config_cmd}"
     echo "build  cmd: ${build_cmd}"
-    ${config_cmd} && ${build_cmd}
-    if [ $? -ne 0 ]; then exit 1; fi
+    ${config_cmd}
+    if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
+    if [ ${curPlt} == "3588_linux_5.10_fpga" ]; then
+        echo "modify .config for ${curPlt}";
+        sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
+        sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
+        sed -i "s/# CONFIG_NTFS_FS is not set/CONFIG_NTFS_FS=y/g" .config;
+        if [ $? -ne 0 ]; then echo "modify .config faile"; fi
+    fi
+    ${build_cmd}
+    if [ $? -ne 0 ]; then echo "build faile, cmd: ${config_cmd}"; exit 1; fi
     echo "config cmd: ${config_cmd}"
     echo "build  cmd: ${build_cmd}"
     echo "======> compild kernel done <======"
