@@ -11,7 +11,7 @@
 
 if [ $# -lt 2 ]; then
     echo "too few parameters"
-    help
+    echo "ex: bash ./12.check_data.sh <dir1/file1> <dir2/file2> [q]"
     exit 1
 fi
 dataDir1=$1
