@@ -13,6 +13,7 @@ pltList=(
     "3399_android"
     "3568_android"
     "3588_android"
+    "3576_android"
     "3399_linux_5.10"
     "3568_linux_4.19"
     "3588_linux_5.10"
@@ -111,6 +112,15 @@ gen_cmd()
                 m_target="BOOT_IMG=./boot_3588.img rk3588-evb1-lp4-v10.img"
                 m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
+            '3576_android')
+                echo "======> selected ${curPlt} <======"
+                # 根据 build.sh 按照本地环境修改
+                export PATH=${HOME}/Projects/prebuilts/linux-x86/clang-r487747c/bin:$PATH
+                m_arch="arm64"
+                m_config="rockchip_defconfig android-14.config rk3576.config"
+                m_target="BOOT_IMG=./boot_3576.img rk3576-evb1-v10.img"
+                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
+                ;;
             '3399_linux_5.10')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
@@ -177,9 +187,9 @@ build_kernel_mod()
     if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
     if [[ ${curPlt} == "3576_linux_5.10_fpga" || ${curPlt} == "3576_linux_6.1_fpga" ]]; then
         echo "modify .config for ${curPlt}";
-        sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
-        sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
-        sed -i "s/# CONFIG_NTFS_FS is not set/CONFIG_NTFS_FS=y/g" .config;
+        # sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
+        # sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
+        # sed -i "s/# CONFIG_NTFS_FS is not set/CONFIG_NTFS_FS=y/g" .config;
         if [ $? -ne 0 ]; then echo "modify .config faile"; fi
     fi
     ${build_cmd}
