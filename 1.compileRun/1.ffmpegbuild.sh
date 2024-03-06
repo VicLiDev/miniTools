@@ -52,7 +52,7 @@ compile_x264()
     # PATH=$FFMPEGPATH PKG_CONFIG_PATH=$FFMPEGPKGCONFIG ./configure \
     PATH=$FFMPEGPATH ./configure \
         --prefix=$FFMPEGPREFIX --bindir=$FFMPEGBIN \
-		--enable-static --enable-pic
+        --enable-static --enable-pic
     PATH=$FFMPEGPATH make -j 20 && make install
 }
 
@@ -184,6 +184,7 @@ compile_ffmpeg()
         --enable-libass \
         --enable-libfreetype \
         --enable-libmp3lame \
+        --enable-sdl \
         --enable-gpl \
         --enable-libx264 \
         --enable-libx265 \
@@ -223,7 +224,7 @@ runOpt=""
 setup_env
 case $1 in
     'ffmpeg')
-        compile_ffmpeg
+        compile_distributor "ffmpeg"
         ;;
     *)
         compile_distributor "nasm"
