@@ -165,6 +165,28 @@ compile_vmaf()
     ninja && ninja install
 }
 
+compile_davs2()
+{
+    #-- davs2
+    wk_dir="davs2/build/linux"
+    create_dir ${wk_dir} && cd ${wk_dir}
+    ./configure \
+        --prefix=$FFMPEGPREFIX \
+        --enable-pic
+    make -j 20 && make install
+}
+
+compile_xavs2()
+{
+    #-- xavs2
+    wk_dir="xavs2/build/linux"
+    create_dir ${wk_dir} && cd ${wk_dir}
+    ./configure \
+        --prefix=$FFMPEGPREFIX \
+        --enable-pic
+    make -j 20 && make install
+}
+
 compile_ffmpeg()
 {
     #-- ffmpeg
@@ -193,7 +215,9 @@ compile_ffmpeg()
         --enable-libopus \
         --enable-libsvtav1 \
         --enable-libdav1d \
-        --enable-nonfree
+        --enable-nonfree \
+        --enable-libdavs2 \
+        --enable-libxavs2
     
     PATH="$FFMPEGPATH" make -j20 && make install
 }
@@ -237,6 +261,8 @@ case $1 in
         compile_distributor "svt"
         compile_distributor "dav1d"
         compile_distributor "vmaf"
+        compile_distributor "davs2"
+        compile_distributor "xavs2"
         compile_distributor "ffmpeg"
 esac
 
