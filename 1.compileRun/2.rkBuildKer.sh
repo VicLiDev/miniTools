@@ -187,9 +187,14 @@ build_kernel_mod()
     if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
     if [[ ${curPlt} == "3576_linux_5.10_fpga" || ${curPlt} == "3576_linux_6.1_fpga" ]]; then
         echo "modify .config for ${curPlt}";
-        # sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
+        sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
         # sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
         # sed -i "s/# CONFIG_NTFS_FS is not set/CONFIG_NTFS_FS=y/g" .config;
+        if [ $? -ne 0 ]; then echo "modify .config faile"; fi
+    fi
+    if [ ${curPlt} == "3576_android" ]; then
+        echo "modify .config for ${curPlt}";
+        sed -i "s/# CONFIG_DEVMEM is not set/CONFIG_DEVMEM=y/g" .config;
         if [ $? -ne 0 ]; then echo "modify .config faile"; fi
     fi
     ${build_cmd}
