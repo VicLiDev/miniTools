@@ -25,7 +25,7 @@ def loadDataGrp(fnames):
         nums = loadData(fnames[i])
         dataGrp.append(nums)
 
-    return dataGrp 
+    return dataGrp
 
 def dumpListToFile(fname, ldata):
     f = open(fname, "w")
@@ -47,12 +47,12 @@ def compList(list1, list2):
             print(" ", i, end='')
     print()
 
-def delRepAndSort(nums):
-    newNums = list(set(nums))
-    newNums.sort()
-    # print(nums)
-    # print(newNums)
-    return newNums
+def sortPoints(nums, delRep):
+    nums.sort()
+    if delRep == True :
+        # 先将列表转换为集合，因为集合是不重复的，故直接删除重复元素
+        return list(set(nums))
+    return nums
 
 def checkNumsInc(nums):
     lineNum = 0
@@ -70,10 +70,11 @@ def checkNumsInc(nums):
 
 global_color  = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
 global_marker = ['.', 'o', 'v', '^', '<', '1', '2', '3', '4', '8', ',']
+global_line_s = ['-', '--', '-.', ':']
 tab_loc_ha = ['center', 'right', 'left']
 tab_loc_va = ['center', 'top', 'bottom', 'baseline', 'center_baseline']
 
-def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, calcAvg):
+def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, showLine, calcAvg):
     if len(fileNames) != len(dataGrp):
         print("error: file cnt and data cnt is not equal")
         print("file cnt is %d data cnt is %d" % (len(fileNames), (len(dataGrp))))
@@ -84,9 +85,14 @@ def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, calcAvg):
     loopCnt = len(fileNames)
 
     for i in range(loopCnt):
+        line_style = ['']
+        if showLine == True:
+            line_style = global_line_s
         x = list(range(len(dataGrp[i])))
         ax.plot(x, dataGrp[i], marker=global_marker[i%len(global_marker)], \
-                color=global_color[i%len(global_color)], linestyle='', \
+                color=global_color[i%len(global_color)], \
+                linestyle=line_style[i%len(line_style)], \
+                alpha=1/2, \
                 label=fileNames[i])  # Plot some data on the axes.
 
         if showTag == True:
@@ -116,6 +122,7 @@ def help():
     print('  --vl   add vertical reference line')
     print('  -t     display point tag')
     print('  -d     display diff')
+    print('  -l     display line')
     print('  -a     display avg')
     print('  -f     input file')
 
@@ -130,13 +137,14 @@ def main(argv):
     hLine = 0
     vLine = 0
     showTag = False
+    showLine = False
     calcDiff = False
     calcAvg = False
     fileNames = []
     dataGrpCnt = 0
 
     try:
-        opts, args = getopt.getopt(argv,"hsf:tad", ["help=", "hl=", "vl="])
+        opts, args = getopt.getopt(argv,"hsf:tlad", ["help=", "hl=", "vl="])
     except getopt.GetoptError:
         help()
         sys.exit(2)
@@ -155,6 +163,8 @@ def main(argv):
             refLineEn = True
         elif opt in ("-t"):
             showTag = True
+        elif opt in ("-l"):
+            showLine = True
         elif opt in ("-d"):
             calcDiff = True
         elif opt in ("-a"):
@@ -176,15 +186,15 @@ def main(argv):
         print("avg: %d" % np.mean(dataGrp[i]))
         # print("sum: %d" % sum(dataGrp[i]))
         if drAndSort == True:
-            dataGrp[i] = delRepAndSort(dataGrp[i])
+            dataGrp[i] = sortPoints(dataGrp[i], False)
         if calcDiff == True:
             for j in range(len(dataGrp[i])-1):
                 dataGrp[i][j] = dataGrp[i][j+1] - dataGrp[i][j]
             dataGrp[i].pop()
         checkNumsInc(dataGrp[i])
-        
+
     print()
-    plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, calcAvg)
+    plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, showLine, calcAvg)
 
 
 if __name__ == '__main__':
