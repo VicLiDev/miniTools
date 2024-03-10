@@ -136,10 +136,10 @@ dbgLldb()
     lldb -s ${debugCmdFile}
 }
 
-dbgGdb()
+dbgGdbPrepareEnv()
 {
-    debugCmdFile="debug.gdb"
-
+    RemoteGdbSer=$1
+    debugCmdFile=$2
 
     # create host mirror
     debugDirRoot="${prjRoot}/preinstall"
@@ -168,7 +168,7 @@ dbgGdb()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/build/android/arm/test/${binFile}"
+        debugBin="${prjRoot}/build/android/aarch64/test/${binFile}"
         debugLib="${prjRoot}/build/android/aarch64/mpp/libmpp.so"
     elif [ ${dbgPltName} == "linux_32" ]; then
         debugDirBin="${debugDirRoot}/usr/bin"
@@ -192,8 +192,8 @@ dbgGdb()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/build/linux/arm/test/${binFile}"
-        debugLib="${prjRoot}/build/linux/arm/mpp/librockchip_mpp.so.0"
+        debugBin="${prjRoot}/build/linux/aarch64/test/${binFile}"
+        debugLib="${prjRoot}/build/linux/aarch64/mpp/librockchip_mpp.so.0"
     fi
     echo "exec file: ${debugBin}"
 
@@ -216,13 +216,11 @@ dbgGdb()
 
     # proc gdb tool
     # CCToolsRoot="${HOME}/Projects/prebuilts/toolschain/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf"
-    CCToolsRoot="${HOME}/Projects/prebuilts/gcc/linux-x86"
+    CCToolsRoot="${HOME}/Projects/prebuilts/toolchains"
     if [[ ${dbgPltName} == "android_32" || ${dbgPltName} == "linux_32" ]]; then
-        RemoteGdbSer="gdbserver"
-
         LocGdbSerPath="arm/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf/bin"
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
-        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/gdbserver; fi
+        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}; fi
 
         haveSer=$(adb shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
@@ -235,11 +233,9 @@ dbgGdb()
             fi
         fi
     elif [[ ${dbgPltName} == "android_64" || ${dbgPltName} == "linux_64" ]]; then
-        RemoteGdbSer="gdbserver64"
-
         LocGdbSerPath="aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin"
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
-        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/gdbserver64; fi
+        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}; fi
 
         haveSer=$(adb shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
@@ -254,6 +250,12 @@ dbgGdb()
     else
         echo "RemoteGdbSer select error"
     fi
+}
+
+dbgGdbRun()
+{
+    RemoteGdbSer=$1
+    debugCmdFile=$2
 
     # CCToolsRoot="${HOME}/work/android/ndk/android-ndk-r16b"
     # GdbPath="prebuilt/linux-x86_64/bin"
@@ -319,6 +321,20 @@ dbgGdb()
     adb forward --list
 }
 
+dbgGdb()
+{
+    debugCmdFile="debug.gdb"
+
+    if [[ ${dbgPltName} == "android_32" || ${dbgPltName} == "linux_32" ]]; then
+        RemoteGdbSer="gdbserver"
+    elif [[ ${dbgPltName} == "android_64" || ${dbgPltName} == "linux_64" ]]; then
+        RemoteGdbSer="gdbserver64"
+    fi
+
+    dbgGdbPrepareEnv ${RemoteGdbSer} ${debugCmdFile}
+    dbgGdbRun ${RemoteGdbSer} ${debugCmdFile}
+}
+
 dbgGdb_x86()
 {
     debugCmdFile="debug_x86.gdb"
@@ -359,8 +375,7 @@ if [ "$dbgToolName" = "gdb" ]; then
     else
         dbgGdb_x86
     fi
-fi
-if [ "$dbgToolName" = "lldb" ]; then
+elif [ "$dbgToolName" = "lldb" ]; then
     dbgLldb
 fi
 
