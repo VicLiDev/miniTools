@@ -21,28 +21,40 @@ pltList=(
     "3576_linux_6.1_fpga"
     )
 
+curPlt="3588_android"
+
+m_arch=""
+m_config=""
+target=""
+m_make=""
+build_mod=""
+
 display()
 {
-    loop=0
-    for curPlt in ${pltList[@]}
+    echo "Please select platform:"
+    for ((i = 0; i < ${#pltList[@]}; i++))
     do
-        echo "${loop}. ${curPlt}"
-        loop=`expr $loop + 1`
+        echo "  ${i}. ${pltList[${i}]}"
     done
 }
 
-curPlt="3588_android"
 selectPlt()
 {
+    display
+    echo "cur dir: `pwd`"
+
+    defPltIdx=6
     while [ True ]
     do
-        read -p "Please select platform or quit(q):" pltIdx
+        read -p "Please select platform or quit(q), def[${defPltIdx}]:" pltIdx
+        pltIdx=${pltIdx:-${defPltIdx}}
+
         if [ "${pltIdx}" == "q" ]; then
             echo "======> quit <======"
             exit 0
-        elif [[ -n $pltIdx && -z `echo $pltIdx | sed 's/[0-9]//g'` ]]; then
+        elif [[ -n ${pltIdx} && -z `echo ${pltIdx} | sed 's/[0-9]//g'` ]]; then
             curPlt=${pltList[${pltIdx}]}
-            echo "--> selected plt:${curPlt}, index:${pltIdx}"
+            echo "--> selected index:${pltIdx}, plt:${curPlt}"
             break
         else
             curPlt=""
@@ -52,11 +64,6 @@ selectPlt()
     done
 }
 
-m_arch=""
-m_config=""
-target=""
-m_make=""
-build_mod=""
 gen_cmd()
 {
     if [ -n "`cat drivers/video/rockchip/mpp/Makefile | grep obj-m | sed \"s/#.*//g\"`" ]; then
@@ -236,8 +243,6 @@ download()
     fi
 }
 
-display
-echo "cur dir: `pwd`"
 selectPlt
 gen_cmd
 build_kernel_mod

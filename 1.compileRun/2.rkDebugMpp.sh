@@ -8,73 +8,92 @@
 
 # set -e
 
-dbgToolName=""
 dbgPltName=""
-ToolPlatform=""
+dbgToolName=""
 prjRoot=`pwd`
+
+pltList=(
+    "android_32"
+    "android_64"
+    "linux_32"
+    "linux_64"
+    "linux_x86_64"
+    )
+
+toolList=(
+    "gdb"
+    "lldb"
+    )
+
+
+displayPlts()
+{
+    echo "Please select platform:"
+    for ((i = 0; i < ${#pltList[@]}; i++))
+    do
+        echo "  ${i}. ${pltList[${i}]}"
+    done
+}
+
+displayTools()
+{
+    echo "Please select tool:"
+    for ((i = 0; i < ${#toolList[@]}; i++))
+    do
+        echo "  ${i}. ${toolList[${i}]}"
+    done
+}
 
 selectPlatform()
 {
-    echo "Please select platform:"
-    echo "  1. android 32"
-    echo "  2. android 64"
-    echo "  3. linux 32"
-    echo "  4. linux 64"
-    echo "  5. linux x86_64"
-    read -p "Please select debug plt:" plt 
-    if [ -n "$plt" ]; then
-        case $plt in
-            '1')
-                dbgPltName="android_32"
-                ToolPlatform="arm"
-                ;;
-            '2')
-                dbgPltName="android_64"
-                ToolPlatform="aarch64"
-                ;;
-            '3')
-                dbgPltName="linux_32"
-                ;;
-            '4')
-                dbgPltName="linux_64"
-                ;;
-            '5')
-                dbgPltName="linux_x86_64"
-                ;;
-            'q')
-                exit 0
-                ;;
-        esac
-    else
-        plt="1"
-        dbgPltName="android_32"
-        echo "default platform: $dbgPltName"
-    fi
+    displayPlts
+    echo "cur dir: `pwd`"
+
+    defPltIdx=0
+    while [ True ]
+    do
+        read -p "Please select debug plt or quit(q), def[${defPltIdx}]:" pltIdx
+        pltIdx=${pltIdx:-${defPltIdx}}
+
+        if [ "${pltIdx}" == "q" ]; then
+            echo "======> quit <======"
+            exit 0
+        elif [[ -n ${pltIdx} && -z `echo ${pltIdx} | sed 's/[0-9]//g'` ]]; then
+            dbgPltName=${pltList[${pltIdx}]}
+            echo "--> selected dbg index:${pltIdx}, tool:${dbgPltName}"
+            break
+        else
+            dbgPltName=""
+            echo "--> please input num in scope 0-`expr ${#pltList[@]} - 1`"
+            continue
+        fi
+    done
 }
 
 selectTool()
 {
-    echo "Please select tool:"
-    echo "  1. gdb"
-    echo "  2. lldb"
-    read -p "Please select debug tool:" dbgTool
-    if [ -n "$dbgTool" ]; then
-        case $dbgTool in
-            '1')
-                dbgToolName="gdb"
-                ;;
-            '2')
-                dbgToolName="lldb"
-                ;;
-            'q')
-                exit 0
-                ;;
-        esac
-    else
-        dbgTool="1"
-        dbgToolName="gdb"
-        echo "default dbg tool: $dbgToolName"
-    fi
+    displayTools
+    echo "cur dir: `pwd`"
+
+    defDbgTool=0
+    while [ True ]
+    do
+        read -p "Please select debug tool or quit(q), def[${defDbgTool}]:" dbgTool
+        dbgTool=${dbgTool:-${defDbgTool}}
+
+        if [ "${dbgTool}" == "q" ]; then
+            echo "======> quit <======"
+            exit 0
+        elif [[ -n $dbgTool && -z `echo $dbgTool | sed 's/[0-9]//g'` ]]; then
+            dbgToolName=${toolList[${dbgTool}]}
+            echo "--> selected dbg index:${dbgTool}, tool:${dbgToolName}"
+            break
+        else
+            dbgToolName=""
+            echo "--> please input num in scope 0-`expr ${#toolList[@]} - 1`"
+            continue
+        fi
+    done
 }
 
 dbgLldb()
@@ -82,7 +101,12 @@ dbgLldb()
     # proc lldb tool
     NDKRoot="${HOME}/work/android/ndk/android-ndk-r23b"
     LldbPath="toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/12.0.8/lib/linux"
-    LldbSer="${NDKRoot}/${LldbPath}/${ToolPlatform}/lldb-server"
+    if [ ${dbgPltName} == "android_32" ]; then
+        LldbSer="${NDKRoot}/${LldbPath}/arm/lldb-server"
+    fi
+    if [ ${dbgPltName} == "android_64" ]; then
+        LldbSer="${NDKRoot}/${LldbPath}/aarch64/lldb-server"
+    fi
     devName=`adb devices | grep -v "List of devices attached" | cut -f 1`
     listenP="8888"
     echo "selected lldb-server: ${LldbSer}"
@@ -173,6 +197,8 @@ dbgGdb()
     fi
     echo "exec file: ${debugBin}"
 
+
+    # Create the host library file structure
     if [ ! -e ${debugDirBin} ];then mkdir -p ${debugDirBin}; fi
     if [ ! -e ${debugDirLib} ];then mkdir -p ${debugDirLib}; fi
     if [[ -e ${debugBin} && -e ${debugDirBin} ]]; then cp ${debugBin} ${debugDirBin}; fi
