@@ -18,6 +18,7 @@ ln -s ${HOME}/Projects/miniTools/1.compileRun/2.rkUT.sh       ${HOME}/bin/rkUT.s
 # tools
 ln -s ${HOME}/Projects/miniTools/1.compileRun/2.adbDebug.sh   ${HOME}/bin/adbDebug.sh
 ln -s ${HOME}/Projects/miniTools/1.compileRun/2.adbKill.sh    ${HOME}/bin/adbKill.sh
+ln -s ${HOME}/Projects/miniTools/1.compileRun/2.adbSelCmd.sh  ${HOME}/bin/adbs
 
 
 # for prj
