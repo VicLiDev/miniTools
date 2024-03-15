@@ -11,6 +11,7 @@
 dbgPltName=""
 dbgToolName=""
 prjRoot=`pwd`
+adbCmd=""
 
 pltList=(
     "android_32"
@@ -107,17 +108,17 @@ dbgLldb()
     if [ ${dbgPltName} == "android_64" ]; then
         LldbSer="${NDKRoot}/${LldbPath}/aarch64/lldb-server"
     fi
-    devName=`adb devices | grep -v "List of devices attached" | cut -f 1`
+    devName=`${adbCmd} devices | grep -v "List of devices attached" | cut -f 1`
     listenP="8888"
     echo "selected lldb-server: ${LldbSer}"
-    haveSer=$(adb shell which lldb-server)
-    if [ -z "$haveSer" ]; then adb push ${LldbSer} /vendor/bin; fi
+    haveSer=$(${adbCmd} shell which lldb-server)
+    if [ -z "$haveSer" ]; then ${adbCmd} push ${LldbSer} /vendor/bin; fi
     
     
     # server
     startSerCmd="lldb-server p --server --listen \"*:$listenP\""
     echo "startSerCmd"
-    adb shell $startSerCmd &
+    ${adbCmd} shell $startSerCmd &
     
     
     # client
@@ -222,14 +223,14 @@ dbgGdbPrepareEnv()
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
         if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}; fi
 
-        haveSer=$(adb shell which ${RemoteGdbSer})
+        haveSer=$(${adbCmd} shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
             echo "push ${debugDirBin}/${RemoteGdbSer} to plt"
             if [ ${dbgPltName} == "android_32" ]; then
-                adb push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
+                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
             else # [ ${dbgPltName} == "linux_32" ]; then
-                adb push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
-                adb push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
+                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
+                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
             fi
         fi
     elif [[ ${dbgPltName} == "android_64" || ${dbgPltName} == "linux_64" ]]; then
@@ -237,14 +238,14 @@ dbgGdbPrepareEnv()
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
         if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}; fi
 
-        haveSer=$(adb shell which ${RemoteGdbSer})
+        haveSer=$(${adbCmd} shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
             echo "push ${debugDirBin}/${RemoteGdbSer} to plt"
             if [ ${dbgPltName} == "android_64" ]; then
-                adb push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
+                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
             else # [ ${dbgPltName} == "linux_64" ]; then
-                adb push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
-                adb push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
+                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
+                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
             fi
         fi
     else
@@ -267,10 +268,10 @@ dbgGdbRun()
 
     echo "selected gdbserver: ${RemoteGdbSer}"
     echo "selected gdb: ${HostGdb}"
-    adb forward tcp:${localP} tcp:${listenP}
-    echo "adb port map:"
-    adb forward --list
-    # adb push ${GdbSer} /vendor/bin
+    ${adbCmd} forward tcp:${localP} tcp:${listenP}
+    echo "${adbCmd} port map:"
+    ${adbCmd} forward --list
+    # ${adbCmd} push ${GdbSer} /vendor/bin
 
 
     # server
@@ -282,7 +283,7 @@ dbgGdbRun()
     fi
     echo "server cmd: ${MppCmd}"
     startSerCmd="${RemoteGdbSer} localhost:$listenP ${MppCmd}"
-    adb shell $startSerCmd &
+    ${adbCmd} shell $startSerCmd &
     echo ""
 
 
@@ -316,9 +317,9 @@ dbgGdbRun()
     ${HostGdb} --command=${debugCmdFile}
 
 
-    adb forward --remove tcp:${localP}
-    echo "adb port map:"
-    adb forward --list
+    ${adbCmd} forward --remove tcp:${localP}
+    echo "${adbCmd} port map:"
+    ${adbCmd} forward --list
 }
 
 dbgGdb()
@@ -365,6 +366,7 @@ dbgGdb_x86()
     ${HostGdb} --command=${debugCmdFile} --args ${MppCmd}
 }
 
+adbCmd=$(adbs)
 selectTool
 selectPlatform
 echo "tool:$dbgToolName pltName:$dbgPltName"

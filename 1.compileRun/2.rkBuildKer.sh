@@ -28,6 +28,7 @@ m_config=""
 target=""
 m_make=""
 build_mod=""
+adbCmd=""
 
 display()
 {
@@ -233,16 +234,17 @@ download()
     if [ "${build_mod}" == "True" ]; then
         echo ""
         echo "======> reload rk_vcodec.ko <======"
-        adb push drivers/video/rockchip/mpp/rk_vcodec.ko /sdcard
-        if [ -n "`adb shell lsmod | grep rk_vcodec`" ]; then
+        ${adbCmd} push drivers/video/rockchip/mpp/rk_vcodec.ko /sdcard
+        if [ -n "`${adbCmd} shell lsmod | grep rk_vcodec`" ]; then
             echo "rmmod old rk_vcodec.ko"
-            adb shell rmmod rk_vcodec.ko
+            ${adbCmd} shell rmmod rk_vcodec.ko
         fi
         echo "insmod rk_vcodec.ko"
-        adb shell insmod /sdcard/rk_vcodec.ko
+        ${adbCmd} shell insmod /sdcard/rk_vcodec.ko
     fi
 }
 
+adbCmd=$(adbs)
 selectPlt
 gen_cmd
 build_kernel_mod
