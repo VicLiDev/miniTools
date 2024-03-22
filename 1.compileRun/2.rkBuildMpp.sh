@@ -71,6 +71,15 @@ build_android_32()
         ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
         ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
         ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
+
+        ${adbCmd} push mpp/libmpp.so /system/lib/
+        ${adbCmd} push mpp/legacy/libvpu.so /system/lib/
+        ${adbCmd} push mpp/vproc/iep2/test/iep2_test /system/bin/
+        ${adbCmd} push test/mpi_dec_test /system/bin/
+        ${adbCmd} push test/mpi_enc_test /system/bin/
+        ${adbCmd} push test/mpi_dec_mt_test /system/bin/
+        ${adbCmd} push test/mpi_dec_multi_test /system/bin/
+        ${adbCmd} push test/mpi_enc_mt_test /system/bin/
     else
         echo "======> build mpp error! <======"
     fi
@@ -94,6 +103,15 @@ build_android_64()
         ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
         ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
         ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
+
+        ${adbCmd} push mpp/libmpp.so /system/lib64
+        ${adbCmd} push mpp/legacy/libvpu.so /system/lib64
+        ${adbCmd} push mpp/vproc/iep2/test/iep2_test /system/bin/
+        ${adbCmd} push test/mpi_dec_test /system/bin/
+        ${adbCmd} push test/mpi_enc_test /system/bin/
+        ${adbCmd} push test/mpi_dec_mt_test /system/bin/
+        ${adbCmd} push test/mpi_dec_multi_test /system/bin/
+        ${adbCmd} push test/mpi_enc_mt_test /system/bin/
     else
         echo "======> build mpp error! <======"
     fi
