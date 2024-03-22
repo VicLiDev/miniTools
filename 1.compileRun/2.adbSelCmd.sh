@@ -58,7 +58,7 @@ gen_adb_cmd()
 adbCmd=`gen_adb_cmd`
 adbOpt=${@}
 
-if [ -z ${adbOpt} ]; then echo $adbCmd; else $adbCmd ${adbOpt}; fi
+if [ -z "${adbOpt}" ]; then echo $adbCmd; else $adbCmd ${adbOpt}; fi
 
 # zsh
 # alias clog='clear && adbCmd=$(adbs) && eval ${adbCmd} logcat -c && eval ${adbCmd} logcat'
