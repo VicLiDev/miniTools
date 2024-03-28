@@ -19,6 +19,7 @@ pltList=(
     "3588_linux_5.10"
     "3576_linux_5.10_fpga"
     "3576_linux_6.1_fpga"
+    "3576_linux_6.1"
     )
 
 curPlt="3588_android"
@@ -177,6 +178,16 @@ gen_cmd()
                 m_arch="arm64"
                 m_config="rockchip_defconfig LT0=none LLVM=1 LLVM_IAS=1"
                 m_target="rk3576-fpga.img LT0=none LLVM=1 LLVM_IAS=1"
+                m_make="make"
+                ;;
+            '3576_linux_6.1')
+                echo "======> selected ${curPlt} <======"
+                # 根据 build.sh 按照本地环境修改
+                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
+                export CROSS_COMPILE=aarch64-none-linux-gnu-
+                m_arch="arm64"
+                m_config="rockchip_linux_defconfig"
+                m_target="rk3576-evb1-v10-linux.img"
                 m_make="make"
                 ;;
         esac
