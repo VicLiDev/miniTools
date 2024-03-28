@@ -132,16 +132,16 @@ build_linux_32()
         ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /usr/lib
         ${adbCmd} push test/mpi_dec_test /usr/bin
         ${adbCmd} push test/mpi_enc_test /usr/bin
-        ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
+        ${adbCmd} push test/mpi_dec_mt_test /usr/bin/
+        ${adbCmd} push test/mpi_dec_multi_test /usr/bin/
+        ${adbCmd} push test/mpi_enc_mt_test /usr/bin/
         ${adbCmd} push mpp/librockchip_mpp.so.0 /oem/usr/lib
         ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
         ${adbCmd} push test/mpi_dec_test /oem/usr/bin
         ${adbCmd} push test/mpi_enc_test /oem/usr/bin
-        ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
+        ${adbCmd} push test/mpi_dec_mt_test /oem/usr/bin/
+        ${adbCmd} push test/mpi_dec_multi_test /oem/usr/bin/
+        ${adbCmd} push test/mpi_enc_mt_test /oem/usr/bin/
     else
         echo "======> build mpp error! <======"
     fi
@@ -162,16 +162,16 @@ build_linux_64()
         ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /usr/lib64
         ${adbCmd} push test/mpi_dec_test /usr/bin
         ${adbCmd} push test/mpi_enc_test /usr/bin
-        ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
+        ${adbCmd} push test/mpi_dec_mt_test /usr/bin/
+        ${adbCmd} push test/mpi_dec_multi_test /usr/bin/
+        ${adbCmd} push test/mpi_enc_mt_test /usr/bin/
         ${adbCmd} push mpp/librockchip_mpp.so.0 /oem/usr/lib
         ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
         ${adbCmd} push test/mpi_dec_test /oem/usr/bin
         ${adbCmd} push test/mpi_enc_test /oem/usr/bin
-        ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
+        ${adbCmd} push test/mpi_dec_mt_test /oem/usr/bin/
+        ${adbCmd} push test/mpi_dec_multi_test /oem/usr/bin/
+        ${adbCmd} push test/mpi_enc_mt_test /oem/usr/bin/
     else
         echo "======> build mpp error! <======"
     fi
