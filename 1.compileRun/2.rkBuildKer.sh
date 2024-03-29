@@ -79,10 +79,11 @@ gen_cmd()
         case ${curPlt} in
             '1109/1126_android')
                 echo "======> selected ${curPlt} <======"
+                export PATH=${HOME}/Projects/prebuilts/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH
                 m_arch="arm"
                 m_config="rv1126_defconfig"
                 m_target="rv1126-evb-ddr3-v13.img"
-                m_make="make"
+                m_make="make CROSS_COMPILE=arm-linux-gnueabihf-"
                 ;;
             '3288_android')
                 echo "======> selected ${curPlt} <======"
