@@ -8,7 +8,8 @@
 
 gen_adb_cmd()
 {
-    devList=(`adb devices | grep device$ | awk '{print $1}'`)
+    # devList=(`adb devices | grep device$ | awk '{print $1}'`)
+    devList=($(adb devices -l | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
     devName=()
     defDev=0
     m_devIdx=0
@@ -18,7 +19,7 @@ gen_adb_cmd()
 
     for ((i = 0; i < ${#devList[@]}; i++))
     do
-        nameTmp=`adb -s ${devList[${i}]} shell "cat /proc/device-tree/compatible" | tr -d "\0"`
+        nameTmp=`adb -t ${devList[${i}]} shell "cat /proc/device-tree/compatible" | tr -d "\0"`
         # nameTmp=${nameTmp%,rk*}
         devName[${i}]=${nameTmp#"rockchip,"}
     done
@@ -27,7 +28,7 @@ gen_adb_cmd()
         echo "Please select device:" >&2
         for ((i = 0; i < ${#devList[@]}; i++))
         do
-            echo "  ${i}. ${devName[${i}]} ==> ${devList[${i}]}" >&2
+            echo "  ${i}. ${devName[${i}]} ==> id:${devList[${i}]}" >&2
         done
         while [ True ]
         do
@@ -39,7 +40,7 @@ gen_adb_cmd()
                 exit 0
             elif [[ -n "${m_devIdx}" && -z `echo ${m_devIdx} | sed 's/[0-9]//g'` ]]; then
                 slcedDev=${devList[${m_devIdx}]}
-                echo "--> selected index:${m_devIdx}, dev:${devName[${i}]} ==> ${slcedDev}" >&2
+                echo "--> selected index:${m_devIdx}, dev:${devName[${m_devIdx}]} ==> id:${slcedDev}" >&2
                 break
             else
                 curPlt=""
@@ -50,7 +51,7 @@ gen_adb_cmd()
     else
         slcedDev=${devList[0]}
     fi
-    adbCmd="adb -s ${slcedDev}"
+    adbCmd="adb -t ${slcedDev}"
 
     echo ${adbCmd}
 }
