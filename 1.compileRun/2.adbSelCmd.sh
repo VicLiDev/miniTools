@@ -39,7 +39,7 @@ gen_adb_cmd()
                 exit 0
             elif [[ -n "${m_devIdx}" && -z `echo ${m_devIdx} | sed 's/[0-9]//g'` ]]; then
                 slcedDev=${devList[${m_devIdx}]}
-                echo "--> selected index:${m_devIdx}, dev:${devName[${i}]} ==> ${slcedDev}" >&2
+                echo "--> selected index:${m_devIdx}, dev:${devName[${m_devIdx}]} ==> ${slcedDev}" >&2
                 break
             else
                 curPlt=""
