@@ -10,11 +10,7 @@ set -e
 
 create_dir()
 {
-    cur_dir=$1
-    if [ ! -d "${cur_dir}" ]; then
-        echo "create dir ${cur_dir}"
-        mkdir -p ${cur_dir}
-    fi
+    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
 }
 
 setup_env()

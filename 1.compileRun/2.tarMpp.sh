@@ -53,10 +53,13 @@ function create_dir()
 
 function update_file()
 {
-	if [ ! -e $1 ]; then echo "error: src file $1 do not exist"; exit 1; fi
-	if [ ! -e $2 ]; then echo "error: dst dir $2 do not exist"; exit 1; fi
-	echo "copy $1 to $2"
-	cp -r $1 $2
+    src="$1"
+    dst="$2"
+    if [[ -z "$src" || ! -e $src ]]; then echo "error: src file $1 do not exist"; exit 1; fi
+    # dts maybe file or dir
+    if [[ -z "$dst" || ! -e ${dst%/*} ]]; then echo "error: dst dir $2 do not exist"; exit 1; fi
+    echo "copy $src to $dst"
+    cp -r $src $dst
 }
 
 function update_android()
