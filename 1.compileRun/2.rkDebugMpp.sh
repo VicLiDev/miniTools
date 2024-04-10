@@ -97,6 +97,22 @@ selectTool()
     done
 }
 
+create_dir()
+{
+    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
+}
+
+update_file()
+{
+    src="$1"
+    dst="$2"
+    if [[ -z "$src" || ! -e $src ]]; then echo "error: src file $1 do not exist"; exit 1; fi
+    # dts maybe file or dir
+    if [[ -z "$dst" || ! -e ${dst%/*} ]]; then echo "error: dst dir $2 do not exist"; exit 1; fi
+    echo "copy $src to $dst"
+    cp -r $src $dst
+}
+
 dbgLldb()
 {
     # proc lldb tool
@@ -200,18 +216,18 @@ dbgGdbPrepareEnv()
 
 
     # Create the host library file structure
-    if [ ! -e ${debugDirBin} ];then mkdir -p ${debugDirBin}; fi
-    if [ ! -e ${debugDirLib} ];then mkdir -p ${debugDirLib}; fi
-    if [[ -e ${debugBin} && -e ${debugDirBin} ]]; then cp ${debugBin} ${debugDirBin}; fi
-    if [[ -e ${debugLib} && -e ${debugDirLib} ]]; then cp ${debugLib} ${debugDirLib}; fi
+    create_dir ${debugDirBin}
+    create_dir ${debugDirLib}
+    update_file ${debugBin} ${debugDirBin}
+    update_file ${debugLib} ${debugDirLib}
 
-    if [ -n ${debugDirBin2} ]; then
-        if [ ! -e ${debugDirBin2} ];then mkdir -p ${debugDirBin2}; fi
-        if [[ -e ${debugBin} && -e ${debugDirBin2} ]]; then cp ${debugBin} ${debugDirBin2}; fi
+    if [ -n "${debugDirBin2}" ]; then
+        create_dir ${debugDirBin2}
+        update_file ${debugBin} ${debugDirBin2}
     fi
-    if [ -n ${debugDirLib2} ]; then
-        if [ ! -e ${debugDirLib2} ];then mkdir -p ${debugDirLib2}; fi
-        if [[ -e ${debugLib} && -e ${debugDirLib2} ]]; then cp ${debugLib} ${debugDirLib2}; fi
+    if [ -n "${debugDirLib2}" ]; then
+        create_dir ${debugDirLib2}
+        update_file ${debugLib} ${debugDirLib2}
     fi
 
 
@@ -221,7 +237,7 @@ dbgGdbPrepareEnv()
     if [[ ${dbgPltName} == "android_32" || ${dbgPltName} == "linux_32" ]]; then
         LocGdbSerPath="arm/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf/bin"
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
-        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}; fi
+        update_file ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}
 
         haveSer=$(${adbCmd} shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
@@ -236,7 +252,7 @@ dbgGdbPrepareEnv()
     elif [[ ${dbgPltName} == "android_64" || ${dbgPltName} == "linux_64" ]]; then
         LocGdbSerPath="aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin"
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
-        if [[ -e ${LocGdbSer} && -e ${debugDirBin} ]]; then cp ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}; fi
+        update_file ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}
 
         haveSer=$(${adbCmd} shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
