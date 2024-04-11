@@ -213,5 +213,5 @@ def test_batch_by_list():
 
 
 if __name__ == "__main__":
-    pytest.main(["./test_arm_mpp_cmodel.py::test_batch_by_list", "-s", "-v", "-x"])
+    pytest.main(["./test_mpp_arm_cmodel.py::test_batch_by_list", "-s", "-v", "-x"])
     # test_batch_by_list()
