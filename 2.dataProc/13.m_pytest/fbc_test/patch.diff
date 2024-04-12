@@ -1,0 +1,18 @@
+diff --git a/test/mpi_dec_test.c b/test/mpi_dec_test.c
+index f03c0b15..e2785e25 100644
+--- a/test/mpi_dec_test.c
++++ b/test/mpi_dec_test.c
+@@ -194,8 +194,12 @@ static int dec_simple(MpiDecLoopData *data)
+                     mpp_log_q(quiet, "%p %s\n", ctx, log_buf);
+ 
+                     data->frame_count++;
+-                    if (data->fp_output && !err_info)
++                    RK_U32 cur_dump = 0;
++                    mpp_env_get_u32("cur_dump", &cur_dump, 0);
++                    if (data->fp_output && !err_info && ((data->frame_count - 1) == cur_dump)) {
++                        mpp_log("======> lhj add func:%s line:%d cur_dump:%d\n", __func__, __LINE__, cur_dump);
+                         dump_mpp_frame_to_file(frame, data->fp_output);
++                    }
+ 
+                     if (data->fp_verify) {
+                         calc_frm_crc(frame, checkcrc);
