@@ -14,6 +14,7 @@ mppRoot="${HOME}/Projects/mpp"
 tarPkgName="mpplib.tar.gz"
 mppLibDir="mpplib"
 pushTool="push.sh"
+logFile="ReadMe.md"
 
 
 android_32_dir="${mppLibDir}/android_32"
@@ -23,6 +24,13 @@ linux_64_dir="${mppLibDir}/linux_64"
 
 en_android="False"
 en_linux="False"
+
+function help()
+{
+    echo "usage: ./2.tarMpp.sh -a -l"
+    echo "  -a: tar android lib"
+    echo "  -l: tar linux lib"
+}
 
 function procParas()
 {
@@ -137,22 +145,26 @@ function update_linux()
     echo "adb push linux_64/librockchip_vpu.so.0   /oem/usr/lib64" >> ${mppLibDir}/${pushTool}
 }
 
+function add_log()
+{
+    echo "create time: `date +"%Y_%m_%d_%H:%M:%S"`" > ${mppLibDir}/${logFile}
+    echo "collect dir: ~${mppRoot#${HOME}}" >> ${mppLibDir}/${logFile}
+}
 
+
+# ====== main ======
 
 procParas $@
 
-if [[ ${en_android} == "False" && ${en_linux} == "False" ]]; then
-    echo "usage: ./2.tarMpp.sh -a -l"
-    echo "  -a: tar android lib"
-    echo "  -l: tar linux lib"
-    exit 1
-fi
+if [[ ${en_android} == "False" && ${en_linux} == "False" ]]; then help; exit 1; fi
 
 if [ -e ${mppLibDir} ]; then rm -rf ${mppLibDir}; fi
 if [ -e ${tarPkgName} ]; then rm -rf ${tarPkgName}; fi
 
 if [ ${en_android} == "True" ]; then update_android; fi
 if [ ${en_linux} == "True" ]; then update_linux; fi
+
+add_log
 
 echo tarcmd: "tar -czvf ${tarPkgName} ${mppLibDir}"
 tar -czvf ${tarPkgName} ${mppLibDir}
