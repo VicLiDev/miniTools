@@ -202,7 +202,7 @@ test_cmd_av1="${exe} ${paras_av1}"
 
 
 # main
-adb shell io -4 -w 0x26004300 0x00070007
+# adb shell io -4 -w 0x26004300 0x00070007
 
 cur_prot="$1"
 
