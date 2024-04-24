@@ -218,12 +218,16 @@ dbgGdbPrepareEnv()
     # Create the host library file structure
     create_dir ${debugDirBin}
     create_dir ${debugDirLib}
-    update_file ${debugBin} ${debugDirBin}
+    if [ -n "`echo ${debugBin} | grep -v attach`" ]; then
+        update_file ${debugBin} ${debugDirBin}
+    fi
     update_file ${debugLib} ${debugDirLib}
 
     if [ -n "${debugDirBin2}" ]; then
         create_dir ${debugDirBin2}
-        update_file ${debugBin} ${debugDirBin2}
+        if [ -n "`echo ${debugBin} | grep -v attach`" ]; then
+            update_file ${debugBin} ${debugDirBin2}
+        fi
     fi
     if [ -n "${debugDirLib2}" ]; then
         create_dir ${debugDirLib2}
