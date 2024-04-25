@@ -6,6 +6,15 @@
 #########################################################################
 #!/bin/bash
 
+# ln -s ${HOME}/Projects/miniTools/1.compileRun/1.ffmpeg_build_linux_test.sh .prjBuild.sh
+
+create_dir()
+{
+    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
+}
+
+create_dir build
+
 ../configure \
   --prefix="${PWD}/ffmpeg_out" \
   --pkg-config-flags="--static" \

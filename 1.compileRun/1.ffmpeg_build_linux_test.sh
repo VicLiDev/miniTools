@@ -1,10 +1,36 @@
+#!/bin/bash
 #########################################################################
 # File Name: compile.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri May 27 11:23:39 2022
 #########################################################################
-#!/bin/bash
+
+# sudo apt-get install libaom-dev
+# sudo apt-get install libx264-dev
+# sudo apt-get install libx265-dev
+# sudo apt-get install libvpx-dev
+# sudo apt-get install libfdk-aac-dev
+# sudo apt-get install libopus-dev
+# sudo apt-get install libsvtav1-dev
+# sudo apt-get install libsvtav1enc-dev
+# sudo apt-get install libdav1d-dev
+# sudo apt-get install libva-dev
+# sudo apt-get install libvdpau-dev
+# sudo apt-get install libva-x11-2
+# sudo apt-get install libva-drm2
+# sudo apt-get install liblzma-dev
+
+# ln -s ${HOME}/Projects/miniTools/1.compileRun/1.ffmpeg_build_linux_test.sh .prjBuild.sh
+
+create_dir()
+{
+    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
+}
+
+create_dir build
+
+cd build
 
 ../configure \
   --prefix="${PWD}/ffmpeg_out" \
@@ -29,10 +55,14 @@
   --enable-libsvtav1 \
   --enable-libdav1d \
   --enable-nonfree \
-  --enable-debug=3 --disable-optimizations --disable-asm --disable-stripping 
+  --enable-debug=3 --disable-optimizations --disable-asm --disable-stripping
 
 make -j 20 && make install
 
+echo
+echo
+echo
+echo "build mini demo"
 gcc ../doc/examples/decode_video.c -o decode_video\
     -I ./ffmpeg_out/include \
     -L ./ffmpeg_out/lib \
