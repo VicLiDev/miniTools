@@ -35,34 +35,40 @@ adbCmd=""
 
 display()
 {
-    echo "Please select platform:"
-    for ((i = 0; i < ${#pltList[@]}; i++))
+    local -n list_ref="$1"
+    local tip="$2"
+    echo "Please select ${tip}:"
+    for ((i = 0; i < ${#list_ref[@]}; i++))
     do
-        echo "  ${i}. ${pltList[${i}]}"
+        echo "  ${i}. ${list_ref[${i}]}"
     done
 }
 
-selectPlt()
+selectNode()
 {
-    display
-    echo "cur dir: `pwd`"
+    defSelIdx="$1"
+    local list_name="$2"
+    local -n list_ref="$2"
+    local -n sel_res="$3"
+    sel_tip="$4"
 
-    defPltIdx=6
+    display $list_name $sel_tip
+    echo "cur dir: `pwd`"
     while [ True ]
     do
-        read -p "Please select platform or quit(q), def[${defPltIdx}]:" pltIdx
-        pltIdx=${pltIdx:-${defPltIdx}}
+        read -p "Please select ${sel_tip} or quit(q), def[${defSelIdx}]:" selIdx
+        selIdx=${selIdx:-${defSelIdx}}
 
-        if [ "${pltIdx}" == "q" ]; then
+        if [ "${selIdx}" == "q" ]; then
             echo "======> quit <======"
             exit 0
-        elif [[ -n ${pltIdx} && -z `echo ${pltIdx} | sed 's/[0-9]//g'` ]]; then
-            curPlt=${pltList[${pltIdx}]}
-            echo "--> selected index:${pltIdx}, plt:${curPlt}"
+        elif [[ -n ${selIdx} && -z `echo ${selIdx} | sed 's/[0-9]//g'` ]]; then
+            sel_res=${list_ref[${selIdx}]}
+            echo "--> selected index:${selIdx}, ${sel_tip}:${sel_res}"
             break
         else
-            curPlt=""
-            echo "--> please input num in scope 0-`expr ${#pltList[@]} - 1`"
+            sel_res=""
+            echo "--> please input num in scope 0-`expr ${#list_ref[@]} - 1`"
             continue
         fi
     done
@@ -277,7 +283,7 @@ download()
 }
 
 adbCmd=$(adbs)
-selectPlt
+selectNode "6" "pltList" "curPlt" "platform"
 gen_cmd
 build_kernel_mod
 download
