@@ -67,7 +67,9 @@ selectNode()
         if [ "${selIdx}" == "q" ]; then
             echo "======> quit <======"
             exit 0
-        elif [[ -n ${selIdx} && -z `echo ${selIdx} | sed 's/[0-9]//g'` ]]; then
+        elif [[ -n ${selIdx} ]] \
+            && [[ -z `echo ${selIdx} | sed 's/[0-9]//g'` ]] \
+            && [[ "${selIdx}" -lt "${#list_ref[@]}" ]]; then
             sel_res=${list_ref[${selIdx}]}
             echo "--> selected index:${selIdx}, ${sel_tip}:${sel_res}"
             break
