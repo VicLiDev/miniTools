@@ -24,6 +24,11 @@ pltList=(
     "3576_linux_6.1"
     )
 
+build_mode_list=(
+    "build_kmod"
+    "build_kernel"
+    )
+
 curPlt="3588_android"
 
 m_arch=""
@@ -79,9 +84,10 @@ gen_cmd()
     if [ -n "`cat drivers/video/rockchip/mpp/Makefile | grep obj-m | sed \"s/#.*//g\"`" ]; then
         # modify drivers/video/rockchip/mpp/Makefile need modify:
         # obj-$(CONFIG_ROCKCHIP_MPP_SERVICE) --> obj-m
-        build_mod="True";
+        selectNode "0" "build_mode_list" "build_mod" "build method"
     else
-        build_mod="False";
+        # default build kernel
+        build_mod="build_kernel";
     fi
     if [ -n "${curPlt}" ]; then
         case ${curPlt} in
@@ -223,33 +229,34 @@ gen_cmd()
 
 build_kernel_mod()
 {
-    config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
-    build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
-
-    echo "======> compild kernel begin <======"
-    echo "config cmd: ${config_cmd}"
-    echo "build  cmd: ${build_cmd}"
-    ${config_cmd}
-    if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
-    if [[ ${curPlt} == "3576_linux_5.10_fpga" || ${curPlt} == "3576_linux_6.1_fpga" ]]; then
-        echo "modify .config for ${curPlt}";
-        sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
-        # sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
-        # sed -i "s/# CONFIG_NTFS_FS is not set/CONFIG_NTFS_FS=y/g" .config;
-        if [ $? -ne 0 ]; then echo "modify .config faile"; fi
+    if [ "${build_mod}" == "build_kernel" ]; then
+        echo "======> compild kernel begin <======"
+        config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
+        build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
+        echo "config cmd: ${config_cmd}"
+        echo "build  cmd: ${build_cmd}"
+        ${config_cmd}
+        if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
+        if [[ ${curPlt} == "3576_linux_5.10_fpga" || ${curPlt} == "3576_linux_6.1_fpga" ]]; then
+            echo "modify .config for ${curPlt}";
+            sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
+            # sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
+            # sed -i "s/# CONFIG_NTFS_FS is not set/CONFIG_NTFS_FS=y/g" .config;
+            if [ $? -ne 0 ]; then echo "modify .config faile"; fi
+        fi
+        if [ ${curPlt} == "3576_android" ]; then
+            echo "modify .config for ${curPlt}";
+            sed -i "s/# CONFIG_DEVMEM is not set/CONFIG_DEVMEM=y/g" .config;
+            if [ $? -ne 0 ]; then echo "modify .config faile"; fi
+        fi
+        ${build_cmd}
+        if [ $? -ne 0 ]; then echo "build faile, cmd: ${config_cmd}"; exit 1; fi
+        echo "config cmd: ${config_cmd}"
+        echo "build  cmd: ${build_cmd}"
+        echo "======> compild kernel done <======"
     fi
-    if [ ${curPlt} == "3576_android" ]; then
-        echo "modify .config for ${curPlt}";
-        sed -i "s/# CONFIG_DEVMEM is not set/CONFIG_DEVMEM=y/g" .config;
-        if [ $? -ne 0 ]; then echo "modify .config faile"; fi
-    fi
-    ${build_cmd}
-    if [ $? -ne 0 ]; then echo "build faile, cmd: ${config_cmd}"; exit 1; fi
-    echo "config cmd: ${config_cmd}"
-    echo "build  cmd: ${build_cmd}"
-    echo "======> compild kernel done <======"
 
-    if [ "${build_mod}" == "True" ]; then
+    if [ "${build_mod}" == "build_kmod" ]; then
         echo "======> compild rk_vcodec.ko begin <======"
         build_mod_cmd="${m_make} ARCH=${m_arch} -C `pwd` M=`pwd`/drivers/video/rockchip/mpp modules"
         echo "build mod cmd: ${build_mod_cmd}"
@@ -260,16 +267,18 @@ build_kernel_mod()
 
 download()
 {
-    echo ""
-    echo "======> copy boot.img to ~/test <======"
-    echo "cur dir: `pwd`"
-    cp boot.img ~/test
+    if [ "${build_mod}" == "build_kernel" ]; then
+        echo ""
+        echo "======> copy boot.img to ~/test <======"
+        echo "cur dir: `pwd`"
+        cp boot.img ~/test
 
-    echo ""
-    echo "======> download boot.img <======"
-    rkUT.sh b
+        echo ""
+        echo "======> download boot.img <======"
+        rkUT.sh b
+    fi
 
-    if [ "${build_mod}" == "True" ]; then
+    if [ "${build_mod}" == "build_kmod" ]; then
         echo ""
         echo "======> reload rk_vcodec.ko <======"
         ${adbCmd} push drivers/video/rockchip/mpp/rk_vcodec.ko /sdcard
