@@ -14,8 +14,8 @@ pltList=(
     "3568_android"
     "3588_android"
     "3576_android"
-    "px30_linux"
-    "3326_linux"
+    "px30_linux_4.4_4.19"
+    "3326_linux_4.4_4.19"
     "3399_linux_5.10"
     "3568_linux_4.19"
     "3588_linux_5.10"
@@ -147,7 +147,7 @@ gen_cmd()
                 m_target="BOOT_IMG=./boot_3576.img rk3576-evb1-v10.img"
                 m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
-            'px30_linux')
+            'px30_linux_4.4_4.19')
                 echo "======> selected ${curPlt} <======"
                 export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
@@ -156,7 +156,7 @@ gen_cmd()
                 m_target="px30-evb-ddr3-v10-linux.img"
                 m_make="make"
                 ;;
-            '3326_linux')
+            '3326_linux_4.4_4.19')
                 echo "======> selected ${curPlt} <======"
                 export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
                 export CROSS_COMPILE=aarch64-none-linux-gnu-
