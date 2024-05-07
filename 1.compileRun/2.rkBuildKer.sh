@@ -117,17 +117,19 @@ gen_cmd()
                 ;;
             '3399_android')
                 echo "======> selected ${curPlt} <======"
+                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
                 m_arch="arm64"
                 m_config="rockchip_defconfig android-11.config disable_incfs.config"
                 m_target="BOOT_IMG=./boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img"
-                m_make="make"
+                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
             '3568_android')
                 echo "======> selected ${curPlt} <======"
+                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
                 m_arch="arm64"
                 m_config="rockchip_defconfig rk356x.config android-11.config"
                 m_target="rk3566-evb1-ddr4-v10.img BOOT_IMG=boot1.img"
-                m_make="make"
+                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
             '3588_android')
                 echo "======> selected ${curPlt} <======"
