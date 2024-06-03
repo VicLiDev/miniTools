@@ -23,6 +23,7 @@ pltList=(
 
 toolList=(
     "gdb"
+    "gdbNet"
     "lldb"
     )
 
@@ -234,6 +235,12 @@ dbgGdbPrepareEnv()
         update_file ${debugLib} ${debugDirLib2}
     fi
 
+    # gdbNet do not need to proc tool
+    if [ "${dbgToolName}" == "gdbNet" ]; then
+        runOpt=""
+        read -p "gdbNet need proc gdb tools? (y/[n])]:" -t 1 runOpt
+        if [ "$runOpt" != "y" ]; then return 0; fi
+    fi
 
     # proc gdb tool
     # CCToolsRoot="${HOME}/Projects/prebuilts/toolschain/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf"
@@ -283,27 +290,46 @@ dbgGdbRun()
     # Gdb="${CCToolsRoot}/${GdbPath}/gdb"
     HostGdb="gdb-multiarch"
 
+    devIP="localhost"
     listenP="8899"
     localP="8898"
 
     echo "selected gdbserver: ${RemoteGdbSer}"
     echo "selected gdb: ${HostGdb}"
-    ${adbCmd} forward tcp:${localP} tcp:${listenP}
-    echo "${adbCmd} port map:"
-    ${adbCmd} forward --list
-    # ${adbCmd} push ${GdbSer} /vendor/bin
+    if [ "${dbgToolName}" == "gdbNet" ]; then
+        listenP=${localP}
+    else
+        ${adbCmd} forward tcp:${localP} tcp:${listenP}
+        echo "${adbCmd} port map:"
+        ${adbCmd} forward --list
+        # ${adbCmd} push ${GdbSer} /vendor/bin
+    fi
 
 
     # server
     # mpp cmd
     if [ -e ${debugCmdFile} ];then
         MppCmd=`cat ${debugCmdFile} | grep serverCmd | sed 's/.*serverCmd: //g'`;
+        devIP=`cat ${debugCmdFile} | grep "^target" | sed 's/[a-z]* //g' | sed 's/:[0-9]*//g'`
     else
         MppCmd="mpi_dec_test -i /sdcard/test.h264"
+        devIP="localhost"
     fi
-    echo "server cmd: ${MppCmd}"
-    startSerCmd="${RemoteGdbSer} localhost:$listenP ${MppCmd}"
-    ${adbCmd} shell $startSerCmd &
+    if [[ "${dbgToolName}" == "gdbNet" && ${devIP} == "localhost" ]]; then
+        read -p "Please input dev ip: " devIP
+        sed -i "s/^target.*/target remote ${devIP}:${localP}/" ${debugCmdFile}
+    fi
+    if [[ "${dbgToolName}" != "gdbNet" && ${devIP} != "localhost" ]]; then
+        devIP="localhost"
+        sed -i "s/^target.*/target remote ${devIP}:${localP}/" ${debugCmdFile}
+    fi
+    startSerCmd="${RemoteGdbSer} ${devIP}:${listenP} ${MppCmd}"
+    echo "server cmd: ${startSerCmd}"
+    if [ "${dbgToolName}" == "gdbNet" ]; then
+        read -p "Please exec cmd in dev: << ${startSerCmd} >>"
+    else
+        ${adbCmd} shell $startSerCmd &
+    fi
     echo ""
 
 
@@ -324,7 +350,7 @@ dbgGdbRun()
         echo "" >> ${debugCmdFile}
 
         echo "# target sets" >> ${debugCmdFile}
-        echo "target remote :${localP}" >> ${debugCmdFile}
+        echo "target remote ${devIP}:${localP}" >> ${debugCmdFile}
         echo "# set sysroot remote:/" >> ${debugCmdFile}
         echo "# set solib-search-path target:/vendor/lib:/system/lib" >> ${debugCmdFile}
         echo "" >> ${debugCmdFile}
@@ -337,9 +363,11 @@ dbgGdbRun()
     ${HostGdb} --command=${debugCmdFile}
 
 
-    ${adbCmd} forward --remove tcp:${localP}
-    echo "${adbCmd} port map:"
-    ${adbCmd} forward --list
+    if [ "${dbgToolName}" != "gdbNet" ]; then
+        ${adbCmd} forward --remove tcp:${localP}
+        echo "${adbCmd} port map:"
+        ${adbCmd} forward --list
+    fi
 }
 
 dbgGdb()
@@ -391,7 +419,7 @@ selectTool
 selectPlatform
 echo "tool:$dbgToolName pltName:$dbgPltName"
 
-if [ "$dbgToolName" = "gdb" ]; then
+if [ -n `echo $dbgToolName | grep gdb` ]; then
     if [ ${dbgPltName} != "linux_x86_64" ]; then
         dbgGdb
     else
