@@ -6,6 +6,8 @@
 #########################################################################
 #!/bin/bash
 
+videoDir="collect_video"
+fileRootDir="/Volumes/RKshare/Video_4K_1080P_720P"
 
 videoList=(
 #================> mpeg1
@@ -47,10 +49,17 @@ videoList=(
 "视频/2015show/gallery/01600_doodledoorjurassicicondorset_1920x1200.jpg"
 )
 
-fileRootDir="/Volumes/RKshare/Video_4K_1080P_720P"
+
+create_dir()
+{
+    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
+}
+
+
+create_dir ${videoDir}
 videoCnt=${#videoList[*]}
 for ((loop=0; loop<videoCnt; loop++))
 do
     echo "copying file: ""$fileRootDir/${videoList[loop]}"
-    cp "$fileRootDir/${videoList[loop]}" .
+    cp "$fileRootDir/${videoList[loop]}" ${videoDir}/
 done
