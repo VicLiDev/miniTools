@@ -13,7 +13,7 @@ def loadData(fname):
 
     nums = []
     for line in lines:
-        cur = int(line.strip('\n'))
+        cur = float(line.strip('\n'))
         nums.append(cur)
 
     return nums
