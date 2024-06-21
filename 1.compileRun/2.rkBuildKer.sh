@@ -6,6 +6,9 @@
 
 set -e
 
+cache_file=${HOME}/bin/select.cache
+sel_tag="rk_kernel_b: "
+
 pltList=(
     "1109/1126_android"
     "3288_android"
@@ -49,9 +52,38 @@ display()
     done
 }
 
+rd_sel_cache()
+{
+    sel_tag="$1"
+    def=$2
+
+    if [[ ! -e ${cache_file} ]] \
+        || [[ -z `cat ${cache_file} | grep ${sel_tag}` ]]; then
+        echo ${def}
+    else
+        def=`cat ${cache_file} | grep ${sel_tag} | sed "s/${sel_tag}//g"`
+        echo ${def}
+    fi
+}
+
+wr_sel_cache()
+{
+    sel_tag="$1"
+    def=$2
+
+    if [ ! -e ${cache_file} ]; then
+        echo "${sel_tag}${def}" > ${cache_file}
+    elif [ -z "`cat ${cache_file} | grep ${sel_tag}`" ]; then
+        echo "${sel_tag}${def}" >> ${cache_file}
+    else
+        sed -i "s/${sel_tag}.*/${sel_tag}${def}/" ${cache_file}
+    fi
+}
+
 selectNode()
 {
     defSelIdx="$1"
+    defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
     local list_name="$2"
     local -n list_ref="$2"
     local -n sel_res="$3"
@@ -79,6 +111,8 @@ selectNode()
             continue
         fi
     done
+
+    wr_sel_cache ${sel_tag} ${selIdx}
 }
 
 gen_cmd()

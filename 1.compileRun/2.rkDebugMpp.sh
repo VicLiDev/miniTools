@@ -13,6 +13,10 @@ dbgToolName=""
 prjRoot=`pwd`
 adbCmd=""
 
+cache_file=${HOME}/bin/select.cache
+sel_tag_plt="rk_mpp_plt_d: "
+sel_tag_tool="rk_mpp_tool_d: "
+
 pltList=(
     "android_32"
     "android_64"
@@ -46,12 +50,41 @@ displayTools()
     done
 }
 
+rd_sel_cache()
+{
+    sel_tag="$1"
+    def=$2
+
+    if [[ ! -e ${cache_file} ]] \
+        || [[ -z `cat ${cache_file} | grep ${sel_tag}` ]]; then
+        echo ${def}
+    else
+        def=`cat ${cache_file} | grep ${sel_tag} | sed "s/${sel_tag}//g"`
+        echo ${def}
+    fi
+}
+
+wr_sel_cache()
+{
+    sel_tag="$1"
+    def=$2
+
+    if [ ! -e ${cache_file} ]; then
+        echo "${sel_tag}${def}" > ${cache_file}
+    elif [ -z "`cat ${cache_file} | grep ${sel_tag}`" ]; then
+        echo "${sel_tag}${def}" >> ${cache_file}
+    else
+        sed -i "s/${sel_tag}.*/${sel_tag}${def}/" ${cache_file}
+    fi
+}
+
 selectPlatform()
 {
     displayPlts
     echo "cur dir: `pwd`"
 
     defPltIdx=0
+    defPltIdx=`rd_sel_cache ${sel_tag_plt} ${defPltIdx}`
     while [ True ]
     do
         read -p "Please select debug plt or quit(q), def[${defPltIdx}]:" pltIdx
@@ -70,6 +103,8 @@ selectPlatform()
             continue
         fi
     done
+
+    wr_sel_cache ${sel_tag_plt} ${pltIdx}
 }
 
 selectTool()
@@ -78,6 +113,7 @@ selectTool()
     echo "cur dir: `pwd`"
 
     defDbgTool=0
+    defDbgTool=`rd_sel_cache ${sel_tag_tool} ${defDbgTool}`
     while [ True ]
     do
         read -p "Please select debug tool or quit(q), def[${defDbgTool}]:" dbgTool
@@ -96,6 +132,8 @@ selectTool()
             continue
         fi
     done
+
+    wr_sel_cache ${sel_tag_tool} ${dbgTool}
 }
 
 create_dir()
