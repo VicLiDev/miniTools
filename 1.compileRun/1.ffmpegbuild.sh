@@ -214,7 +214,7 @@ compile_ffmpeg()
         --enable-nonfree \
         --enable-libdavs2 \
         --enable-libxavs2
-    
+
     PATH="$FFMPEGPATH" make -j20 && make install
 }
 
