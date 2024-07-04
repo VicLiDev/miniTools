@@ -313,7 +313,7 @@ download()
 
         echo ""
         echo "======> download boot.img <======"
-        rkUT.sh b
+        rkUT.sh -di -b
     fi
 
     if [ "${build_mod}" == "build_kmod" ]; then

@@ -1,110 +1,219 @@
 #!/bin/bash
-# rockchip update tools
 
-PWD=`pwd`
-REMOTE_USER=lhj
-REMOTE_IP=10.10.10.65
-REMOTE_DIR=/home/lhj/Projects/kernel
-REMOTE_PATH=${REMOTE_USER}@${REMOTE_IP}:${REMOTE_DIR}
+# rockchip update tools usage:
 
-#IMAGE_PATH=~/test
-#scp -r ${REMOTE_PATH}/boot.img ${IMAGE_PATH}
+# LD list device
+# UF upgrade firmware
+# UL upgrade loader
+# DI download image
+# DB download boot
+# EF erase flash
+# TD test device
+# RD reset device
 
-IMAGE_PATH=/home/lhj/Projects/kernel
-IMAGE_PATH=/home/lhj/test
+# DI:
+# -s  (system 分区)
+# -k  (kernel 分区)
+# -b  (boot 分区)
+# -r  (recovery 分区)
+# -m  (misc 分区)
+# -u  (uboot 分区)
+# -t  (trust 分区)
+# -re (resource 分区)
 
-rkut_help(){
-    echo "usage: rkut.sh <opt>"
+image_path=/home/lhj/Projects/kernel
+image_path=/home/lhj/test
+opt1=""
+opt2=""
+opt_para1=""
+opt_para2=""
+use_org_tool=""
+exe_cmd=""
+
+f_firmware="update.img"
+f_loader="loader.bin"
+
+f_di_u_boot="uboot.img"
+f_di_boot="boot.img"
+f_di_zboot="zboot.img"
+f_di_kernel="kernel.img"
+f_di_resource="resource.img"
+f_di_misc="misc.img"
+f_di_trust="trust.img"
+f_di_system="system.img"
+f_di_recovery="recovery.img"
+
+function rkut_help()
+{
+    echo "usage: rkut.sh <opt1> [<opt_para1>] [<opt2>]"
     echo "opt:"
-    echo "  u   download uboot.img"
-    echo "  b   download boot.img"
-    echo "  z   download zboot.img"
-    echo "  k   download kernel.img"
-    echo "  re  download resource.img"
-    echo "  i   download update.img"
+    echo "  -ld  list device"
+    echo "  -uf  upgrade firmware"
+    echo "  -ul  upgrade loader"
+    echo "  -di  download image"
+    echo "  -db  download boot"
+    echo "  -ef  erase flash"
+    echo
+    echo "  --> di opt <--"
+    echo "  -s  system  "
+    echo "  -k  kernel  "
+    echo "  -b  boot    "
+    echo "  -r  recovery"
+    echo "  -m  misc    "
+    echo "  -u  uboot   "
+    echo "  -t  trust   "
+    echo "  -re resource"
+    echo
+    echo "  ==> Professional Command <=="
+    echo "  -td  test device"
+    echo "  -rd  reset device"
+    echo
+    echo "  -urk use the rk tool directly"
 }
 
-if [ $# -lt 1 ]; then
-    echo "error: para is less than 1"
-    rkut_help
-    exit
-else
-    case $1 in
-        '-h')
-            rkut_help
-            exit
-            ;;
-        # DI命令:烧写分区镜像
-        # 目前已知的分区有-s(system 分区)、-k(kernel 分区)、-b(boot 分区)、
-        # -r(recovery 分区) 、-m(misc 分区) 、 -u(uboot 分区) 、-t(trust 分区)
-        # 和-re(resource 分区)
-        'u')
-            echo "========> writing uboot.img <========" && echo
-            echo "File: ${IMAGE_PATH}/uboot.img"
-            sudo upgrade_tool di -u ${IMAGE_PATH}/uboot.img 
-            if [ $? -eq 0 ]; then exit 0; fi
-            ;;
-        'b')
-            echo "========> writing boot.img <========" && echo
-            echo "File: ${IMAGE_PATH}/boot.img"
-            sudo upgrade_tool di -b ${IMAGE_PATH}/boot.img 
-            if [ $? -eq 0 ]; then exit 0; fi
-            ;;
-        'z')
-            echo "========> writing zboot.img <========" && echo
-            echo "File: ${IMAGE_PATH}/zboot.img"
-            sudo upgrade_tool di -b ${IMAGE_PATH}/zboot.img 
-            if [ $? -eq 0 ]; then exit 0; fi
-            ;;
-        'k')
-            echo "========> writing kernel.img <========" && echo
-            echo "File: ${IMAGE_PATH}/kernel.img"
-            sudo upgrade_tool di -k ${IMAGE_PATH}/kernel.img 
-            if [ $? -eq 0 ]; then exit 0; fi
-            ;;
-        're')
-            echo "========> writing resource.img <========" && echo
-            echo "File: ${IMAGE_PATH}/resource.img"
-            sudo upgrade_tool di -re ${IMAGE_PATH}/resource.img 
-            if [ $? -eq 0 ]; then exit 0; fi
-            ;;
-        'i')
-            echo "========> writing update.img <========" && echo
-            echo "File: ${IMAGE_PATH}/update.img"
-            sudo upgrade_tool uf ${IMAGE_PATH}/update.img 
-            if [ $? -eq 0 ]; then exit 0; fi
-            ;;
-        'm')
-            ;;
-    esac
+function proc_paras()
+{
+    if [ $# -lt 1 ]; then
+        echo "error: para is less than 1"
+        rkut_help
+        exit 0
+    else
+        # proc cmd paras
+        while [[ $# -gt 0 ]]; do
+            key="$1"
+            case ${key} in
+                -h)
+                    rkut_help
+                    exit 0
+                    ;;
+                -ld)
+                    opt1="LD"
+                    shift # move to next para
+                    ;;
+                -uf)
+                    echo "======> writing firmware <======"
+                    echo "File: ${image_path}/${f_firmware}"
+                    opt1="UF"
+                    opt_para1="${image_path}/${f_firmware}"
+                    shift # move to next para
+                    ;;
+                -ul)
+                    echo "======> writing loader <======"
+                    echo "File: ${image_path}/${f_loader}"
+                    opt1="UL"
+                    opt_para1="${image_path}/${f_loader}"
+                    shift # move to next para
+                    ;;
+                -di)
+                    echo "======> download image <======"
+                    opt1="DI"
+                    shift # move to next para
+                    case $1 in
+                        -s)
+                            echo "======> writing system.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_system}"
+                            opt2="-s"
+                            opt_para2="${IMAGE_PATH}/${f_di_system}"
+                            ;;
+                        -k)
+                            echo "======> writing kernel.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_kernel}"
+                            opt2="-k"
+                            opt_para2="${IMAGE_PATH}/${f_di_kernel}"
+                            ;;
+                        -b)
+                            echo "======> writing boot.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_boot}"
+                            opt2="-b"
+                            opt_para2="${IMAGE_PATH}/${f_di_boot}"
+                            ;;
+                        -r)
+                            echo "======> writing recovery.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_recovery}"
+                            opt2="-r"
+                            opt_para2="${IMAGE_PATH}/${f_di_recovery}"
+                            ;;
+                        -m)
+                            echo "======> writing misc.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_misc}"
+                            opt2="-m"
+                            opt_para2="${IMAGE_PATH}/${f_di_misc}"
+                            ;;
+                        -u)
+                            echo "======> writing uboot.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_u_boot}"
+                            opt2="-u"
+                            opt_para2="${IMAGE_PATH}/${f_di_u_boot}"
+                            ;;
+                        -t)
+                            echo "======> writing uboot.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_trust}"
+                            opt2="-t"
+                            opt_para2="${IMAGE_PATH}/${f_di_trust}"
+                            ;;
+                        -re)
+                            echo "======> writing resource.img <======"
+                            echo "File: ${IMAGE_PATH}/${f_di_resource}"
+                            opt2="-re"
+                            opt_para2="${IMAGE_PATH}/${f_di_resource}"
+                            ;;
+                    esac
+                    ;;
+                -db)
+                    echo "======> writing boot <======"
+                    echo "File: ${image_path}/${f_loader}"
+                    opt1="UL"
+                    opt_para1="${image_path}/${f_loader}"
+                    shift # move to next para
+                    ;;
+                -ef)
+                    echo "======> writing erase flash <======"
+                    echo "File: ${image_path}/${f_firmware}"
+                    opt1="EF"
+                    opt_para1="${image_path}/${f_firmware}"
+                    shift # move to next para
+                    ;;
+                -td)
+                    echo "======> test device <======"
+                    opt1="TD"
+                    shift # move to next para
+                    ;;
+                -rd)
+                    echo "======> reset device <======"
+                    opt1="RD"
+                    shift # move to next para
+                    ;;
+                -urk)
+                    use_org_tool="true"
+                    break
+                    ;;
+                *)
+                    # unknow para
+                    echo "unknow para: ${key}"
+                    rkut_help
+                    exit 1
+                    ;;
+            esac
+            shift # move to next para
+        done
 
-    echo && echo "========> rebooting <========" && echo
-    sudo upgrade_tool rd
-    if [ $? -eq 0 ]; then exit 0; fi
-fi
+    fi
+}
 
+function main()
+{
+    proc_paras $@
 
+    # exec
+    if [ "${use_org_tool}" == "true" ]; then
+        shift # move to next para
+        exe_cmd="upgrade_tool $@"
+    else
+        exe_cmd="upgrade_tool ${opt1} ${opt_para1} ${opt2} ${opt_para2}"
+    fi
+    echo "cmd: ${exe_cmd}"
+    ${exe_cmd}
+    if [ $? -ne 0 ]; then exit 1; fi
+}
 
-
-
-#echo "====> writing loader" && echo 
-#sudo upgrade_tool ul ${IMAGE_PATH}/rk356x_spl_loader_v1.00.100.bin
-#sudo upgrade_tool ul ${IMAGE_PATH}/MiniLoaderAll.bin 
-#echo "====> writing parameter" && echo
-#sudo upgrade_tool di -p ${IMAGE_PATH}/parameter.txt 
-#echo "====> writing trust" && echo
-#sudo upgrade_tool di -trust ${IMAGE_PATH}/trust.img 
-#echo "====> writing uboot" && echo
-#sudo upgrade_tool di -u ${IMAGE_PATH}/uboot.img 
-#echo "====> writing boot" && echo
-#sudo upgrade_tool di -b ${IMAGE_PATH}/boot.img 
-#sudo upgrade_tool di -r ${IMAGE_PATH}/recovery.img 
-#echo "====> writing misc" && echo
-#sudo upgrade_tool di -m ${IMAGE_PATH}/misc.img 
-#echo "====> writing oem" && echo
-#sudo upgrade_tool di -oem ${IMAGE_PATH}/oem.img
-#echo "====> writing rootfs" && echo
-#sudo upgrade_tool di -rootfs ${IMAGE_PATH}/rootfs.img
-#echo "====> writing userdata" && echo
-#sudo upgrade_tool di -userdata ${IMAGE_PATH}/userdata.img
-
+main $@
