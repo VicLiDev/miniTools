@@ -10,4 +10,6 @@ adbCmd=$(adbs)
 ${adbCmd} shell pkill mediaserver
 ${adbCmd} shell pkill cameraserver
 ${adbCmd} shell killall media.codec
+
 ${adbCmd} shell killall rockchip.hardware.rockit.hw@1.0-service
+${adbCmd} shell killall android.hardware.media.c2@1.1-service
