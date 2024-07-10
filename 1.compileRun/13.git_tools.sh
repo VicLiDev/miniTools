@@ -33,17 +33,20 @@ get_commit_info()
     echo
 
     # forward
-    cur_remote_branch=$(git config --list | grep "branch.`git branch --show-current`.remote" | sed "s/.*=//g")
-    echo "cur remote branch: ${cur_remote_branch}"
+    cur_remote_br=`git branch --show-current`
+    remote_repo=$(git config --list | grep "branch.${cur_remote_br}.remote" | sed "s/.*=//g")
+    echo "remote repo:       ${remote_repo}"
+    echo "cur remote branch: ${cur_remote_br}"
 
-    forward_commit=$(git log ${cur_com_id}^..${cur_remote_branch}/HEAD --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
+                   --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
     forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
     echo "forward commit:    ${forward_commit}"
     echo "forward com_id:    ${forward_com_id}"
     echo
 
     # backward
-    backward_commit=$(git log --oneline ${opt_loc} | grep -A ${cnt} ${cur_com_id} | tail -1)
+    backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} | grep -A ${cnt} ${cur_com_id} | tail -1)
     backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
     echo "backward commit:   ${backward_commit}"
     echo "backward com_id:   ${backward_com_id}"
@@ -71,10 +74,13 @@ gmf()
     # echo
 
     # forward
-    cur_remote_branch=$(git config --list | grep "branch.`git branch --show-current`.remote" | sed "s/.*=//g")
-    # echo "cur remote branch: ${cur_remote_branch}"
+    cur_remote_br=`git branch --show-current`
+    remote_repo=$(git config --list | grep "branch.${cur_remote_br}.remote" | sed "s/.*=//g")
+    # echo "remote repo:       ${remote_repo}"
+    # echo "cur remote branch: ${cur_remote_br}"
 
-    forward_commit=$(git log ${cur_com_id}^..${cur_remote_branch}/HEAD --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
+                   --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
     forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
     # echo "forward commit:    ${forward_commit}"
     # echo "forward com_id:    ${forward_com_id}"
@@ -105,7 +111,7 @@ gmb()
     # echo
 
     # backward
-    backward_commit=$(git log --oneline ${opt_loc} | grep -A ${cnt} ${cur_com_id} | tail -1)
+    backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} | grep -A ${cnt} ${cur_com_id} | tail -1)
     backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
     # echo "backward commit:   ${backward_commit}"
     # echo "backward com_id:   ${backward_com_id}"
