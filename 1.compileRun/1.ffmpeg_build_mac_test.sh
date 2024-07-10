@@ -15,6 +15,8 @@ create_dir()
 
 create_dir build
 
+cd build
+
 ../configure \
   --prefix="${PWD}/ffmpeg_out" \
   --pkg-config-flags="--static" \
