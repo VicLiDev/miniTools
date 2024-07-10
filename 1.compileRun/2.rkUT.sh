@@ -21,8 +21,8 @@
 # -t  (trust 分区)
 # -re (resource 分区)
 
-image_path=/home/lhj/Projects/kernel
-image_path=/home/lhj/test
+image_path=${HOME}/Projects/kernel
+image_path=${HOME}/test
 opt1=""
 opt2=""
 opt_para1=""
@@ -111,51 +111,51 @@ function proc_paras()
                     case $1 in
                         -s)
                             echo "======> writing system.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_system}"
+                            echo "File: ${image_path}/${f_di_system}"
                             opt2="-s"
-                            opt_para2="${IMAGE_PATH}/${f_di_system}"
+                            opt_para2="${image_path}/${f_di_system}"
                             ;;
                         -k)
                             echo "======> writing kernel.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_kernel}"
+                            echo "File: ${image_path}/${f_di_kernel}"
                             opt2="-k"
-                            opt_para2="${IMAGE_PATH}/${f_di_kernel}"
+                            opt_para2="${image_path}/${f_di_kernel}"
                             ;;
                         -b)
                             echo "======> writing boot.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_boot}"
+                            echo "File: ${image_path}/${f_di_boot}"
                             opt2="-b"
-                            opt_para2="${IMAGE_PATH}/${f_di_boot}"
+                            opt_para2="${image_path}/${f_di_boot}"
                             ;;
                         -r)
                             echo "======> writing recovery.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_recovery}"
+                            echo "File: ${image_path}/${f_di_recovery}"
                             opt2="-r"
-                            opt_para2="${IMAGE_PATH}/${f_di_recovery}"
+                            opt_para2="${image_path}/${f_di_recovery}"
                             ;;
                         -m)
                             echo "======> writing misc.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_misc}"
+                            echo "File: ${image_path}/${f_di_misc}"
                             opt2="-m"
-                            opt_para2="${IMAGE_PATH}/${f_di_misc}"
+                            opt_para2="${image_path}/${f_di_misc}"
                             ;;
                         -u)
                             echo "======> writing uboot.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_u_boot}"
+                            echo "File: ${image_path}/${f_di_u_boot}"
                             opt2="-u"
-                            opt_para2="${IMAGE_PATH}/${f_di_u_boot}"
+                            opt_para2="${image_path}/${f_di_u_boot}"
                             ;;
                         -t)
                             echo "======> writing uboot.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_trust}"
+                            echo "File: ${image_path}/${f_di_trust}"
                             opt2="-t"
-                            opt_para2="${IMAGE_PATH}/${f_di_trust}"
+                            opt_para2="${image_path}/${f_di_trust}"
                             ;;
                         -re)
                             echo "======> writing resource.img <======"
-                            echo "File: ${IMAGE_PATH}/${f_di_resource}"
+                            echo "File: ${image_path}/${f_di_resource}"
                             opt2="-re"
-                            opt_para2="${IMAGE_PATH}/${f_di_resource}"
+                            opt_para2="${image_path}/${f_di_resource}"
                             ;;
                     esac
                     ;;
