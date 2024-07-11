@@ -45,6 +45,9 @@ cd build
   --enable-libaom \
   --enable-libass \
   --enable-libfreetype \
+  --enable-libfontconfig \
+  --enable-libfribidi \
+  --enable-libharfbuzz \
   --enable-libmp3lame \
   --enable-gpl \
   --enable-libx264 \

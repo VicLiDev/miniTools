@@ -201,6 +201,9 @@ compile_ffmpeg()
         --enable-libaom \
         --enable-libass \
         --enable-libfreetype \
+        --enable-libfontconfig \
+        --enable-libfribidi \
+        --enable-libharfbuzz \
         --enable-libmp3lame \
         --enable-sdl \
         --enable-gpl \

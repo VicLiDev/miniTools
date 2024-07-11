@@ -78,6 +78,9 @@ ffmpeg_cmpile_android_arm()
         --strip=$TOOLCHAIN_PREFIX/bin/llvm-strip
         # --enable-libass \
         # --enable-libfreetype \
+        # --enable-libfontconfig \
+        # --enable-libfribidi \
+        # --enable-libharfbuzz \
         # --enable-libmp3lame \
         # --enable-libopus \
         # --enable-libtheora \
