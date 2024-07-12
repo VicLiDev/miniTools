@@ -9,7 +9,8 @@
 set -e
 
 cache_file=${HOME}/bin/select.cache
-sel_tag="rk_mpp_b: "
+sel_tag=""
+sel_tag_mpp="rk_mpp_b: "
 
 pltList=(
     "android_32"
@@ -62,7 +63,8 @@ wr_sel_cache()
 
 selectNode()
 {
-    defSelIdx="$1"
+    defSelIdx=0
+    sel_tag="$1"
     defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
     local list_name="$2"
     local -n list_ref="$2"
@@ -235,7 +237,7 @@ build_linux_x86_64()
 
 
 
-selectNode "0" "pltList" "mSelectedArch" "platform"
+selectNode "${sel_tag_mpp}" "pltList" "mSelectedArch" "platform"
 build_${mSelectedArch}
 
 

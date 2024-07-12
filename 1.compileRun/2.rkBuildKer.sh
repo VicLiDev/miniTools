@@ -7,7 +7,9 @@
 set -e
 
 cache_file=${HOME}/bin/select.cache
-sel_tag="rk_kernel_b: "
+sel_tag=""
+sel_tag_ker="rk_kernel_b: "
+sel_tag_mod="rk_kernel_b_m: "
 
 pltList=(
     "1109/1126_android"
@@ -82,7 +84,8 @@ wr_sel_cache()
 
 selectNode()
 {
-    defSelIdx="$1"
+    defSelIdx=0
+    sel_tag="$1"
     defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
     local list_name="$2"
     local -n list_ref="$2"
@@ -120,7 +123,7 @@ gen_cmd()
     if [ -n "`cat drivers/video/rockchip/mpp/Makefile | grep obj-m | sed \"s/#.*//g\"`" ]; then
         # modify drivers/video/rockchip/mpp/Makefile need modify:
         # obj-$(CONFIG_ROCKCHIP_MPP_SERVICE) --> obj-m
-        selectNode "0" "build_mode_list" "build_mod" "build method"
+        selectNode "${sel_tag_mod}" "build_mode_list" "build_mod" "build method"
     else
         # default build kernel
         build_mod="build_kernel";
@@ -331,7 +334,7 @@ download()
 }
 
 adbCmd=$(adbs)
-selectNode "6" "pltList" "curPlt" "platform"
+selectNode "${sel_tag_ker}" "pltList" "curPlt" "platform"
 gen_cmd
 build_kernel_mod
 download
