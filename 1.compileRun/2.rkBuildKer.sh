@@ -323,13 +323,13 @@ download()
     if [ "${build_mod}" == "build_kmod" ]; then
         echo ""
         echo "======> reload rk_vcodec.ko <======"
-        ${adbCmd} push drivers/video/rockchip/mpp/rk_vcodec.ko /sdcard
+        ${adbCmd} push drivers/video/rockchip/mpp/rk_vcodec.ko /data
         if [ -n "`${adbCmd} shell lsmod | grep rk_vcodec`" ]; then
             echo "rmmod old rk_vcodec.ko"
             ${adbCmd} shell rmmod rk_vcodec.ko
         fi
         echo "insmod rk_vcodec.ko"
-        ${adbCmd} shell insmod /sdcard/rk_vcodec.ko
+        ${adbCmd} shell insmod /data/rk_vcodec.ko
     fi
 }
 
