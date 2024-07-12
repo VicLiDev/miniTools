@@ -32,21 +32,14 @@ toolList=(
     )
 
 
-displayPlts()
+display()
 {
-    echo "Please select platform:"
-    for ((i = 0; i < ${#pltList[@]}; i++))
+    local -n list_ref="$1"
+    local tip="$2"
+    echo "Please select ${tip}:"
+    for ((i = 0; i < ${#list_ref[@]}; i++))
     do
-        echo "  ${i}. ${pltList[${i}]}"
-    done
-}
-
-displayTools()
-{
-    echo "Please select tool:"
-    for ((i = 0; i < ${#toolList[@]}; i++))
-    do
-        echo "  ${i}. ${toolList[${i}]}"
+        echo "  ${i}. ${list_ref[${i}]}"
     done
 }
 
@@ -78,62 +71,40 @@ wr_sel_cache()
     fi
 }
 
-selectPlatform()
+selectNode()
 {
-    displayPlts
-    echo "cur dir: `pwd`"
+    defSelIdx=0
+    sel_tag="$1"
+    defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
+    local list_name="$2"
+    local -n list_ref="$2"
+    local -n sel_res="$3"
+    sel_tip="$4"
 
-    defPltIdx=0
-    defPltIdx=`rd_sel_cache ${sel_tag_plt} ${defPltIdx}`
+    display $list_name $sel_tip
+    echo "cur dir: `pwd`"
     while [ True ]
     do
-        read -p "Please select debug plt or quit(q), def[${defPltIdx}]:" pltIdx
-        pltIdx=${pltIdx:-${defPltIdx}}
+        read -p "Please select ${sel_tip} or quit(q), def[${defSelIdx}]:" selIdx
+        selIdx=${selIdx:-${defSelIdx}}
 
-        if [ "${pltIdx}" == "q" ]; then
+        if [ "${selIdx}" == "q" ]; then
             echo "======> quit <======"
             exit 0
-        elif [[ -n ${pltIdx} && -z `echo ${pltIdx} | sed 's/[0-9]//g'` ]]; then
-            dbgPltName=${pltList[${pltIdx}]}
-            echo "--> selected dbg index:${pltIdx}, tool:${dbgPltName}"
+        elif [[ -n ${selIdx} ]] \
+            && [[ -z `echo ${selIdx} | sed 's/[0-9]//g'` ]] \
+            && [[ "${selIdx}" -lt "${#list_ref[@]}" ]]; then
+            sel_res=${list_ref[${selIdx}]}
+            echo "--> selected index:${selIdx}, ${sel_tip}:${sel_res}"
             break
         else
-            dbgPltName=""
-            echo "--> please input num in scope 0-`expr ${#pltList[@]} - 1`"
+            sel_res=""
+            echo "--> please input num in scope 0-`expr ${#list_ref[@]} - 1`"
             continue
         fi
     done
 
-    wr_sel_cache ${sel_tag_plt} ${pltIdx}
-}
-
-selectTool()
-{
-    displayTools
-    echo "cur dir: `pwd`"
-
-    defDbgTool=0
-    defDbgTool=`rd_sel_cache ${sel_tag_tool} ${defDbgTool}`
-    while [ True ]
-    do
-        read -p "Please select debug tool or quit(q), def[${defDbgTool}]:" dbgTool
-        dbgTool=${dbgTool:-${defDbgTool}}
-
-        if [ "${dbgTool}" == "q" ]; then
-            echo "======> quit <======"
-            exit 0
-        elif [[ -n $dbgTool && -z `echo $dbgTool | sed 's/[0-9]//g'` ]]; then
-            dbgToolName=${toolList[${dbgTool}]}
-            echo "--> selected dbg index:${dbgTool}, tool:${dbgToolName}"
-            break
-        else
-            dbgToolName=""
-            echo "--> please input num in scope 0-`expr ${#toolList[@]} - 1`"
-            continue
-        fi
-    done
-
-    wr_sel_cache ${sel_tag_tool} ${dbgTool}
+    wr_sel_cache ${sel_tag} ${selIdx}
 }
 
 create_dir()
@@ -453,8 +424,8 @@ dbgGdb_x86()
 }
 
 adbCmd=$(adbs)
-selectTool
-selectPlatform
+selectNode "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
+selectNode "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
 echo "tool:$dbgToolName pltName:$dbgPltName"
 
 if [ -n `echo $dbgToolName | grep gdb` ]; then
