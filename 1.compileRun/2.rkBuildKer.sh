@@ -168,7 +168,8 @@ gen_cmd()
             '3588_android')
                 echo "======> selected ${curPlt} <======"
                 # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
+                # export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
+                export PATH=${HOME}/Projects/prebuilts/toolchains/linux-x86_rk/clang-r487747c/bin:$PATH
                 m_arch="arm64"
                 m_config="rockchip_defconfig android-11.config"
                 m_target="BOOT_IMG=./boot_3588.img rk3588-evb1-lp4-v10.img"
