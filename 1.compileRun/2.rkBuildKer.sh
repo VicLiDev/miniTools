@@ -6,8 +6,6 @@
 
 set -e
 
-cache_file=${HOME}/bin/select.cache
-sel_tag=""
 sel_tag_ker="rk_kernel_b: "
 sel_tag_mod="rk_kernel_b_m: "
 
@@ -42,81 +40,6 @@ target=""
 m_make=""
 build_mod=""
 adbCmd=""
-
-display()
-{
-    local -n list_ref="$1"
-    local tip="$2"
-    echo "Please select ${tip}:"
-    for ((i = 0; i < ${#list_ref[@]}; i++))
-    do
-        echo "  ${i}. ${list_ref[${i}]}"
-    done
-}
-
-rd_sel_cache()
-{
-    sel_tag="$1"
-    def=$2
-
-    if [[ ! -e ${cache_file} ]] \
-        || [[ -z `cat ${cache_file} | grep ${sel_tag}` ]]; then
-        echo ${def}
-    else
-        def=`cat ${cache_file} | grep ${sel_tag} | sed "s/${sel_tag}//g"`
-        echo ${def}
-    fi
-}
-
-wr_sel_cache()
-{
-    sel_tag="$1"
-    def=$2
-
-    if [ ! -e ${cache_file} ]; then
-        echo "${sel_tag}${def}" > ${cache_file}
-    elif [ -z "`cat ${cache_file} | grep ${sel_tag}`" ]; then
-        echo "${sel_tag}${def}" >> ${cache_file}
-    else
-        sed -i "s/${sel_tag}.*/${sel_tag}${def}/" ${cache_file}
-    fi
-}
-
-selectNode()
-{
-    defSelIdx=0
-    sel_tag="$1"
-    defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
-    local list_name="$2"
-    local -n list_ref="$2"
-    local -n sel_res="$3"
-    sel_tip="$4"
-
-    display $list_name $sel_tip
-    echo "cur dir: `pwd`"
-    while [ True ]
-    do
-        read -p "Please select ${sel_tip} or quit(q), def[${defSelIdx}]:" selIdx
-        selIdx=${selIdx:-${defSelIdx}}
-
-        if [ "${selIdx}" == "q" ]; then
-            echo "======> quit <======"
-            exit 0
-        elif [[ -n ${selIdx} ]] \
-            && [[ -z `echo ${selIdx} | sed 's/[0-9]//g'` ]] \
-            && [[ "${selIdx}" -lt "${#list_ref[@]}" ]]; then
-            sel_res=${list_ref[${selIdx}]}
-            echo "--> selected index:${selIdx}, ${sel_tip}:${sel_res}"
-            break
-        else
-            sel_res=""
-            echo "--> please input num in scope 0-`expr ${#list_ref[@]} - 1`"
-            continue
-        fi
-    done
-
-    wr_sel_cache ${sel_tag} ${selIdx}
-}
 
 gen_cmd()
 {
@@ -334,6 +257,7 @@ download()
 }
 
 adbCmd=$(adbs)
+source $(dirname $(readlink -f $0))/0.select_node.sh
 selectNode "${sel_tag_ker}" "pltList" "curPlt" "platform"
 gen_cmd
 build_kernel_mod
