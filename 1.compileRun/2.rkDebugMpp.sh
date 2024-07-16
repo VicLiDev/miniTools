@@ -109,7 +109,8 @@ dbgGdbPrepareEnv()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/`find ./ | grep "android/arm.*${binFile}$"`"
+        debugBin="`find ./ | grep "android/arm.*${binFile}$"`"
+        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
         debugLib="${prjRoot}/build/android/arm/mpp/libmpp.so"
     elif [ ${dbgPltName} == "android_64" ]; then
         debugDirBin="${debugDirRoot}/vendor/bin"
@@ -119,7 +120,8 @@ dbgGdbPrepareEnv()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/`find ./ | grep "android/aarch64.*${binFile}$"`"
+        debugBin="`find ./ | grep "android/aarch64.*${binFile}$"`"
+        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
         debugLib="${prjRoot}/build/android/aarch64/mpp/libmpp.so"
     elif [ ${dbgPltName} == "linux_32" ]; then
         debugDirBin="${debugDirRoot}/usr/bin"
@@ -131,7 +133,8 @@ dbgGdbPrepareEnv()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/`find ./ | grep "linux/arm.*${binFile}$"`"
+        debugBin="`find ./ | grep "linux/arm.*${binFile}$"`"
+        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
         debugLib="${prjRoot}/build/linux/arm/mpp/librockchip_mpp.so.0"
     elif [ ${dbgPltName} == "linux_64" ]; then
         debugDirBin="${debugDirRoot}/usr/bin"
@@ -143,7 +146,8 @@ dbgGdbPrepareEnv()
         else
             binFile="mpi_dec_test"
         fi
-        debugBin="${prjRoot}/`find ./ | grep "linux/aarch64.*${binFile}$"`"
+        debugBin="`find ./ | grep "linux/aarch64.*${binFile}$"`"
+        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
         debugLib="${prjRoot}/build/linux/aarch64/mpp/librockchip_mpp.so.0"
     fi
     echo "exec file: ${debugBin}"
