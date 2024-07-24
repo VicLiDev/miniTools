@@ -10,7 +10,7 @@
 
 dbgPltName=""
 dbgToolName=""
-prjRoot=`pwd`
+prjRoot=`git rev-parse --show-toplevel`
 adbCmd=""
 
 sel_tag_plt="rk_mpp_plt_d: "
@@ -72,7 +72,7 @@ dbgLldb()
     
     
     # client
-    debugCmdFile="debug.lldb"
+    debugCmdFile="${prjRoot}/debug.lldb"
     if [ ! -e ${debugCmdFile} ];then
         echo "# pwd: `pwd`" > ${debugCmdFile}
         echo "" >> ${debugCmdFile}
@@ -116,7 +116,7 @@ dbgGdbPrepareEnv()
         debugDirBin="${debugDirRoot}/vendor/bin"
         debugDirLib="${debugDirRoot}/vendor/lib64"
         if [ -e ${debugCmdFile} ]; then
-            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
         else
             binFile="mpi_dec_test"
         fi
@@ -129,7 +129,7 @@ dbgGdbPrepareEnv()
         debugDirBin2="${debugDirRoot}/oem/usr/bin"
         debugDirLib2="${debugDirRoot}/oem/usr/lib"
         if [ -e ${debugCmdFile} ]; then
-            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
         else
             binFile="mpi_dec_test"
         fi
@@ -142,7 +142,7 @@ dbgGdbPrepareEnv()
         debugDirBin2="${debugDirRoot}/oem/usr/bin"
         debugDirLib2="${debugDirRoot}/oem/usr/lib64"
         if [ -e ${debugCmdFile} ]; then
-            binFile=`cat debug.gdb | grep serverCmd | awk '{print $3}'`
+            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
         else
             binFile="mpi_dec_test"
         fi
@@ -309,7 +309,7 @@ dbgGdbRun()
 
 dbgGdb()
 {
-    debugCmdFile="debug.gdb"
+    debugCmdFile="${prjRoot}/debug.gdb"
 
     if [[ ${dbgPltName} == "android_32" || ${dbgPltName} == "linux_32" ]]; then
         RemoteGdbSer="gdbserver"
@@ -357,7 +357,9 @@ selectNode "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
 selectNode "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
 echo "tool:$dbgToolName pltName:$dbgPltName"
 
-if [ -n `echo $dbgToolName | grep gdb` ]; then
+cd ${prjRoot}
+
+if [ -n "`echo $dbgToolName | grep gdb`" ]; then
     if [ ${dbgPltName} != "linux_x86_64" ]; then
         dbgGdb
     else
