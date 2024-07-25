@@ -31,7 +31,7 @@ sel_tag=""
 
 display()
 {
-    local -n list_ref="$1"
+    declare -n list_ref="$1"
     local tip="$2"
     echo "Please select ${tip}:"
     for ((i = 0; i < ${#list_ref[@]}; i++))
@@ -74,8 +74,8 @@ selectNode()
     sel_tag="$1"
     defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
     local list_name="$2"
-    local -n list_ref="$2"
-    local -n sel_res="$3"
+    declare -n list_ref="$2"
+    declare -n sel_res="$3"
     sel_tip="$4"
 
     display $list_name $sel_tip
