@@ -1,4 +1,4 @@
-#!/bin/python
+#!env python
 #########################################################################
 # File Name: compareBs.py
 # Author: LiHongjin

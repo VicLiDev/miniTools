@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: 16.data_split.sh
 # Author: LiHongjin

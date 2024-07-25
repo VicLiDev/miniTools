@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: check.sh
 # Author: LiHongjin

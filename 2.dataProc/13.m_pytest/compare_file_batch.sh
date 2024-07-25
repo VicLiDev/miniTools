@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: compare_file_batch.sh
 # Author: LiHongjin

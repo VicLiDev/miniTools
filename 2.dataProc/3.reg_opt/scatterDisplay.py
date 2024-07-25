@@ -1,4 +1,4 @@
-#!/opt/homebrew/anaconda3/bin/python
+#!env python
 
 try:
     import matplotlib.pyplot as plt

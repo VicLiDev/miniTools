@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!env python
 
 '''
 cat log.txt | python 15.splitHexStr.py

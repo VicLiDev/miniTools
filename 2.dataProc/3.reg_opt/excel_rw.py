@@ -1,4 +1,4 @@
-#!/opt/homebrew/anaconda3/bin/python
+#!env python
 
 # func desc:
 # read/write reg info from/to excel

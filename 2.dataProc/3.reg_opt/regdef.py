@@ -1,4 +1,4 @@
-#!/opt/homebrew/anaconda3/bin/python
+#!env python
 
 # func desc:
 # define field reg regset

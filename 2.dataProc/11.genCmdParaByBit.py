@@ -1,4 +1,4 @@
-#!/bin/python3
+#!env python
 #########################################################################
 # File Name: 11.genCmdParaByBit.py
 # Author: LiHongjin

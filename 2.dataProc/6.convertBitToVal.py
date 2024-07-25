@@ -1,4 +1,4 @@
-#!/opt/homebrew/anaconda3/bin/python
+#!env python
 
 # conver 16 hexadecimal bit to 10 hexadecimal val
 '''

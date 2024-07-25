@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 
 # rockchip update tools usage:
 

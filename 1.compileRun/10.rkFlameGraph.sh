@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!env bash
 #########################################################################
 # File Name: 10.rkFlameGraph.sh
 # Author: LiHongjin

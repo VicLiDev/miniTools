@@ -4,7 +4,7 @@
 # mail: 872648180@qq.com
 # Created Time: Thu Jan 20 10:21:57 2022
 #########################################################################
-#!/bin/bash
+#!env bash
 
 videoDir="collect_video"
 fileRootDir="/Volumes/RKshare/Video_4K_1080P_720P"

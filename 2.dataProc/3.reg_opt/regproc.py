@@ -1,4 +1,4 @@
-#!/opt/homebrew/anaconda3/bin/python
+#!env python
 
 def check_bit_reuse(regSet):
     regSet.sort_regs()

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: conv_fbc_to_yuv.sh
 # Author: LiHongjin

@@ -1,4 +1,4 @@
-#!/opt/homebrew/anaconda3/bin/bash
+#!env bash
 #########################################################################
 # File Name: sourceproc.sh
 # Author: LiHongjin

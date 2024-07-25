@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: 5.delayExec.sh
 # Author: LiHongjin

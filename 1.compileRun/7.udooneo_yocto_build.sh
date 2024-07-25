@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: yocto_build.sh
 # Author: LiHongjin

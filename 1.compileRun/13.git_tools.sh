@@ -1,4 +1,4 @@
-#!/opt/local/bin/bash
+#!env bash
 #########################################################################
 # File Name: 13.git_tools.sh
 # Author: LiHongjin

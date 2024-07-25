@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: 7.udooneo_build.sh
 # Author: LiHongjin

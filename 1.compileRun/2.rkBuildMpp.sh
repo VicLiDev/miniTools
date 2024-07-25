@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: rkbuildMpp.sh
 # Author: LiHongjin

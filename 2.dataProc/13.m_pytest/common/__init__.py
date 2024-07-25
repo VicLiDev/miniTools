@@ -1,4 +1,4 @@
-#!/bin/python3
+#!env python
 #########################################################################
 # File Name: __init__.py
 # Author: LiHongjin

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 
 # when add new plt:
 #   1. add plt name in pltList

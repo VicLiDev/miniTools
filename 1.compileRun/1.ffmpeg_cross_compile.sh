@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: .prjBuild.sh
 # Author: LiHongjin

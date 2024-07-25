@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: 0.select_node.sh
 # Author: LiHongjin

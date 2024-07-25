@@ -1,4 +1,4 @@
-#!/bin/python3
+#!env python
 #########################################################################
 # File Name: 9.autoGuiOpt.py
 # Author: LiHongjin

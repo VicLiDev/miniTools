@@ -1,4 +1,4 @@
-#!/bin/python3
+#!env python
 #########################################################################
 # File Name: mpp_opt.py
 # Author: LiHongjin

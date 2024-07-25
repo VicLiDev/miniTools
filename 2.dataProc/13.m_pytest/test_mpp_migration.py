@@ -1,4 +1,4 @@
-#!/bin/python3
+#!env python
 #########################################################################
 # File Name: test_mpp_migration.py
 # Author: LiHongjin

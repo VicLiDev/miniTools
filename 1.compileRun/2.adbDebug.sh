@@ -1,4 +1,4 @@
-#!/bin/bash
+#!env bash
 #########################################################################
 # File Name: adbdebug.sh
 # Author: LiHongjin
