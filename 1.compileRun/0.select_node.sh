@@ -28,26 +28,18 @@
 
 cache_file=${HOME}/bin/select.cache
 sel_tag=""
+# stdout bakfd 1001
+# stderr bakfd 1002
 
 display()
 {
-    # 保存原始的标准输出和标准错误输出
-    exec 3>&1 4>&2
-    # 重定向标准输出到标准错误输出
-    exec 1>&2
-
     declare -n list_ref="$1"
     local tip="$2"
-    echo "Please select ${tip}:"
+    echo "Please select ${tip}:" >&2
     for ((i = 0; i < ${#list_ref[@]}; i++))
     do
-        echo "  ${i}. ${list_ref[${i}]}"
+        echo "  ${i}. ${list_ref[${i}]}" >&2
     done
-
-    # 恢复原始的标准输出和标准错误输出
-    exec 1>&3 2>&4
-    # 关闭临时文件描述符
-    exec 3>&- 4>&-
 }
 
 rd_sel_cache()
@@ -84,11 +76,6 @@ wr_sel_cache()
 
 selectNode()
 {
-    # 保存原始的标准输出和标准错误输出
-    exec 3>&1 4>&2
-    # 重定向标准输出到标准错误输出
-    exec 1>&2
-
     defSelIdx=0
     sel_tag="$1"
     defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
@@ -98,32 +85,28 @@ selectNode()
     sel_tip="$4"
 
     display $list_name $sel_tip
-    echo "cur dir: `pwd`"
+
+    echo "cur dir: `pwd`" >&2
     while [ True ]
     do
-        read -p "Please select ${sel_tip} or quit(q), def[${defSelIdx}]:" selIdx
+        read -p "Please select ${sel_tip} or quit(q), def[${defSelIdx}]:" selIdx >&2
         selIdx=${selIdx:-${defSelIdx}}
 
         if [ "${selIdx}" == "q" ]; then
-            echo "======> quit <======"
+            echo "======> quit <======" >&2
             exit 0
         elif [[ -n ${selIdx} ]] \
             && [[ -z `echo ${selIdx} | sed 's/[0-9]//g'` ]] \
             && [[ "${selIdx}" -lt "${#list_ref[@]}" ]]; then
             sel_res=${list_ref[${selIdx}]}
-            echo "--> selected index:${selIdx}, ${sel_tip}:${sel_res}"
+            echo "--> selected index:${selIdx}, ${sel_tip}:${sel_res}" >&2
             break
         else
             sel_res=""
-            echo "--> please input num in scope 0-`expr ${#list_ref[@]} - 1`"
+            echo "--> please input num in scope 0-`expr ${#list_ref[@]} - 1`" >&2
             continue
         fi
     done
 
     wr_sel_cache ${sel_tag} ${selIdx}
-
-    # 保存原始的标准输出和标准错误输出
-    exec 3>&1 4>&2
-    # 重定向标准输出到标准错误输出
-    exec 1>&2
 }
