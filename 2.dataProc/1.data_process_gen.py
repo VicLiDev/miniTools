@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 # 程序说明：
 # 从一个或者多个文件中读取一列数字，检查这一列数字是否为递增、将数据去重排序、将数据绘制到同一个坐标系中
 # usage: <app> <file1> <file2> <file3>

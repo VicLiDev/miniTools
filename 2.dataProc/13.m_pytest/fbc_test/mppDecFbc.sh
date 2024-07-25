@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 #########################################################################
 # File Name: mppDecMpp.sh
 # Author: LiHongjin

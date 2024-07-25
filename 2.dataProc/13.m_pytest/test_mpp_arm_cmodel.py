@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 #########################################################################
 # File Name: test_mpp_arm_cmodel.py
 # Author: LiHongjin

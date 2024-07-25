@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 #########################################################################
 # File Name: 12.batch_test.sh
 # Author: LiHongjin

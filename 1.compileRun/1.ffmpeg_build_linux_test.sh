@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 #########################################################################
 # File Name: compile.sh
 # Author: LiHongjin

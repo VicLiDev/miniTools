@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 #########################################################################
 # File Name: adbSelCmd.sh
 # Author: LiHongjin

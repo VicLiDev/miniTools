@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 
 # conver 16 hexadecimal bit to 10 hexadecimal val
 '''

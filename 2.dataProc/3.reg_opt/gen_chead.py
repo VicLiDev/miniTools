@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 
 def _add_reg(file, reg):
     if (len(reg.fields) == 1) and (reg.fields[0].fld_offset == 0):

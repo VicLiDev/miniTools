@@ -4,7 +4,7 @@
 # mail: 872648180@qq.com
 # Created Time: Fri May 27 11:23:39 2022
 #########################################################################
-#!env bash
+#!/usr/bin/env bash
 
 # ln -s ${HOME}/Projects/miniTools/1.compileRun/1.ffmpeg_build_linux_test.sh .prjBuild.sh
 

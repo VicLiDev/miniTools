@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 #########################################################################
 # File Name: test_mpp_arm_batch.sh
 # Author: LiHongjin

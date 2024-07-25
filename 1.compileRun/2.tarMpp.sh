@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 #########################################################################
 # File Name: 2.tarMpp.sh
 # Author: LiHongjin

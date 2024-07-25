@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 #########################################################################
 # File Name: common.py
 # Author: LiHongjin

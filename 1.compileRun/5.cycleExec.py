@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 #########################################################################
 # File Name: 5.delayExec.py
 # Author: LiHongjin

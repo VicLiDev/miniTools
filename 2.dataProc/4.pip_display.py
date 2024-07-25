@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 
 '''
 ex: echo "12 8" | python ./14.pip_display.py >> /dev/ttys001

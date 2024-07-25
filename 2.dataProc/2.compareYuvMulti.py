@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 # 程序说明：
 # 读取多个yuv文件，并比较yuv数据是否相同
 # usage: 在代码内部修改文件列表，然后直接执行文件

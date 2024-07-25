@@ -4,7 +4,7 @@
 # mail: 872648180@qq.com
 # Created Time: Sun 16 Jan 2022 08:58:38 PM CST
 #########################################################################
-#!env bash
+#!/usr/bin/env bash
 
 # 字符串截取
 #     http://c.biancheng.net/view/1120.html

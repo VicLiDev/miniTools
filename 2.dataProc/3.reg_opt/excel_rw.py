@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 
 # func desc:
 # read/write reg info from/to excel

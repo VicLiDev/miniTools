@@ -4,7 +4,7 @@
 # mail: 872648180@qq.com
 # Created Time: Tue Apr  5 15:27:21 2022
 #########################################################################
-#!env bash
+#!/usr/bin/env bash
 
 # crontab -e
 # * 4 * * * sh ~/Projects/Some-program/lhjbackup.sh

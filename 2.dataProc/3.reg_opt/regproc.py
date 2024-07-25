@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 
 def check_bit_reuse(regSet):
     regSet.sort_regs()

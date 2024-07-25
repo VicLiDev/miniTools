@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 
 try:
     import matplotlib.pyplot as plt

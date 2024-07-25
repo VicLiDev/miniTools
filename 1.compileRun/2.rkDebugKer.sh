@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 #########################################################################
 # File Name: 2.rkDebugKer.sh
 # Author: LiHongjin

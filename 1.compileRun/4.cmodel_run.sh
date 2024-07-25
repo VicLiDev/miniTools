@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/env bash
 
 # example: lhjRun.sh <proc> [<b>] [<bt>] [<gdb>] [<batch>]
 clear

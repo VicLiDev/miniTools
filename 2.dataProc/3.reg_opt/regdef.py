@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python
 
 # func desc:
 # define field reg regset
