@@ -6,11 +6,22 @@
 # Created Time: Thu 14 Mar 2024 05:12:51 PM CST
 #########################################################################
 
+# zsh
+# alias clog='clear && adbCmd=$(adbs) && eval ${adbCmd} logcat -c && eval ${adbCmd} logcat'
+# alias ldev='adbCmd=$(adbs) && eval ${adbCmd} root && eval ${adbCmd} remount && eval ${adbCmd} shell'
+
+# bash
+# alias clog='clear && adbCmd=$(adbs) && ${adbCmd} logcat -c && ${adbCmd} logcat'
+# alias ldev='adbCmd=$(adbs) && ${adbCmd} root && ${adbCmd} remount && ${adbCmd} shell'
+
+source $(dirname $(readlink -f $0))/0.select_node.sh
+
 gen_adb_cmd()
 {
     devList=(`adb devices | grep device$ | awk '{print $1}'`)
     devName=()
     defDev=0
+    defDev=`rd_sel_cache "adb_s:" ${defDev}`
     m_devIdx=0
     m_DevName=""
 
@@ -50,6 +61,8 @@ gen_adb_cmd()
     else
         slcedDev=${devList[0]}
     fi
+    wr_sel_cache "adb_s:" ${m_devIdx}
+
     adbCmd="adb -s ${slcedDev}"
 
     echo ${adbCmd}
@@ -59,11 +72,3 @@ adbCmd=`gen_adb_cmd`
 adbOpt=${@}
 
 if [ -z "${adbOpt}" ]; then echo $adbCmd; else $adbCmd ${adbOpt}; fi
-
-# zsh
-# alias clog='clear && adbCmd=$(adbs) && eval ${adbCmd} logcat -c && eval ${adbCmd} logcat'
-# alias ldev='adbCmd=$(adbs) && eval ${adbCmd} root && eval ${adbCmd} remount && eval ${adbCmd} shell'
-
-# bash
-# alias clog='clear && adbCmd=$(adbs) && ${adbCmd} logcat -c && ${adbCmd} logcat'
-# alias ldev='adbCmd=$(adbs) && ${adbCmd} root && ${adbCmd} remount && ${adbCmd} shell'
