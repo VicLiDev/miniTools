@@ -70,7 +70,7 @@ wr_sel_cache()
     elif [ -z "`cat ${cache_file} | grep ${sel_tag}`" ]; then
         echo "${sel_tag}${def}" >> ${cache_file}
     else
-        sed -i "s/${sel_tag}.*/${sel_tag}${def}/" ${cache_file}
+        sed -i.bak "s/${sel_tag}.*/${sel_tag}${def}/" ${cache_file}
     fi
 }
 
