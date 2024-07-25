@@ -14,60 +14,38 @@
 # alias clog='clear && adbCmd=$(adbs) && ${adbCmd} logcat -c && ${adbCmd} logcat'
 # alias ldev='adbCmd=$(adbs) && ${adbCmd} root && ${adbCmd} remount && ${adbCmd} shell'
 
-source $(dirname $(readlink -f $0))/0.select_node.sh
+sel_tag_adbs="adb_s:"
 
 gen_adb_cmd()
 {
     devList=(`adb devices | grep device$ | awk '{print $1}'`)
-    devName=()
-    defDev=0
-    defDev=`rd_sel_cache "adb_s:" ${defDev}`
-    m_devIdx=0
-    m_DevName=""
+    devNameList=()
+    selectList=()
+    mSelectedDev=""
 
     if [ ${#devList[@]} -eq 0 ]; then echo "No device found!" >&2; exit 0; fi
 
     for ((i = 0; i < ${#devList[@]}; i++))
     do
         nameTmp=`adb -s ${devList[${i}]} shell "cat /proc/device-tree/compatible" | tr -d "\0"`
-        # nameTmp=${nameTmp%,rk*}
-        devName[${i}]=${nameTmp#"rockchip,"}
+        nameTmp=${nameTmp%,rk*}
+        devNameList[${i}]=${nameTmp#"rockchip,"}
+        selectList[${i}]="${devNameList[${i}]} ==> ${devList[${i}]}"
     done
 
     if [ ${#devList[@]} -gt 1 ]; then
-        echo "Please select device:" >&2
-        for ((i = 0; i < ${#devList[@]}; i++))
-        do
-            echo "  ${i}. ${devName[${i}]} ==> ${devList[${i}]}" >&2
-        done
-        while [ True ]
-        do
-            read -p "Please select device or quit(q), def[${defDev}]:" m_devIdx
-            m_devIdx=${m_devIdx:-${defDev}}
-
-            if [ "${m_devIdx}" == "q" ]; then
-                echo "======> quit <======" >&2
-                exit 0
-            elif [[ -n "${m_devIdx}" && -z `echo ${m_devIdx} | sed 's/[0-9]//g'` ]]; then
-                slcedDev=${devList[${m_devIdx}]}
-                echo "--> selected index:${m_devIdx}, dev:${devName[${m_devIdx}]} ==> ${slcedDev}" >&2
-                break
-            else
-                curPlt=""
-                echo "--> please input num in scope 0-`expr ${#devList[@]} - 1`" >&2
-                continue
-            fi
-        done
+        selectNode "${sel_tag_adbs}" "selectList" "mSelectedDev" "device"
+        slcedDev=`echo ${mSelectedDev} | awk '{print $3}'`
     else
         slcedDev=${devList[0]}
     fi
-    wr_sel_cache "adb_s:" ${m_devIdx}
 
     adbCmd="adb -s ${slcedDev}"
 
     echo ${adbCmd}
 }
 
+source $(dirname $(readlink -f $0))/0.select_node.sh
 adbCmd=`gen_adb_cmd`
 adbOpt=${@}
 
