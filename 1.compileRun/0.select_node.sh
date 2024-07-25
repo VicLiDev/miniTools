@@ -55,6 +55,8 @@ rd_sel_cache()
     sel_tag="$1"
     def=$2
 
+    if [ -z "${sel_tag}" ]; then return; fi
+
     if [[ ! -e ${cache_file} ]] \
         || [[ -z `cat ${cache_file} | grep ${sel_tag}` ]]; then
         echo ${def}
@@ -68,6 +70,8 @@ wr_sel_cache()
 {
     sel_tag="$1"
     def=$2
+
+    if [ -z "${sel_tag}" ]; then return; fi
 
     if [ ! -e ${cache_file} ]; then
         echo "${sel_tag}${def}" > ${cache_file}
