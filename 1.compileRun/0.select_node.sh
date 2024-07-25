@@ -31,6 +31,11 @@ sel_tag=""
 
 display()
 {
+    # 保存原始的标准输出和标准错误输出
+    exec 3>&1 4>&2
+    # 重定向标准输出到标准错误输出
+    exec 1>&2
+
     declare -n list_ref="$1"
     local tip="$2"
     echo "Please select ${tip}:"
@@ -38,6 +43,11 @@ display()
     do
         echo "  ${i}. ${list_ref[${i}]}"
     done
+
+    # 恢复原始的标准输出和标准错误输出
+    exec 1>&3 2>&4
+    # 关闭临时文件描述符
+    exec 3>&- 4>&-
 }
 
 rd_sel_cache()
@@ -70,6 +80,11 @@ wr_sel_cache()
 
 selectNode()
 {
+    # 保存原始的标准输出和标准错误输出
+    exec 3>&1 4>&2
+    # 重定向标准输出到标准错误输出
+    exec 1>&2
+
     defSelIdx=0
     sel_tag="$1"
     defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
@@ -102,5 +117,9 @@ selectNode()
     done
 
     wr_sel_cache ${sel_tag} ${selIdx}
-}
 
+    # 保存原始的标准输出和标准错误输出
+    exec 3>&1 4>&2
+    # 重定向标准输出到标准错误输出
+    exec 1>&2
+}
