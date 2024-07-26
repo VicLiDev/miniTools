@@ -6,6 +6,15 @@
 # Created Time: Thu 14 Mar 2024 05:12:51 PM CST
 #########################################################################
 
+# usage:
+#   1. use adbs as adb command
+#      ex: adbs push <file> <dir>
+#          adbs -s push <file> <dir>
+#   2. gen adb -t/-s prefix
+#      ex: adbCmd=$(adbs)
+#          adbCmd=$(adbs -s)
+#   note: default use -t, if need -s, exec "adbs -s"
+
 # zsh
 # alias clog='clear && adbCmd=$(adbs) && eval ${adbCmd} logcat -c && eval ${adbCmd} logcat'
 # alias ldev='adbCmd=$(adbs) && eval ${adbCmd} root && eval ${adbCmd} remount && eval ${adbCmd} shell'
@@ -15,37 +24,43 @@
 # alias ldev='adbCmd=$(adbs) && ${adbCmd} root && ${adbCmd} remount && ${adbCmd} shell'
 
 sel_tag_adbs="adb_s:"
+use_ser_id="false"
 
 gen_adb_cmd()
 {
-    devList=(`adb devices | grep device$ | awk '{print $1}'`)
+    devSerIDList=(`adb devices | grep device$ | awk '{print $1}'`)
+    devTPIDList=($(adb devices -l | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
     devNameList=()
     selectList=()
     mSelectedDev=""
 
-    if [ ${#devList[@]} -eq 0 ]; then echo "No device found!" >&2; exit 0; fi
+    if [ ${#devTPIDList[@]} -eq 0 ]; then echo "No device found!" >&2; exit 0; fi
 
-    for ((i = 0; i < ${#devList[@]}; i++))
+    for ((i = 0; i < ${#devTPIDList[@]}; i++))
     do
-        nameTmp=`adb -s ${devList[${i}]} shell "cat /proc/device-tree/compatible" | tr -d "\0"`
+        nameTmp=`adb -t ${devTPIDList[${i}]} shell "cat /proc/device-tree/compatible" | tr -d "\0"`
         nameTmp=${nameTmp%,rk*}
         devNameList[${i}]=${nameTmp#"rockchip,"}
-        selectList[${i}]="${devNameList[${i}]} ==> ${devList[${i}]}"
+        selectList[${i}]="${devNameList[${i}]} ==> serID: ${devSerIDList[${i}]} ==> TransportID: ${devTPIDList[${i}]}"
     done
 
-    if [ ${#devList[@]} -gt 1 ]; then
+    if [ ${#devTPIDList[@]} -gt 1 ]; then
         selectNode "${sel_tag_adbs}" "selectList" "mSelectedDev" "device"
-        slcedDev=`echo ${mSelectedDev} | awk '{print $3}'`
     else
-        slcedDev=${devList[0]}
+        mSelectedDev=${selectList[0]}
     fi
 
-    adbCmd="adb -s ${slcedDev}"
+    if [ "${use_ser_id}" == "true" ]; then
+        adbCmd="adb -s `echo ${mSelectedDev} | awk '{print $4}'`"
+    else
+        adbCmd="adb -t `echo ${mSelectedDev} | awk '{print $7}'`"
+    fi
 
     echo ${adbCmd}
 }
 
 source $(dirname $(readlink -f $0))/0.select_node.sh
+if [ "$1" == "-s" ]; then use_ser_id="true"; shift; fi
 adbCmd=`gen_adb_cmd`
 adbOpt=${@}
 

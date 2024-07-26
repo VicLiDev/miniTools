@@ -351,7 +351,7 @@ dbgGdb_x86()
     ${HostGdb} --command=${debugCmdFile} --args ${MppCmd}
 }
 
-adbCmd=$(adbs)
+adbCmd=$(adbs -s)
 source $(dirname $(readlink -f $0))/0.select_node.sh
 selectNode "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
 selectNode "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
