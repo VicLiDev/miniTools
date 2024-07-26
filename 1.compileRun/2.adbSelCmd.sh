@@ -51,9 +51,9 @@ gen_adb_cmd()
     fi
 
     if [ "${use_ser_id}" == "true" ]; then
-        adbCmd="adb -s `echo ${mSelectedDev} | awk '{print $4}'`"
+        adbCmd="adb -s `echo ${mSelectedDev#*==>} | awk '{print $2}'`"
     else
-        adbCmd="adb -t `echo ${mSelectedDev} | awk '{print $7}'`"
+        adbCmd="adb -t `echo ${mSelectedDev##*==>} | awk '{print $2}'`"
     fi
 
     echo ${adbCmd}
