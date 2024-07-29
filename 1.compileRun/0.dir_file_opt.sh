@@ -28,3 +28,8 @@ update_file()
     echo "copy $src to $dst"
     cp -r $src $dst
 }
+
+check_exist()
+{
+    if [ -e "$1" ]; then echo "$1 exist"; else echo "$1 not exist"; fi
+}
