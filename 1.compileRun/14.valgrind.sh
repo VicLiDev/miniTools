@@ -31,6 +31,8 @@ bdPlt="arm"
 
 if [ "$1" == "arm" ]; then bdPlt="arm"; fi
 if [ "$1" == "arm64" ]; then bdPlt="arm64"; fi
+if [ "$1" == "linux32" ]; then bdPlt="linux32"; fi
+if [ "$1" == "linux64" ]; then bdPlt="linux64"; fi
 if [ "$1" == "x86" ]; then bdPlt="x86"; fi
 
 clear
@@ -72,6 +74,22 @@ elif [ ${bdPlt} == "arm64" ]; then
     export LD="${NDKROOT}/${ToolsDir}/aarch64-linux-android-ld"
     export CC="${NDKROOT}/${ToolsDir}/aarch64-linux-android-gcc"
     export CXX="${NDKROOT}/${ToolsDir}/aarch64-linux-android-g++"
+elif [ ${bdPlt} == "linux32" ]; then
+    # For linux32
+    TOOLSROOT="${HOME}/Projects/prebuilts/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf"
+    SYSROOT="platforms/android-21/arch-arm64"
+    export AR="${TOOLSROOT}/bin/arm-linux-gnueabihf-ar"
+    export LD="${TOOLSROOT}/bin/arm-linux-gnueabihf-ld"
+    export CC="${TOOLSROOT}/bin/arm-linux-gnueabihf-gcc"
+    export CXX="${TOOLSROOT}/bin/arm-linux-gnueabihf-g++"
+elif [ ${bdPlt} == "linux64" ]; then
+    # For linux64
+    TOOLSROOT="${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu"
+    SYSROOT="platforms/android-21/arch-arm64"
+    export AR="${TOOLSROOT}/bin/aarch64-none-linux-gnu-ar"
+    export LD="${TOOLSROOT}/bin/aarch64-none-linux-gnu-ld"
+    export CC="${TOOLSROOT}/bin/aarch64-none-linux-gnu-gcc"
+    export CXX="${TOOLSROOT}/bin/aarch64-none-linux-gnu-g++"
 elif [ ${bdPlt} == "x86" ]; then
     # For x86
     export AR="ar"
@@ -111,6 +129,16 @@ elif [ ${bdPlt} == "arm64" ]; then
         ../configure --prefix=${PrefixDir} \
         --host=aarch64-unknown-linux --target=aarch64-unknown-linux \
         --with-tmpdir=/sdcard
+elif [ ${bdPlt} == "linux32" ]; then
+    # for linux32
+    ../configure --prefix=${PrefixDir} \
+        --host=armv7-unknown-linux --target=armv7-unknown-linux \
+        --with-tmpdir=/sdcard
+elif [ ${bdPlt} == "linux64" ]; then
+    # for linux64
+    ../configure --prefix=${PrefixDir} \
+        --host=aarch64-unknown-linux --target=aarch64-unknown-linux \
+        --with-tmpdir=/sdcard
 elif [ ${bdPlt} == "x86" ]; then
     # for x86
     ../configure --prefix=${PrefixDir}
@@ -126,9 +154,14 @@ make install
 
 
 
-echo "==> deploy in android: "
+echo
+echo -e "\033[0m\033[1;36m"
+echo "==> deploy in android/linux: "
 echo "Manual execution is recommended"
+echo "It is recommended to use the buildroot system for Linux,"
+echo "otherwise the relocation information may not be found"
 echo "1. adb push ${PrefixDir} /vendor/"
-echo "2. cd vendor/vld_pre && chmod -R 777 ./*"
+echo "2. chmod -R 777 /vendor/vld_pre"
 echo '3. export PATH=$PATH:/vendor/vld_pre/bin/'
 echo "4. export VALGRIND_LIB=/vendor/vld_pre/libexec/valgrind/"
+echo -e "\033[0m"
