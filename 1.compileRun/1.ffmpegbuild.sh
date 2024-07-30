@@ -1,17 +1,12 @@
+#!/usr/bin/env bash
 #########################################################################
 # File Name: ffmpegbuild.py
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: 2022年05月27日 星期五 14时49分55秒
 #########################################################################
-#!/usr/bin/env bash
 
 set -e
-
-create_dir()
-{
-    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
-}
 
 setup_env()
 {
@@ -243,6 +238,7 @@ compile_distributor()
 
 
 # ============> compile select <============
+source $(dirname $(readlink -f $0))/0.dir_file_opt.sh
 runOpt=""
 setup_env
 case $1 in

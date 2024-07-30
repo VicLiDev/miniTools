@@ -6,16 +6,13 @@
 # Created Time: Thu 30 May 2024 02:14:53 PM CST
 #########################################################################
 
-
-create_dir()
-{
-    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
-}
-
-
+RootDir=`pwd`
 
 ffmpeg_cmpile_linux_aarch64()
 {
+    create_dir build_linux_aarch64
+    cd build_linux_aarch64
+
     TOOLCHAIN_ROOT=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu
     CROSS_PREFIX=$TOOLCHAIN_ROOT/bin/aarch64-none-linux-gnu-
 
@@ -38,126 +35,97 @@ ffmpeg_cmpile_linux_aarch64()
 }
 
 
-ffmpeg_cmpile_android_arm()
+ffmpeg_cmpile_android()
 {
-    NDK_ROOT=${HOME}/work/android/ndk/android-ndk-r25c
-    API=21 # 设置为目标Android API级别
+    NDK="${HOME}/work/android/ndk/android-ndk-r25c"
+    TOOLCHAINS="${NDK}/toolchains/llvm/prebuilt/linux-x86_64"
+
+    cfg_arch_append=""
+
+    cd ${RootDir}
+
+    # Only choose one of these, depending on your device...
+    if [ "$1" == "arm" ]; then
+        create_dir build_android_arm && cd build_android_arm
+        export TARGET=armv7a-linux-androideabi
+        TARGET_ARCH=armv7-a
+        cfg_arch_append=""
+    elif [ "$1" == "aarch64" ]; then
+        create_dir build_android_aarch64 && cd build_android_aarch64
+        export TARGET=aarch64-linux-android
+        TARGET_ARCH=armv8
+        # 汇编的支持存在问题，需要disable掉
+        cfg_arch_append="
+            --disable-x86asm
+            --disable-inline-asm
+            --disable-asm
+            "
+    fi
+
+    # Set this to your minSdkVersion.
+    export API=21
 
     # 设置工具链和架构
-    TOOLCHAIN_PREFIX=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
-    TARGET_ARCH=armv7-a
-    # SYSROOT=$NDK_ROOT/platforms/android-$API_LEVEL/arch-$TARGET_ARCH
-    CROSS_PREFIX=$TOOLCHAIN_PREFIX/bin/armv7a-linux-androideabi21-
+    CROSS_PREFIX=${TOOLCHAINS}/bin/${TARGET}${API}-
 
     # 设置FFmpeg源代码路径和输出路径
     FFMPEG_OUTPUT="${PWD}/ffmpeg_out"
 
     # 清除之前的构建
-    rm -rf $FFMPEG_OUTPUT
-    mkdir -p $FFMPEG_OUTPUT
+    rm -rf ${FFMPEG_OUTPUT}
+    mkdir -p ${FFMPEG_OUTPUT}
 
+    config=(
+        --prefix=${FFMPEG_OUTPUT}
+        --target-os=android
+        --arch=${TARGET_ARCH}
+        --cpu=${TARGET_ARCH}
+        --enable-cross-compile
+        --disable-shared
+        --enable-static
+        --disable-doc
+        --disable-ffplay
+        --disable-ffprobe
+        --disable-avdevice
+        --disable-symver
+        --enable-gpl
+        --cross-prefix=${CROSS_PREFIX}
+        --ar=${TOOLCHAINS}/bin/llvm-ar
+        --nm=${TOOLCHAINS}/bin/llvm-nm
+        --ranlib=${TOOLCHAINS}/bin/llvm-ranlib
+        --strip=${TOOLCHAINS}/bin/llvm-strip
+        # --enable-libass
+        # --enable-libfreetype
+        # --enable-libfontconfig
+        # --enable-libfribidi
+        # --enable-libharfbuzz
+        # --enable-libmp3lame
+        # --enable-libopus
+        # --enable-libtheora
+        # --enable-libvorbis
+        # --enable-libvpx
+        # --enable-libx264
+        # --enable-libxvid
+        # --sysroot=$SYSROOT
+        # --extra-cflags="-I$SYSROOT/usr/include"
+        # --extra-ldflags="-L$SYSROOT/usr/lib -pie"
+        ${cfg_arch_append}
+    )
+
+    # echo "${config[@]}"
     # 配置FFmpeg，由于ar，nm等的前缀与clang不一样，所以需要单独指定一下
-    ../configure \
-        --prefix=$FFMPEG_OUTPUT \
-        --target-os=android \
-        --arch=$TARGET_ARCH \
-        --cpu=armv7-a \
-        --enable-cross-compile \
-        --disable-shared \
-        --enable-static \
-        --disable-doc \
-        --disable-ffplay \
-        --disable-ffprobe \
-        --disable-avdevice \
-        --disable-symver \
-        --enable-gpl \
-        --cross-prefix=$CROSS_PREFIX \
-        --ar=$TOOLCHAIN_PREFIX/bin/llvm-ar \
-        --nm=$TOOLCHAIN_PREFIX/bin/llvm-nm \
-        --ranlib=$TOOLCHAIN_PREFIX/bin/llvm-ranlib \
-        --strip=$TOOLCHAIN_PREFIX/bin/llvm-strip
-        # --enable-libass \
-        # --enable-libfreetype \
-        # --enable-libfontconfig \
-        # --enable-libfribidi \
-        # --enable-libharfbuzz \
-        # --enable-libmp3lame \
-        # --enable-libopus \
-        # --enable-libtheora \
-        # --enable-libvorbis \
-        # --enable-libvpx \
-        # --enable-libx264 \
-        # --enable-libxvid \
-        # --sysroot=$SYSROOT \
-        # --extra-cflags="-I$SYSROOT/usr/include" \
-        # --extra-ldflags="-L$SYSROOT/usr/lib -pie" 
+    ../configure ${config[@]}
 
     # 编译FFmpeg
-    make -j4
+    make -j20
 
     # 安装FFmpeg（如果需要）
     make install
 }
 
 
-# 这个用不了
-ffmpeg_cmpile_android_aarch64()
-{
-    # 设置 NDK 路径
-    export NDK=${HOME}/work/android/ndk/android-ndk-r25c
-    export PLATFORM=$NDK/platforms/android-21/arch-arm64/
-    export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
-    export PREFIX=$(pwd)/android/arm64-v8a
-    export AR=$TOOLCHAIN/bin/arm64-v8a-linux-android-ar
-    export AS=$TOOLCHAIN/bin/arm64-v8a-linux-android-as
-    export CC=$TOOLCHAIN/bin/arm64-v8a-linux-android21-clang
-    export CXX=$TOOLCHAIN/bin/arm64-v8a-linux-android21-clang++
-    export LD=$TOOLCHAIN/bin/arm64-v8a-linux-android-ld
-    export RANLIB=$TOOLCHAIN/bin/arm64-v8a-linux-android-ranlib
-    export STRIP=$TOOLCHAIN/bin/arm64-v8a-linux-android-strip
+source $(dirname $(readlink -f $0))/0.dir_file_opt.sh
 
-
-    # 配置 FFmpeg
-    ../configure --prefix=$PREFIX \
-        --target-os=android \
-        --arch=arm64 \
-        --enable-shared \
-        --disable-static \
-        --enable-gpl \
-        --enable-nonfree \
-        --enable-small \
-        --disable-doc \
-        --disable-ffplay \
-        --disable-ffmpeg \
-        --disable-ffprobe \
-        --disable-avdevice \
-        --disable-symver \
-        --disable-pthreads \
-        --disable-w32threads \
-        --disable-os2threads \
-        --disable-debug \
-        --disable-stripping \
-        --cross-prefix=$TOOLCHAIN/bin/arm64-v8a-linux-android- \
-        --enable-cross-compile \
-        --sysroot=$PLATFORM \
-        --extra-cflags="-I$PLATFORM/usr/include" \
-        --extra-ldflags="-L$PLATFORM/usr/lib64"
-        # --enable-encoder=libx264 \
-        # --enable-libx264 \
-        # --enable-decoder=h264 \
-
-
-    # 编译FFmpeg
-    make -j4
-
-    # 安装FFmpeg（如果需要）
-    make install
-}
-
-
-create_dir build
-cd build
-
-# ffmpeg_cmpile_linux_aarch64
-ffmpeg_cmpile_android_arm
-# ffmpeg_cmpile_android_aarch64
+ffmpeg_cmpile_linux_aarch64
+ffmpeg_cmpile_android arm
+ffmpeg_cmpile_android aarch64

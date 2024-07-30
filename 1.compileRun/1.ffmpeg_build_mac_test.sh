@@ -1,17 +1,14 @@
+#!/usr/bin/env bash
 #########################################################################
 # File Name: compile.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri May 27 11:23:39 2022
 #########################################################################
-#!/usr/bin/env bash
 
 # ln -s ${HOME}/Projects/miniTools/1.compileRun/1.ffmpeg_build_linux_test.sh .prjBuild.sh
 
-create_dir()
-{
-    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
-}
+source $(dirname $(readlink -f $0))/0.dir_file_opt.sh
 
 create_dir build
 
