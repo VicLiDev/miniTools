@@ -31,5 +31,9 @@ update_file()
 
 check_exist()
 {
-    if [ -e "$1" ]; then echo "$1 exist"; else echo "$1 not exist"; fi
+    if [ -e "$1" ]; then
+        echo -e "\033[0m\033[1;32m $1 exist \033[0m"
+    else
+        echo -e "\033[0m\033[1;31m $1 not exist \033[0m"
+    fi
 }
