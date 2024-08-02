@@ -164,4 +164,5 @@ echo "1. adb push ${PrefixDir} /vendor/"
 echo "2. chmod -R 777 /vendor/vld_pre"
 echo '3. export PATH=$PATH:/vendor/vld_pre/bin/'
 echo "4. export VALGRIND_LIB=/vendor/vld_pre/libexec/valgrind/"
+echo "5. export LD_LIBRARY_PATH=/vendor/vld_pre/libexec/valgrind/"
 echo -e "\033[0m"
