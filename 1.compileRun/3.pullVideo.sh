@@ -50,11 +50,7 @@ videoList=(
 )
 
 
-create_dir()
-{
-    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
-}
-
+source $(dirname $(readlink -f $0))/0.dir_file_opt.sh
 
 create_dir ${videoDir}
 videoCnt=${#videoList[*]}

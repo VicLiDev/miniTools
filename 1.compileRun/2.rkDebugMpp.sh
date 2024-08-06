@@ -31,22 +31,6 @@ toolList=(
     )
 
 
-create_dir()
-{
-    if [ ! -d $1 ]; then echo "create dir $1"; mkdir -p $1; fi
-}
-
-update_file()
-{
-    src="$1"
-    dst="$2"
-    if [[ -z "$src" || ! -e $src ]]; then echo "error: src file $1 do not exist"; exit 1; fi
-    # dts maybe file or dir
-    if [[ -z "$dst" || ! -e ${dst%/*} ]]; then echo "error: dst dir $2 do not exist"; exit 1; fi
-    echo "copy $src to $dst"
-    cp -r $src $dst
-}
-
 dbgLldb()
 {
     # proc lldb tool
@@ -353,6 +337,7 @@ dbgGdb_x86()
 
 adbCmd=$(adbs -s)
 source $(dirname $(readlink -f $0))/0.select_node.sh
+source $(dirname $(readlink -f $0))/0.dir_file_opt.sh
 selectNode "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
 selectNode "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
 echo "tool:$dbgToolName pltName:$dbgPltName"
