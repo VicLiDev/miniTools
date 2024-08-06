@@ -142,7 +142,7 @@ function add_log()
 
 # ====== main ======
 
-source $(dirname $(readlink -f $0))/0.dir_file_opt.sh
+source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
 
 procParas $@
 

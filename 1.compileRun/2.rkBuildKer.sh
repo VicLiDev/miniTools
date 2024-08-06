@@ -257,7 +257,7 @@ download()
 }
 
 adbCmd=$(adbs)
-source $(dirname $(readlink -f $0))/0.select_node.sh
+source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
 selectNode "${sel_tag_ker}" "pltList" "curPlt" "platform"
 gen_cmd
 build_kernel_mod

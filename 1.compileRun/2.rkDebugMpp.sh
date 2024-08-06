@@ -336,8 +336,8 @@ dbgGdb_x86()
 }
 
 adbCmd=$(adbs -s)
-source $(dirname $(readlink -f $0))/0.select_node.sh
-source $(dirname $(readlink -f $0))/0.dir_file_opt.sh
+source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
+source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
 selectNode "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
 selectNode "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
 echo "tool:$dbgToolName pltName:$dbgPltName"

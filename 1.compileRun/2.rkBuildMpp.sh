@@ -168,7 +168,7 @@ build_linux_x86_64()
 
 
 
-source $(dirname $(readlink -f $0))/0.select_node.sh
+source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
 selectNode "${sel_tag_mpp}" "pltList" "mSelectedArch" "platform"
 build_${mSelectedArch}
 

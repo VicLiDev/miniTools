@@ -59,7 +59,7 @@ gen_adb_cmd()
     echo ${adbCmd}
 }
 
-source $(dirname $(readlink -f $0))/0.select_node.sh
+source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
 if [ "$1" == "-s" ]; then use_ser_id="true"; shift; fi
 adbCmd=`gen_adb_cmd`
 adbOpt=${@}
