@@ -17,6 +17,7 @@ pltList=(
     "3568_android"
     "3588_android"
     "3576_android"
+    "1106_linux_5.10"
     "px30_linux_4.4_4.19"
     "3326_linux_4.4_4.19"
     "3399_linux_5.10"
@@ -109,6 +110,15 @@ gen_cmd()
                 m_config="rockchip_defconfig android-14.config rk3576.config"
                 m_target="BOOT_IMG=./boot_3576.img rk3576-evb1-v10.img"
                 m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
+                ;;
+            '1106_linux_5.10')
+                echo "======> selected ${curPlt} <======"
+                export PATH=${HOME}/Projects/prebuilts/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH
+                export CROSS_COMPILE=arm-linux-gnueabihf-
+                m_arch="arm"
+                m_config="rv1106_defconfig"
+                m_target="rv1106g-evb1-v11.img"
+                m_make="make"
                 ;;
             'px30_linux_4.4_4.19')
                 echo "======> selected ${curPlt} <======"
