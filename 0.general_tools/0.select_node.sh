@@ -84,7 +84,7 @@ selectNode()
     declare -n sel_res="$3"
     sel_tip="$4"
 
-    display $list_name $sel_tip
+    display $list_name "$sel_tip"
 
     echo "cur dir: `pwd`" >&2
     while [ True ]
