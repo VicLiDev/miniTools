@@ -17,6 +17,7 @@
 sel_tag_adbs="adb_s:"
 
 cmd_orgAdbOpt=""
+cmd_list_devs="false"
 cmd_get_count="false"
 cmd_gen_s_style="false"
 cmd_sel_idx=""
@@ -28,19 +29,20 @@ selectList=()
 
 help_info()
 {
-    echo "usage: adbs <adbsParas> [<orgAdbParas>]" >&2
-    echo "    -h|--help help info" >&2
-    echo "    -c Get device count" >&2
-    echo "    -s gen \"adb -s\" style cmd, default \"adb -t\" style" >&2
-    echo "    --idx <num>  Generates cmd with idx:num" >&2
-    echo >&2
-    echo "use session:                        " >&2
-    echo "    1. use adbs as adb command      " >&2
-    echo "       ex: adbs push <file> <dir>   " >&2
-    echo "           adbs -s push <file> <dir>" >&2
-    echo "    2. gen adb -t/-s prefix         " >&2
-    echo '       ex: adbCmd=$(adbs)           ' >&2
-    echo '           adbCmd=$(adbs -s)        ' >&2
+    echo "usage: adbs <adbsParas> [<orgAdbParas>]"
+    echo "    -h|--help help info"
+    echo "    -l List devices"
+    echo "    -c Get device count"
+    echo "    -s gen \"adb -s\" style cmd, default \"adb -t\" style"
+    echo "    --idx <num>  Generates cmd with idx:num"
+    echo
+    echo "use session:                        "
+    echo "    1. use adbs as adb command      "
+    echo "       ex: adbs push <file> <dir>   "
+    echo "           adbs -s push <file> <dir>"
+    echo "    2. gen adb -t/-s prefix         "
+    echo '       ex: adbCmd=$(adbs)           '
+    echo '           adbCmd=$(adbs -s)        '
 }
 
 proc_paras()
@@ -48,19 +50,22 @@ proc_paras()
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -s)
-                cmd_gen_s_style="true"
+            -h|--hlep)
+                help_info
+                exit 0
+                ;;
+            -l)
+                cmd_list_devs="true"
                 ;;
             -c)
                 cmd_get_count="true"
                 ;;
+            -s)
+                cmd_gen_s_style="true"
+                ;;
             --idx)
                 cmd_sel_idx="$2"
                 shift # move to next para
-                ;;
-            -h|--hlep)
-                help_info
-                exit 0
                 ;;
             *)
                 # next is adb paras
@@ -119,6 +124,11 @@ proc_paras $@
 gen_dev_info_list
 if [ ${cmd_get_count} == "true" ]; then
     echo "${#selectList[@]}"
+elif [ "${cmd_list_devs}" == "true" ]; then
+    for ((cur_idx = 0; cur_idx < ${#selectList[@]}; cur_idx++))
+    do
+        echo ${selectList[${cur_idx}]}
+    done
 else
     adbCmd=`gen_adb_cmd`
     if [ -z "${cmd_orgAdbOpt}" ]; then echo $adbCmd; else $adbCmd ${cmd_orgAdbOpt}; fi
