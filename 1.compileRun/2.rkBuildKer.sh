@@ -18,14 +18,14 @@ pltList=(
     "3568_android"
     "3588_android"
     "3576_android"
-    "1106_linux_5.10"
-    "px30_linux_4.4_4.19"
-    "3326_linux_4.4_4.19"
-    "3399_linux_5.10"
-    "3568_linux_4.19"
-    "3588_linux_5.10"
-    "3576_linux_6.1"
-    "3576_fpga_5.10_6.1"
+    "1106_linux"
+    "px30_linux"
+    "3326_linux"
+    "3399_linux"
+    "3568_linux"
+    "3588_linux"
+    "3576_linux"
+    "3576_fpga"
     )
 
 build_mode_list=(
@@ -54,7 +54,7 @@ get_arch()
         case ${curPlt} in
             '1109/1126_android'\
             |'3288_android'\
-            |'1106_linux_5.10')
+            |'1106_linux')
                 m_arch="arm"
                 ;;
             '3328_android'\
@@ -62,13 +62,13 @@ get_arch()
             |'3568_android'\
             |'3588_android'\
             |'3576_android'\
-            |'px30_linux_4.4_4.19'\
-            |'3326_linux_4.4_4.19'\
-            |'3399_linux_5.10'\
-            |'3568_linux_4.19'\
-            |'3588_linux_5.10'\
-            |'3576_linux_6.1'\
-            |'3576_fpga_5.10_6.1')
+            |'px30_linux'\
+            |'3326_linux'\
+            |'3399_linux'\
+            |'3568_linux'\
+            |'3588_linux'\
+            |'3576_linux'\
+            |'3576_fpga')
                 m_arch="arm64"
                 ;;
         esac
@@ -155,35 +155,35 @@ gen_cmd()
                 m_config="rockchip_defconfig android-${cur_android_ver}.config rk3576.config"
                 m_target="BOOT_IMG=./boot_3576.img rk3576-evb1-v10.img"
                 ;;
-            '1106_linux_5.10')
+            '1106_linux')
                 m_config="rv1106_defconfig"
                 m_target="rv1106g-evb1-v11.img"
                 ;;
-            'px30_linux_4.4_4.19')
+            'px30_linux')
                 m_config="px30_linux_defconfig"
                 m_target="px30-evb-ddr3-v10-linux.img"
                 ;;
-            '3326_linux_4.4_4.19')
+            '3326_linux')
                 m_config="rk3326_linux_robot_defconfig"
                 m_target="rk3326-evb-lp3-v10-linux.img"
                 ;;
-            '3399_linux_5.10')
+            '3399_linux')
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3399-evb-ind-lpddr4-linux.img"
                 ;;
-            '3568_linux_4.19')
+            '3568_linux')
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3568-evb1-ddr4-v10-linux.img"
                 ;;
-            '3588_linux_5.10')
+            '3588_linux')
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3588-evb1-lp4-v10.img"
                 ;;
-            '3576_linux_6.1')
+            '3576_linux')
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3576-evb1-v10-linux.img"
                 ;;
-            '3576_fpga_5.10_6.1')
+            '3576_fpga')
                 m_config="rockchip_defconfig"
                 m_target="rk3576-fpga.img"
                 ;;
@@ -202,7 +202,7 @@ build_kernel_mod()
         echo "build  cmd: ${build_cmd}"
         ${config_cmd}
         if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
-        if [ ${curPlt} == "3576_fpga_5.10_6.1" ]; then
+        if [ ${curPlt} == "3576_fpga" ]; then
             echo "modify .config for ${curPlt}";
             sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
             # sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
