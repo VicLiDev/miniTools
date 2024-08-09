@@ -35,9 +35,13 @@ build_mode_list=(
 
 curPlt="3588_android"
 
+KERNEL_VER=`make kernelversion`
+VERSION=`head -n 10 Makefile | grep "^VERSION" | awk '{print $3}'`
+PATCHLEVEL=`head -n 10 Makefile | grep "^PATCHLEVEL" | awk '{print $3}'`
+SUBLEVEL=`head -n 10 Makefile | grep "^SUBLEVEL" | awk '{print $3}'`
+
 m_arch=""
 m_config=""
-target=""
 m_make=""
 build_mod=""
 adbCmd=""
@@ -266,8 +270,16 @@ download()
     fi
 }
 
+# ====== main ======
+
 adbCmd=$(adbs)
 source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
+
+echo "KERNEL_VER = ${KERNEL_VER}"
+echo "VERSION    = ${VERSION}"
+echo "PATCHLEVEL = ${PATCHLEVEL}"
+echo "SUBLEVEL   = ${SUBLEVEL}"
+
 selectNode "${sel_tag_ker}" "pltList" "curPlt" "platform"
 gen_cmd
 build_kernel_mod
