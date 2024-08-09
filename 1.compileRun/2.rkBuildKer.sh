@@ -4,7 +4,7 @@
 #   1. add plt name in pltList
 #   2. add build methed
 
-set -e
+# set -e
 
 sel_tag_ker="rk_kernel_b: "
 sel_tag_mod="rk_kernel_b_m: "
@@ -225,7 +225,7 @@ build_kernel_mod()
             if [ $? -ne 0 ]; then echo "modify .config faile"; fi
         fi
         ${build_cmd}
-        if [ $? -ne 0 ]; then echo "build faile, cmd: ${config_cmd}"; exit 1; fi
+        if [ $? -ne 0 ]; then echo "build faile, cmd: ${build_cmd}"; exit 1; fi
         echo "config cmd: ${config_cmd}"
         echo "build  cmd: ${build_cmd}"
         echo "======> compile kernel done <======"
@@ -273,4 +273,4 @@ gen_cmd
 build_kernel_mod
 download
 
-set +e
+# set +e
