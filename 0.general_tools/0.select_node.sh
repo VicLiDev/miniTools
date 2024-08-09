@@ -28,6 +28,7 @@
 
 cache_file=${HOME}/bin/select.cache
 sel_tag=""
+display_color=36
 # stdout bakfd 1001
 # stderr bakfd 1002
 
@@ -84,6 +85,7 @@ selectNode()
     declare -n sel_res="$3"
     sel_tip="$4"
 
+    echo -e "\033[0m\033[1;${display_color}m" >&2
     display $list_name "$sel_tip"
 
     echo "cur dir: `pwd`" >&2
@@ -109,4 +111,5 @@ selectNode()
     done
 
     wr_sel_cache ${sel_tag} ${selIdx}
+    echo -e "\033[0m" >&2
 }
