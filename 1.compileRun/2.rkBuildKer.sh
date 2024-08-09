@@ -24,9 +24,8 @@ pltList=(
     "3399_linux_5.10"
     "3568_linux_4.19"
     "3588_linux_5.10"
-    "3576_linux_5.10_fpga"
-    "3576_linux_6.1_fpga"
     "3576_linux_6.1"
+    "3576_fpga_5.10_6.1"
     )
 
 build_mode_list=(
@@ -42,6 +41,7 @@ VERSION=`head -n 10 Makefile | grep "^VERSION" | awk '{print $3}'`
 PATCHLEVEL=`head -n 10 Makefile | grep "^PATCHLEVEL" | awk '{print $3}'`
 SUBLEVEL=`head -n 10 Makefile | grep "^SUBLEVEL" | awk '{print $3}'`
 
+m_toolchains=""
 m_arch=""
 m_config=""
 m_make=""
@@ -67,9 +67,8 @@ get_arch()
             |'3399_linux_5.10'\
             |'3568_linux_4.19'\
             |'3588_linux_5.10'\
-            |'3576_linux_5.10_fpga'\
-            |'3576_linux_6.1_fpga'\
-            |'3576_linux_6.1')
+            |'3576_linux_6.1'\
+            |'3576_fpga_5.10_6.1')
                 m_arch="arm64"
                 ;;
         esac
@@ -78,21 +77,38 @@ get_arch()
 
 init_tools_env()
 {
-    if [ "${m_arch}" == "arm" ]; then
-        export PATH=${HOME}/Projects/prebuilts/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH
-        export CROSS_COMPILE=arm-linux-gnueabihf-
-    # else
-    #     if [ -n "`echo ${curPlt} | grep android`" ]; then
-    #     else
-    #     fi
+    if [ "${m_arch}" == "arm" ]; then  # arm
+        m_toolchains="${HOME}/Projects/prebuilts/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin"
+        m_make="make CROSS_COMPILE=arm-linux-gnueabihf-"
+    else # arm64
+        if [ -n "`echo ${curPlt} | grep linux`" ]; then # linux
+            m_toolchains="${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin"
+            m_make="make CROSS_COMPILE=aarch64-none-linux-gnu-"
+        else # android
+            if [ "${VERSION}" -lt "6" ]; then
+                m_toolchains="${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin"
+            else
+                m_toolchains="${HOME}/Projects/prebuilts/toolchains/linux-x86_rk/clang-r487747c/bin"
+            fi
+            m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
+
+            if [ -n "`echo ${curPlt} | grep fpga`" ]; then
+                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LT0=none LLVM=1 LLVM_IAS=1"
+                echo '3576 kernel6.1 fpga maybe need this toolchain'
+                echo '${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r433403/bin'
+            fi
+        fi
     fi
+
+    export PATH=${m_toolchains}:$PATH
 }
 
 gen_cmd()
 {
     # select android config
     if [ -n "`echo ${curPlt} | grep android`" ]; then
-        android_ver_list=(`find ./ | grep "android-[0-9].*config" | sed "s/.*android-//g" | awk -F'[.-]' '{print $1}' | uniq`)
+        android_ver_list=(`find ./ | grep "android-[0-9].*config" | sed "s/.*android-//g" \
+                           | awk -F'[.-]' '{print $1}' | uniq | sort -r`)
         if [ "${android_ver_list}" == "0" ]; then
             cur_android_ver=${android_ver_list[0]}
         else
@@ -112,129 +128,64 @@ gen_cmd()
     if [ -n "${curPlt}" ]; then
         case ${curPlt} in
             '1109/1126_android')
-                echo "======> selected ${curPlt} <======"
                 m_config="rv1126_defconfig"
                 m_target="rv1126-evb-ddr3-v13.img"
-                m_make="make"
                 ;;
             '3288_android')
-                echo "======> selected ${curPlt} <======"
                 m_config="rockchip_defconfig"
                 m_target="rk3288-evb-android-rk808-edp.img"
-                m_make="make"
                 ;;
             '3328_android')
-                echo "======> selected ${curPlt} <======"
                 m_config="rockchip_defconfig"
                 m_target="rk3328-evb-android-avb.img BOOT_IMG=./boot_rk3328EVB.img"
-                m_make="make"
                 ;;
             '3399_android')
-                echo "======> selected ${curPlt} <======"
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
-                m_config="rockchip_defconfig android-11.config disable_incfs.config"
+                m_config="rockchip_defconfig android-${cur_android_ver}.config disable_incfs.config"
                 m_target="BOOT_IMG=./boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img"
-                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
             '3568_android')
-                echo "======> selected ${curPlt} <======"
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
-                m_config="rockchip_defconfig rk356x.config android-11.config"
+                m_config="rockchip_defconfig rk356x.config android-${cur_android_ver}.config"
                 m_target="rk3566-evb1-ddr4-v10.img BOOT_IMG=boot1.img"
-                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
             '3588_android')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                # export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
-                export PATH=${HOME}/Projects/prebuilts/toolchains/linux-x86_rk/clang-r487747c/bin:$PATH
-                m_config="rockchip_defconfig android-11.config"
+                m_config="rockchip_defconfig android-${cur_android_ver}.config"
                 m_target="BOOT_IMG=./boot_3588.img rk3588-evb1-lp4-v10.img"
-                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
             '3576_android')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/linux-x86_rk/clang-r487747c/bin:$PATH
-                m_config="rockchip_defconfig android-14.config rk3576.config"
+                m_config="rockchip_defconfig android-${cur_android_ver}.config rk3576.config"
                 m_target="BOOT_IMG=./boot_3576.img rk3576-evb1-v10.img"
-                m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
                 ;;
             '1106_linux_5.10')
-                echo "======> selected ${curPlt} <======"
                 m_config="rv1106_defconfig"
                 m_target="rv1106g-evb1-v11.img"
-                m_make="make"
                 ;;
             'px30_linux_4.4_4.19')
-                echo "======> selected ${curPlt} <======"
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_config="px30_linux_defconfig"
                 m_target="px30-evb-ddr3-v10-linux.img"
-                m_make="make"
                 ;;
             '3326_linux_4.4_4.19')
-                echo "======> selected ${curPlt} <======"
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_config="rk3326_linux_robot_defconfig"
                 m_target="rk3326-evb-lp3-v10-linux.img"
-                m_make="make"
                 ;;
             '3399_linux_5.10')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3399-evb-ind-lpddr4-linux.img"
-                m_make="make"
                 ;;
             '3568_linux_4.19')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3568-evb1-ddr4-v10-linux.img"
-                m_make="make"
                 ;;
             '3588_linux_5.10')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3588-evb1-lp4-v10.img"
-                m_make="make"
-                ;;
-            '3576_linux_5.10_fpga')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
-                m_config="rockchip_defconfig LT0=none LLVM=1 LLVM_IAS=1"
-                m_target="rk3576-fpga.img LT0=none LLVM=1 LLVM_IAS=1"
-                m_make="make"
-                ;;
-            '3576_linux_6.1_fpga')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r433403/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
-                m_config="rockchip_defconfig LT0=none LLVM=1 LLVM_IAS=1"
-                m_target="rk3576-fpga.img LT0=none LLVM=1 LLVM_IAS=1"
-                m_make="make"
                 ;;
             '3576_linux_6.1')
-                echo "======> selected ${curPlt} <======"
-                # 根据 build.sh 按照本地环境修改
-                export PATH=${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin:$PATH
-                export CROSS_COMPILE=aarch64-none-linux-gnu-
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3576-evb1-v10-linux.img"
-                m_make="make"
+                ;;
+            '3576_fpga_5.10_6.1')
+                m_config="rockchip_defconfig"
+                m_target="rk3576-fpga.img"
                 ;;
         esac
     fi
@@ -246,11 +197,12 @@ build_kernel_mod()
         echo "======> compile kernel begin <======"
         config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
         build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
+        echo "toolchains: ${m_toolchains}"
         echo "config cmd: ${config_cmd}"
         echo "build  cmd: ${build_cmd}"
         ${config_cmd}
         if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
-        if [[ ${curPlt} == "3576_linux_5.10_fpga" || ${curPlt} == "3576_linux_6.1_fpga" ]]; then
+        if [ ${curPlt} == "3576_fpga_5.10_6.1" ]; then
             echo "modify .config for ${curPlt}";
             sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
             # sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
@@ -264,6 +216,7 @@ build_kernel_mod()
         fi
         ${build_cmd}
         if [ $? -ne 0 ]; then echo "build faile, cmd: ${build_cmd}"; exit 1; fi
+        echo "toolchains: ${m_toolchains}"
         echo "config cmd: ${config_cmd}"
         echo "build  cmd: ${build_cmd}"
         echo "======> compile kernel done <======"
