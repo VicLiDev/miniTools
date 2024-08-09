@@ -205,7 +205,7 @@ gen_cmd()
 build_kernel_mod()
 {
     if [ "${build_mod}" == "build_kernel" ]; then
-        echo "======> compild kernel begin <======"
+        echo "======> compile kernel begin <======"
         config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
         build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
         echo "config cmd: ${config_cmd}"
@@ -228,15 +228,15 @@ build_kernel_mod()
         if [ $? -ne 0 ]; then echo "build faile, cmd: ${config_cmd}"; exit 1; fi
         echo "config cmd: ${config_cmd}"
         echo "build  cmd: ${build_cmd}"
-        echo "======> compild kernel done <======"
+        echo "======> compile kernel done <======"
     fi
 
     if [ "${build_mod}" == "build_kmod" ]; then
-        echo "======> compild rk_vcodec.ko begin <======"
+        echo "======> compile rk_vcodec.ko begin <======"
         build_mod_cmd="${m_make} ARCH=${m_arch} -C `pwd` M=`pwd`/drivers/video/rockchip/mpp modules"
         echo "build mod cmd: ${build_mod_cmd}"
         ${build_mod_cmd}
-        echo "======> compild rk_vcodec.ko done <======"
+        echo "======> compile rk_vcodec.ko done <======"
     fi
 }
 
