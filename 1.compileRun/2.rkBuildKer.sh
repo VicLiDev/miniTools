@@ -15,14 +15,14 @@ pltList=(
     "3288_android"
     "3328_android"
     "3399_android"
-    "3568_android"
+    "3566_android"
     "3588_android"
     "3576_android"
     "1106_linux"
     "px30_linux"
     "3326_linux"
     "3399_linux"
-    "3568_linux"
+    "3566_linux"
     "3588_linux"
     "3576_linux"
     "3576_fpga"
@@ -59,13 +59,13 @@ get_arch()
                 ;;
             '3328_android'\
             |'3399_android'\
-            |'3568_android'\
+            |'3566_android'\
             |'3588_android'\
             |'3576_android'\
             |'px30_linux'\
             |'3326_linux'\
             |'3399_linux'\
-            |'3568_linux'\
+            |'3566_linux'\
             |'3588_linux'\
             |'3576_linux'\
             |'3576_fpga')
@@ -143,7 +143,7 @@ gen_cmd()
                 m_config="rockchip_defconfig android-${cur_android_ver}.config disable_incfs.config"
                 m_target="BOOT_IMG=./boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img"
                 ;;
-            '3568_android')
+            '3566_android')
                 m_config="rockchip_defconfig rk356x.config android-${cur_android_ver}.config"
                 m_target="rk3566-evb1-ddr4-v10.img BOOT_IMG=boot1.img"
                 ;;
@@ -171,9 +171,9 @@ gen_cmd()
                 m_config="rockchip_linux_defconfig"
                 m_target="rk3399-evb-ind-lpddr4-linux.img"
                 ;;
-            '3568_linux')
+            '3566_linux')
                 m_config="rockchip_linux_defconfig"
-                m_target="rk3568-evb1-ddr4-v10-linux.img"
+                m_target="rk3566-evb1-ddr4-v10-linux.img"
                 ;;
             '3588_linux')
                 m_config="rockchip_linux_defconfig"
