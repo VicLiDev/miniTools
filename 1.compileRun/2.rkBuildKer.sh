@@ -109,7 +109,7 @@ gen_cmd()
     if [ -n "`echo ${curPlt} | grep android`" ]; then
         android_ver_list=(`find ./ | grep "android-[0-9].*config" | sed "s/.*android-//g" \
                            | awk -F'[.-]' '{print $1}' | uniq | sort -r`)
-        if [ "${android_ver_list}" == "0" ]; then
+        if [ "${#android_ver_list[@]}" == "1" ]; then
             cur_android_ver=${android_ver_list[0]}
         else
             selectNode "${sel_tag_android}" "android_ver_list" "cur_android_ver" "android version"
