@@ -247,6 +247,7 @@ download()
     if [ "${build_mod}" == "build_kmod" ]; then
         echo ""
         echo "======> reload rk_vcodec.ko <======"
+        adbCmd=$(adbs)
         ${adbCmd} push drivers/video/rockchip/mpp/rk_vcodec.ko /data
         if [ -n "`${adbCmd} shell lsmod | grep rk_vcodec`" ]; then
             echo "rmmod old rk_vcodec.ko"
@@ -259,7 +260,6 @@ download()
 
 # ====== main ======
 
-adbCmd=$(adbs)
 source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
 
 echo "KERNEL_VER = ${KERNEL_VER}"
