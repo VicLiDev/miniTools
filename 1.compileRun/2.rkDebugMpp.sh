@@ -88,6 +88,8 @@ dbgGdbPrepareEnv()
     if [ ${dbgPltName} == "android_32" ]; then
         debugDirBin="${debugDirRoot}/vendor/bin"
         debugDirLib="${debugDirRoot}/vendor/lib"
+        debugDirBin2="${debugDirRoot}/system/bin"
+        debugDirLib2="${debugDirRoot}/system/lib"
         if [ -e ${debugCmdFile} ]; then
             binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
         else
@@ -99,6 +101,8 @@ dbgGdbPrepareEnv()
     elif [ ${dbgPltName} == "android_64" ]; then
         debugDirBin="${debugDirRoot}/vendor/bin"
         debugDirLib="${debugDirRoot}/vendor/lib64"
+        debugDirBin2="${debugDirRoot}/system/bin"
+        debugDirLib2="${debugDirRoot}/system/lib64"
         if [ -e ${debugCmdFile} ]; then
             binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
         else
