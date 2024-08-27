@@ -20,6 +20,33 @@ pltList=(
 
 mSelectedArch=""
 
+push_bins_to_device()
+{
+    adbCmd="$1"
+    file_dir="$2"
+    device_dir="$3"
+
+    ${adbCmd} shell "ls -d ${device_dir} > /dev/null 2>&1"
+    if [ "$?" -ne "0" ]; then echo "Error: device dir not exist: ${device_dir}"; exit; fi
+
+    if [ -d "${file_dir}" ]; then
+        for cur_bin_file in `find ${file_dir} -maxdepth 1 -type f -executable`
+        do
+            if [ ! -e ${cur_bin_file} ]; then continue; fi
+
+            echo "==> push exec_file to device: ${cur_bin_file}"
+            ${adbCmd} push ${cur_bin_file} ${device_dir}
+        done
+    elif [ -f "${file_dir}" ]; then
+        if [ ! -e ${file_dir} ]; then continue; fi
+
+        echo "==> push exec_file to device: ${file_dir}"
+        ${adbCmd} push ${file_dir} ${device_dir}
+    else
+        echo "Error: adbCmd:${adbCmd} file_dir:${file_dir} device_dir:${device_dir}"
+    fi
+}
+
 build_android_32()
 {
     echo "======> selected ${mSelectedArch} <======"
@@ -30,24 +57,18 @@ build_android_32()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
-        ${adbCmd} push mpp/libmpp.so /vendor/lib
-        ${adbCmd} push mpp/legacy/libvpu.so /vendor/lib
-        ${adbCmd} push mpp/vproc/iep2/test/iep2_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_nt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
 
-        ${adbCmd} push mpp/libmpp.so /system/lib/
-        ${adbCmd} push mpp/legacy/libvpu.so /system/lib/
-        # ${adbCmd} push mpp/vproc/iep2/test/iep2_test /system/bin/
-        # ${adbCmd} push test/mpi_dec_test /system/bin/
-        # ${adbCmd} push test/mpi_enc_test /system/bin/
-        # ${adbCmd} push test/mpi_dec_mt_test /system/bin/
-        # ${adbCmd} push test/mpi_dec_multi_test /system/bin/
-        # ${adbCmd} push test/mpi_enc_mt_test /system/bin/
+        push_bins_to_device "${adbCmd}" mpp/libmpp.so /vendor/lib
+        push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /vendor/lib
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /vendor/bin
+        push_bins_to_device "${adbCmd}" test /vendor/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /vendor/bin
+
+        push_bins_to_device "${adbCmd}" mpp/libmpp.so /system/lib/
+        push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /system/lib
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /system/bin
+        push_bins_to_device "${adbCmd}" test /system/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /system/bin
     else
         echo "======> build mpp error! <======"
     fi
@@ -63,24 +84,18 @@ build_android_64()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
-        ${adbCmd} push mpp/libmpp.so /vendor/lib64
-        ${adbCmd} push mpp/legacy/libvpu.so /vendor/lib64
-        ${adbCmd} push mpp/vproc/iep2/test/iep2_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_nt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_mt_test /vendor/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /vendor/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /vendor/bin/
 
-        ${adbCmd} push mpp/libmpp.so /system/lib64
-        ${adbCmd} push mpp/legacy/libvpu.so /system/lib64
-        # ${adbCmd} push mpp/vproc/iep2/test/iep2_test /system/bin/
-        # ${adbCmd} push test/mpi_dec_test /system/bin/
-        # ${adbCmd} push test/mpi_enc_test /system/bin/
-        # ${adbCmd} push test/mpi_dec_mt_test /system/bin/
-        # ${adbCmd} push test/mpi_dec_multi_test /system/bin/
-        # ${adbCmd} push test/mpi_enc_mt_test /system/bin/
+        push_bins_to_device "${adbCmd}" mpp/libmpp.so /vendor/lib64
+        push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /vendor/lib64
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /vendor/bin
+        push_bins_to_device "${adbCmd}" test /vendor/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /vendor/bin
+
+        push_bins_to_device "${adbCmd}" mpp/libmpp.so /system/lib64
+        push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /system/lib64
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /system/bin
+        push_bins_to_device "${adbCmd}" test /system/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /system/bin
     else
         echo "======> build mpp error! <======"
     fi
@@ -97,23 +112,18 @@ build_linux_32()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
-        ${adbCmd} push mpp/librockchip_mpp.so.0 /usr/lib
-        ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /usr/lib
-        ${adbCmd} push test/mpi_dec_test /usr/bin
-        ${adbCmd} push test/mpi_enc_test /usr/bin
-        ${adbCmd} push test/mpi_dec_nt_test /usr/bin/
-        ${adbCmd} push test/mpi_dec_mt_test /usr/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /usr/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /usr/bin/
 
-        ${adbCmd} push mpp/librockchip_mpp.so.0 /oem/usr/lib
-        ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
-        ${adbCmd} push test/mpi_dec_test /oem/usr/bin
-        ${adbCmd} push test/mpi_enc_test /oem/usr/bin
-        ${adbCmd} push test/mpi_dec_nt_test /oem/usr/bin/
-        ${adbCmd} push test/mpi_dec_mt_test /oem/usr/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /oem/usr/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /oem/usr/bin/
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib
+        push_bins_to_device "${adbCmd}" push mpp/legacy/librockchip_vpu.so.0 /usr/lib
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
+        push_bins_to_device "${adbCmd}" test /usr/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
+
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /oem/usr/bin
+        push_bins_to_device "${adbCmd}" test /oem/usr/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /oem/usr/bin
     else
         echo "======> build mpp error! <======"
     fi
@@ -130,23 +140,18 @@ build_linux_64()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
-        ${adbCmd} push mpp/librockchip_mpp.so.0 /usr/lib64
-        ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /usr/lib64
-        ${adbCmd} push test/mpi_dec_test /usr/bin
-        ${adbCmd} push test/mpi_enc_test /usr/bin
-        ${adbCmd} push test/mpi_dec_nt_test /usr/bin/
-        ${adbCmd} push test/mpi_dec_mt_test /usr/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /usr/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /usr/bin/
 
-        ${adbCmd} push mpp/librockchip_mpp.so.0 /oem/usr/lib
-        ${adbCmd} push mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
-        ${adbCmd} push test/mpi_dec_test /oem/usr/bin
-        ${adbCmd} push test/mpi_enc_test /oem/usr/bin
-        ${adbCmd} push test/mpi_dec_nt_test /oem/usr/bin/
-        ${adbCmd} push test/mpi_dec_mt_test /oem/usr/bin/
-        ${adbCmd} push test/mpi_dec_multi_test /oem/usr/bin/
-        ${adbCmd} push test/mpi_enc_mt_test /oem/usr/bin/
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib64
+        push_bins_to_device "${adbCmd}" push mpp/legacy/librockchip_vpu.so.0 /usr/lib64
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
+        push_bins_to_device "${adbCmd}" test /usr/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
+
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /oem/usr/bin
+        push_bins_to_device "${adbCmd}" test /oem/usr/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /oem/usr/bin
     else
         echo "======> build mpp error! <======"
     fi
