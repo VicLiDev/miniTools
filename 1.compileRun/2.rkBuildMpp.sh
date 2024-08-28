@@ -34,13 +34,13 @@ push_bins_to_device()
         do
             if [ ! -e ${cur_bin_file} ]; then continue; fi
 
-            echo "==> push exec_file to device: ${cur_bin_file}"
+            echo "==> push <${cur_bin_file}> to device <${device_dir}>"
             ${adbCmd} push ${cur_bin_file} ${device_dir}
         done
     elif [ -f "${file_dir}" ]; then
         if [ ! -e ${file_dir} ]; then continue; fi
 
-        echo "==> push exec_file to device: ${file_dir}"
+        echo "==> push <${file_dir}> to device <${device_dir}>"
         ${adbCmd} push ${file_dir} ${device_dir}
     else
         echo "Error: adbCmd:${adbCmd} file_dir:${file_dir} device_dir:${device_dir}"
