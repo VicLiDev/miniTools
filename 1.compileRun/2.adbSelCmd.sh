@@ -89,9 +89,10 @@ gen_dev_info_list()
     for ((i = 0; i < ${#devTPIDList[@]}; i++))
     do
         nameTmp=`adb -t ${devTPIDList[${i}]} shell "cat /proc/device-tree/compatible" | tr -d "\0"`
-        nameTmp=${nameTmp%,rk*}
-        devNameList[${i}]=${nameTmp#"rockchip,"}
-        selectList[${i}]="${devNameList[${i}]} ==> serID: ${devSerIDList[${i}]} ==> TransportID: ${devTPIDList[${i}]}"
+        nameTmp=${nameTmp%rockchip*}
+        nameTmp=${nameTmp#"rockchip,"}
+        devNameList[${i}]=${nameTmp}
+        selectList[${i}]="${devNameList[${i}]} ==> serID: ${devSerIDList[${i}]} ==> TrsptID: ${devTPIDList[${i}]}"
     done
 }
 
