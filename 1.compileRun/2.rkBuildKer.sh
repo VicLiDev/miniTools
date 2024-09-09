@@ -137,23 +137,23 @@ gen_cmd()
                 ;;
             '3328_android')
                 m_config="rockchip_defconfig"
-                m_target="rk3328-evb-android-avb.img BOOT_IMG=./boot_rk3328EVB.img"
+                m_target="rk3328-evb-android-avb.img BOOT_IMG=../rk_kernel_boot/boot_rk3328EVB.img"
                 ;;
             '3399_android')
                 m_config="rockchip_defconfig android-${cur_android_ver}.config disable_incfs.config"
-                m_target="BOOT_IMG=./boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img"
+                m_target="BOOT_IMG=../rk_kernel_boot/boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img"
                 ;;
             '3566_android')
                 m_config="rockchip_defconfig rk356x.config android-${cur_android_ver}.config"
-                m_target="rk3566-evb1-ddr4-v10.img BOOT_IMG=boot1.img"
+                m_target="rk3566-evb1-ddr4-v10.img BOOT_IMG=../rk_kernel_boot/boot1.img"
                 ;;
             '3588_android')
                 m_config="rockchip_defconfig android-${cur_android_ver}.config"
-                m_target="BOOT_IMG=./boot_3588.img rk3588-evb1-lp4-v10.img"
+                m_target="BOOT_IMG=../rk_kernel_boot/boot_3588.img rk3588-evb1-lp4-v10.img"
                 ;;
             '3576_android')
                 m_config="rockchip_defconfig android-${cur_android_ver}.config rk3576.config"
-                m_target="BOOT_IMG=./boot_3576.img rk3576-evb1-v10.img"
+                m_target="BOOT_IMG=../rk_kernel_boot/boot_3576.img rk3576-evb1-v10.img"
                 ;;
             '1106_linux')
                 m_config="rv1106_defconfig"
