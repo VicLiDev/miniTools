@@ -19,6 +19,7 @@ get_commit_info()
         case ${key} in
             -n) cnt="$2"; if [ -z "$cnt" ]; then return 1; fi; shift; ;;
             -l) opt_loc="$2"; if [ -z "$opt_loc" ]; then return 1; fi; shift; ;;
+            -h) echo "get_commit_info [-n <node_cnt>,def 1] [-l <base file/dir>,def NULL]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
@@ -61,6 +62,7 @@ gmf()
         case ${key} in
             -n) cnt="$2"; if [ -z "$cnt" ]; then return 1; fi; shift; ;;
             -l) opt_loc="$2"; if [ -z "$opt_loc" ]; then return 1; fi; shift; ;;
+            -h) echo "gmf [-n <node_cnt>,def 1] [-l <base file/dir>,def NULL]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
@@ -98,6 +100,7 @@ gmb()
         case ${key} in
             -n) cnt="$2"; if [ -z "$cnt" ]; then return 1; fi; shift; ;;
             -l) opt_loc="$2"; if [ -z "$opt_loc" ]; then return 1; fi; shift; ;;
+            -h) echo "gmb [-n <node_cnt>,def 1] [-l <base file/dir>,def NULL]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
@@ -117,6 +120,53 @@ gmb()
     # echo "backward com_id:   ${backward_com_id}"
 
     git reset --hard ${backward_com_id}
+}
+
+gfind_node()
+{
+    git_dir=""
+    obj_dir=""
+    step="1"
+    runOpt=""
+    git_root_dir=`git rev-parse --show-toplevel`
+    cur_cmp_cnt=""
+    last_cmp_cnt=""
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -g) git_dir="$2"; if [ ! -e "$git_dir" ]; then return 1; fi; shift; ;;
+            -o) obj_dir="$2"; if [ ! -e "$obj_dir" ]; then return 1; fi; shift; ;;
+            -s) step="$2"; if [ -z "$step" ]; then return 1; fi; shift; ;;
+            -h) echo "git_find_node -g <git_dir> -o <obj_dir> [-s <step>,def 1]"; return 0; ;;
+            *) echo "unknow para: ${key}"; return 1; ;;
+        esac; shift
+    done
+
+    while true
+    do
+        git checkout . && gmb -n ${step} -l ${git_dir}
+        rm -rf ${git_dir} && cp -r ${obj_dir} ${git_dir}
+        cur_cmp_cnt=`git status --porcelain | grep -v '^??' | wc -l`
+        last_cmp_cnt=${last_cmp_cnt:-${cur_cmp_cnt}}
+
+        echo ""
+        cur_ver=`gonel -n 1`
+        echo "cur_ver: ${cur_ver}"
+        echo "git_dir: <${git_dir}> obj_dir: <${obj_dir}> step: <${step}>"
+        echo "cur_cmp_cnt: <${cur_cmp_cnt}>"
+        echo "forward:  gmf -n ${step} -l ${git_dir}"
+        echo "backward: gmb -n ${step} -l ${git_dir}"
+        if [ ${cur_cmp_cnt} -gt ${last_cmp_cnt} ]; then
+            return 0;
+        fi
+        if [ "${runOpt}" != "c" ]; then
+            echo "continue? [y/n/c] def[y]:"
+            read runOpt
+            if [ "$runOpt" = "n" ];then return 0; fi
+        fi
+        last_cmp_cnt=${cur_cmp_cnt}
+    done
 }
 
 
