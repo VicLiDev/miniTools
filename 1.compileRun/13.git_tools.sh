@@ -138,7 +138,7 @@ gfind_node()
             -g) git_dir="$2"; if [ ! -e "$git_dir" ]; then return 1; fi; shift; ;;
             -o) obj_dir="$2"; if [ ! -e "$obj_dir" ]; then return 1; fi; shift; ;;
             -s) step="$2"; if [ -z "$step" ]; then return 1; fi; shift; ;;
-            -h) echo "git_find_node -g <git_dir> -o <obj_dir> [-s <step>,def 1]"; return 0; ;;
+            -h) echo "gfind_node -g <git_dir> -o <obj_dir> [-s <step>,def 1]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
@@ -166,6 +166,41 @@ gfind_node()
             if [ "$runOpt" = "n" ];then return 0; fi
         fi
         last_cmp_cnt=${cur_cmp_cnt}
+    done
+}
+
+gapply()
+{
+    patch_dir=$1
+    beg_idx="1"
+    apply_cnt=""
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -p) patch_dir="$2"; if [ ! -e "$patch_dir" ]; then return 1; fi; shift; ;;
+            -b) beg_idx="$2"; shift; ;;
+            -c) apply_cnt="$2"; shift; ;;
+            -h) echo "gapply -p <patch_dir> [-b <begin_idx>,def 1] [-c <apply_count>,def ALL]"; return 0; ;;
+            *) echo "unknow para: ${key}"; return 1; ;;
+        esac; shift
+    done
+
+    cur_idx=${beg_idx}
+    while true
+    do
+        cur_idx=`printf "%04d" ${cur_idx}`
+        patch_file="${patch_dir}/`ls -al ${patch_dir} | grep ${cur_idx} | awk '{print $NF}'`"
+        if [ ! -f ${patch_file} ]; then return 0; fi
+        echo "cur_idx: ${cur_idx}"
+        echo "patch:   ${patch_file}"
+
+        git apply ${patch_file}
+        if [ $? -ne "0" ]; then return 1; fi
+        if [ -n "${apply_cnt}" ]; then
+            if [ "`expr ${cur_idx} - ${beg_idx} + 1`" -ge "${apply_cnt}" ]; then return 0; fi
+        fi
+        cur_idx=`expr ${cur_idx} + 1`
     done
 }
 
