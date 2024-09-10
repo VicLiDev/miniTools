@@ -174,6 +174,7 @@ gapply()
     patch_dir=$1
     beg_idx="1"
     apply_cnt=""
+    skip_array=()
 
     while [[ $# -gt 0 ]]; do
         key="$1"
@@ -181,7 +182,9 @@ gapply()
             -p) patch_dir="$2"; if [ ! -e "$patch_dir" ]; then return 1; fi; shift; ;;
             -b) beg_idx="$2"; shift; ;;
             -c) apply_cnt="$2"; shift; ;;
-            -h) echo "gapply -p <patch_dir> [-b <begin_idx>,def 1] [-c <apply_count>,def ALL]"; return 0; ;;
+            # Compatible with bash and zsh
+            --skip) eval "skip_array=($2)"; shift; ;;
+            -h) echo "gapply -p <patch_dir> [-b <begin_idx>,def 1] [-c <apply_count>,def ALL] [--skip \"<skip idx list>\"]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
@@ -192,8 +195,23 @@ gapply()
         cur_idx=`printf "%04d" ${cur_idx}`
         patch_file="${patch_dir}/`ls -al ${patch_dir} | grep ${cur_idx} | awk '{print $NF}'`"
         if [ ! -f ${patch_file} ]; then return 0; fi
-        echo "cur_idx: ${cur_idx}"
-        echo "patch:   ${patch_file}"
+        echo "==> cur_idx: ${cur_idx}"
+        echo "patch_file:  ${patch_file}"
+
+        need_skip=""
+        for skip_idx in ${skip_array[@]}
+        do
+            if [ ${skip_idx} -eq "${cur_idx}" ]; then
+                echo "skip cur patch"
+                need_skip="true"
+                break
+            fi
+        done
+        if [ "${need_skip}" = "true" ]; then
+            cur_idx=`expr ${cur_idx} + 1`
+            continue
+        fi
+
 
         git apply ${patch_file}
         if [ $? -ne "0" ]; then return 1; fi
