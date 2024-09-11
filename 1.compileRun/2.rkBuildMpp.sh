@@ -9,6 +9,7 @@
 set -e
 
 sel_tag_mpp="rk_mpp_b: "
+sel_tag_mpp_ko="rk_mpp_ko_b: "
 
 pltList=(
     "android_32"
@@ -19,6 +20,14 @@ pltList=(
     )
 
 mSelectedArch=""
+
+kdirList=(
+    "${HOME}/Projects/kernel"
+    "${HOME}/Projects/kernel2"
+    "${HOME}/Projects/kernel3"
+    )
+
+mSelectedKdir=""
 
 push_bins_to_device()
 {
@@ -173,9 +182,27 @@ build_linux_x86_64()
 
 
 
+cur_br=`git branch --show-current`
+echo "cur branch: $cur_br"
 source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
-selectNode "${sel_tag_mpp}" "pltList" "mSelectedArch" "platform"
-build_${mSelectedArch}
+if [ "${cur_br}" == "develop" ]; then
+    selectNode "${sel_tag_mpp}" "pltList" "mSelectedArch" "platform"
+    build_${mSelectedArch}
+elif [ "${cur_br}" == "develop2" ]; then
+    selectNode "${sel_tag_mpp_ko}" "kdirList" "mSelectedKdir" "kernel dir"
+
+    info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${mSelectedKdir} --env \
+        | grep -E "toolchains|m_make"`
+    toolchains="`echo -e ${info_list} | awk '{print $2}'`"
+    make_cmd=${info_list#*m_make: }
+    echo "toolchains: ${toolchains}"
+    echo "make_cmd: ${make_cmd}"
+
+    cd `git rev-parse --show-toplevel` \
+        && cd build/kmpp/aarch64 \
+        && ./make-Kbuild.sh --kernel ${mSelectedKdir} \
+            --toolchain ${toolchains} --ndk ${toolchains}
+fi
 
 
 set +e

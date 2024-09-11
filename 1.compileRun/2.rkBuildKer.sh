@@ -4,7 +4,10 @@
 #   1. add plt name in pltList
 #   2. add build methed
 
-# set -e
+set -e
+
+cmd_init_env="false"
+cmd_wk_dir=""
 
 sel_tag_ker="rk_kernel_b: "
 sel_tag_mod="rk_kernel_b_m: "
@@ -36,16 +39,14 @@ build_mode_list=(
 curPlt="3588_android"
 cur_android_ver=""
 
-KERNEL_VER=`make kernelversion`
-VERSION=`head -n 10 Makefile | grep "^VERSION" | awk '{print $3}'`
-PATCHLEVEL=`head -n 10 Makefile | grep "^PATCHLEVEL" | awk '{print $3}'`
-SUBLEVEL=`head -n 10 Makefile | grep "^SUBLEVEL" | awk '{print $3}'`
-
 m_toolchains=""
 m_arch=""
 m_config=""
 m_make=""
 build_mod=""
+config_cmd=""
+build_cmd=""
+build_mod_cmd=""
 adbCmd=""
 
 get_arch()
@@ -101,6 +102,8 @@ init_tools_env()
     fi
 
     export PATH=${m_toolchains}:$PATH
+    echo "toolchains: ${m_toolchains}"
+    echo "m_make: ${m_make}"
 }
 
 gen_cmd()
@@ -189,17 +192,24 @@ gen_cmd()
                 ;;
         esac
     fi
+    echo "m_config: ${m_config}"
+    echo "m_target: ${m_target}"
+    if [ "${build_mod}" == "build_kernel" ]; then
+        config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
+        build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
+        echo "config cmd: ${config_cmd}"
+        echo "build  cmd: ${build_cmd}"
+    fi
+    if [ "${build_mod}" == "build_kmod" ]; then
+        build_mod_cmd="${m_make} ARCH=${m_arch} -C `pwd` M=`pwd`/drivers/video/rockchip/mpp modules"
+        echo "build mod cmd: ${build_mod_cmd}"
+    fi
 }
 
 build_kernel_mod()
 {
     if [ "${build_mod}" == "build_kernel" ]; then
         echo "======> compile kernel begin <======"
-        config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
-        build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
-        echo "toolchains: ${m_toolchains}"
-        echo "config cmd: ${config_cmd}"
-        echo "build  cmd: ${build_cmd}"
         ${config_cmd}
         if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
         if [ ${curPlt} == "3576_fpga" ]; then
@@ -224,8 +234,6 @@ build_kernel_mod()
 
     if [ "${build_mod}" == "build_kmod" ]; then
         echo "======> compile rk_vcodec.ko begin <======"
-        build_mod_cmd="${m_make} ARCH=${m_arch} -C `pwd` M=`pwd`/drivers/video/rockchip/mpp modules"
-        echo "build mod cmd: ${build_mod_cmd}"
         ${build_mod_cmd}
         echo "======> compile rk_vcodec.ko done <======"
     fi
@@ -260,7 +268,28 @@ download()
 
 # ====== main ======
 
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case ${key} in
+        --env) cmd_init_env="true"; ;;
+        --dir) cmd_wk_dir="$2"; shift; ;;
+        -h|--help) echo "rkBuildKer.sh [--env] [--dir <kernel_path>]"; exit 0; ;;
+        *) echo "unknow para: ${key}"; exit 1; ;;
+    esac
+    shift # move to next para
+done
+
+
 source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
+
+if [ -n "${cmd_wk_dir}" ]; then
+    cd ${cmd_wk_dir}
+fi
+
+KERNEL_VER=`make kernelversion`
+VERSION=`head -n 10 Makefile | grep "^VERSION" | awk '{print $3}'`
+PATCHLEVEL=`head -n 10 Makefile | grep "^PATCHLEVEL" | awk '{print $3}'`
+SUBLEVEL=`head -n 10 Makefile | grep "^SUBLEVEL" | awk '{print $3}'`
 
 echo "KERNEL_VER = ${KERNEL_VER}"
 echo "VERSION    = ${VERSION}"
@@ -271,7 +300,8 @@ selectNode "${sel_tag_ker}" "pltList" "curPlt" "platform"
 get_arch
 init_tools_env
 gen_cmd
+if [ "${cmd_init_env}" == "true" ]; then exit 0; fi
 build_kernel_mod
 download
 
-# set +e
+set +e
