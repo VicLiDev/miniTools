@@ -202,6 +202,21 @@ elif [ "${cur_br}" == "develop2" ]; then
         && cd build/kmpp/aarch64 \
         && ./make-Kbuild.sh --kernel ${mSelectedKdir} \
             --toolchain ${toolchains} --ndk ${toolchains}
+elif [ "${cur_br}" == "kmpp" ]; then
+    selectNode "${sel_tag_mpp_ko}" "kdirList" "mSelectedKdir" "kernel dir"
+
+    info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${mSelectedKdir} --env \
+        | grep -E "toolchains|m_make"`
+    toolchains="`echo -e ${info_list} | awk '{print $2}'`"
+    make_cmd=${info_list#*m_make: }
+    echo "toolchains: ${toolchains}"
+    echo "make_cmd: ${make_cmd}"
+
+    kmpp_build_cmd="${make_cmd} ARCH=arm -C ${mSelectedKdir} M=`pwd` modules"
+    echo "kmpp_build_cmd: ${kmpp_build_cmd}"
+    export PATH=${toolchains}:${PATH}
+    cd `git rev-parse --show-toplevel` \
+        && ${kmpp_build_cmd}
 fi
 
 
