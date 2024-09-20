@@ -41,6 +41,7 @@ import time
 import random
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import itertools
 
 import subprocess
 
@@ -107,7 +108,11 @@ def update(frame):
 # 使用FuncAnimation动态更新图像
 # interval，(可选)，控制每帧之间的间隔时间，单位是毫秒。默认值是200毫秒，即每秒
 # 播放5帧
-ani = FuncAnimation(fig, update, frames=range(100), interval=1000, blit=True)
+# 创建一个无限的迭代器
+# 通过使用 itertools.count，可以在 FuncAnimation 中实现无限延拓的动画，而无需预先
+# 定义 frames 参数。这种方法特别适合需要动态更新数据的情况，确保动画可以持续进行。
+frames = itertools.count(start=0)
+ani = FuncAnimation(fig, update, frames=frames, interval=1000, blit=True)
 
 # 显示图像
 plt.show()
