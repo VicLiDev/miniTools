@@ -6,7 +6,7 @@
 # Created Time: 2023年04月14日 星期五 08时47分56秒
 #########################################################################
 
-set -e
+# set -e
 
 sel_tag_mpp="rk_mpp_b: "
 sel_tag_mpp_ko="rk_mpp_ko_b: "
@@ -36,7 +36,7 @@ push_bins_to_device()
     device_dir="$3"
 
     ${adbCmd} shell "ls -d ${device_dir} > /dev/null 2>&1"
-    if [ "$?" -ne "0" ]; then echo "Error: device dir not exist: ${device_dir}"; exit; fi
+    if [ "$?" -ne "0" ]; then echo "Error: device dir not exist: ${device_dir}"; return; fi
 
     if [ -d "${file_dir}" ]; then
         for cur_bin_file in `find ${file_dir} -maxdepth 1 -type f -executable`
@@ -123,7 +123,7 @@ build_linux_32()
         adbCmd=$(adbs)
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib
-        push_bins_to_device "${adbCmd}" push mpp/legacy/librockchip_vpu.so.0 /usr/lib
+        push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /usr/lib
         push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
         push_bins_to_device "${adbCmd}" test /usr/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
@@ -151,7 +151,7 @@ build_linux_64()
         adbCmd=$(adbs)
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib64
-        push_bins_to_device "${adbCmd}" push mpp/legacy/librockchip_vpu.so.0 /usr/lib64
+        push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /usr/lib64
         push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
         push_bins_to_device "${adbCmd}" test /usr/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
@@ -220,4 +220,4 @@ elif [ "${cur_br}" == "kmpp" ]; then
 fi
 
 
-set +e
+# set +e
