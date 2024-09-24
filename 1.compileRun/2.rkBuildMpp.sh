@@ -123,12 +123,16 @@ build_linux_32()
         adbCmd=$(adbs)
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.1 /usr/lib
         push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /usr/lib
         push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
         push_bins_to_device "${adbCmd}" test /usr/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.1 /oem/usr/lib
         push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
         push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /oem/usr/bin
         push_bins_to_device "${adbCmd}" test /oem/usr/bin
@@ -151,12 +155,16 @@ build_linux_64()
         adbCmd=$(adbs)
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib64
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib64
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.1 /usr/lib64
         push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /usr/lib64
         push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
         push_bins_to_device "${adbCmd}" test /usr/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.1 /oem/usr/lib
         push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
         push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /oem/usr/bin
         push_bins_to_device "${adbCmd}" test /oem/usr/bin
