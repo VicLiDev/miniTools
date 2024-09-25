@@ -208,6 +208,9 @@ gapply()
             fi
         done
         if [ "${need_skip}" = "true" ]; then
+            if [ -n "${apply_cnt}" ]; then
+                if [ "`expr ${cur_idx} - ${beg_idx} + 1`" -ge "${apply_cnt}" ]; then return 0; fi
+            fi
             cur_idx=`expr ${cur_idx} + 1`
             continue
         fi
