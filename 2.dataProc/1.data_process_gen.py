@@ -74,7 +74,7 @@ global_line_s = ['-', '--', '-.', ':']
 tab_loc_ha = ['center', 'right', 'left']
 tab_loc_va = ['center', 'top', 'bottom', 'baseline', 'center_baseline']
 
-def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, showLine, calcAvg):
+def plotVal(fileNames, dataGrp, refLineEn, refLine, showTag, showLine, calcAvg):
     if len(fileNames) != len(dataGrp):
         print("error: file cnt and data cnt is not equal")
         print("file cnt is %d data cnt is %d" % (len(fileNames), (len(dataGrp))))
@@ -107,10 +107,10 @@ def plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, showLine, calc
 
         ax.legend()  # Add a legend.
 
-    if refLineEn == True:
-        plt.axhline(hLine, linestyle='--', c='r')
-        plt.axvline(vLine, linestyle='--', c='orangered')
-        ax.legend()  # Add a legend.
+    if refLineEn[0] == True:
+        plt.axhline(refLine[0], linestyle='--', c='r')
+    if refLineEn[1] == True:
+        plt.axvline(refLine[1], linestyle='--', c='orangered')
 
     plt.show()
 
@@ -133,9 +133,8 @@ def main(argv):
 
     # control para
     drAndSort = False
-    refLineEn = False
-    hLine = 0
-    vLine = 0
+    refLineEn = [False, False] # [hor, ver]
+    refLine = [0, 0] # [hor, ver]
     showTag = False
     showLine = False
     calcDiff = False
@@ -156,11 +155,11 @@ def main(argv):
         elif opt in ("-s"):
             drAndSort = True
         elif opt in ("--hl"):
-            hLine = arg
-            refLineEn = True
+            refLineEn[0] = True
+            refLine[0] = arg
         elif opt in ("--vl"):
-            vLine = arg
-            refLineEn = True
+            refLineEn[1] = True
+            refLine[1] = arg
         elif opt in ("-t"):
             showTag = True
         elif opt in ("-l"):
@@ -194,7 +193,7 @@ def main(argv):
         checkNumsInc(dataGrp[i])
 
     print()
-    plotVal(fileNames, dataGrp, refLineEn, hLine, vLine, showTag, showLine, calcAvg)
+    plotVal(fileNames, dataGrp, refLineEn, refLine, showTag, showLine, calcAvg)
 
 
 if __name__ == '__main__':

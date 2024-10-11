@@ -186,7 +186,7 @@ class ParaMonitor:
         # 移除旧的图例（如果存在）
         if ax.get_legend() is not None:
             ax.get_legend().remove()
-    
+
         # 创建新的图例
         ax.legend(loc='upper right')
 
