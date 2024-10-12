@@ -6,6 +6,9 @@ import sys,getopt
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.lines as mlines
+import matplotlib.patheffects as pe
 
 def loadData(fname):
     f = open(fname)
@@ -68,9 +71,12 @@ def checkNumsInc(nums):
     print()
     return
 
-global_color  = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-global_marker = ['.', 'o', 'v', '^', '<', '1', '2', '3', '4', '8', ',']
-global_line_s = ['-', '--', '-.', ':']
+# 获取所有预定义颜色
+all_colors = list(mcolors.CSS4_COLORS.keys())
+# 获取所有预定义的标记
+all_markers = list(mlines.Line2D.markers.keys())
+# 获取所有预定义的线型
+all_linestyles = list(mlines.Line2D.lineStyles.keys())
 tab_loc_ha = ['center', 'right', 'left']
 tab_loc_va = ['center', 'top', 'bottom', 'baseline', 'center_baseline']
 
@@ -87,23 +93,29 @@ def plotVal(fileNames, dataGrp, refLineEn, refLine, showTag, showLine, calcAvg):
     for i in range(loopCnt):
         line_style = ['']
         if showLine == True:
-            line_style = global_line_s
+            line_style = all_linestyles
         x = list(range(len(dataGrp[i])))
-        ax.plot(x, dataGrp[i], marker=global_marker[i%len(global_marker)], \
-                color=global_color[i%len(global_color)], \
-                linestyle=line_style[i%len(line_style)], \
-                alpha=1/2, \
+        line, = ax.plot(x, dataGrp[i],
+                marker=all_markers[(i+int(i/len(all_markers)))%len(all_markers)],
+                color=all_colors[i%len(all_colors)],
+                linestyle=line_style[i%len(line_style)],
+                # 设置标记的填充颜色，设置标记的边框颜色，设置边框的宽度，效果没有设置阴影好
+                # markerfacecolor='yellow', markeredgecolor='black', markeredgewidth=2,
+                alpha=1/2,
                 label=fileNames[i])  # Plot some data on the axes.
+        # 为线条和点设置阴影效果
+        line.set_path_effects([pe.withStroke(linewidth=5, foreground="gray"), pe.Normal()])
+
 
         if showTag == True:
             for a, b in zip(x, dataGrp[i]):
                 tab_loc_x = int(i / len(tab_loc_va))
                 tab_loc_y = int(i % len(tab_loc_va))
                 ax.text(a, b, (a, b), fontsize=10, ha=tab_loc_ha[tab_loc_x], \
-                        va=tab_loc_va[tab_loc_y], color=global_color[i%len(global_color)])
+                        va=tab_loc_va[tab_loc_y], color=all_colors[i%len(all_colors)])
         if calcAvg == True:
             avg = np.mean(dataGrp[i])
-            plt.axhline(avg, color=global_color[i%len(global_color)], linestyle="dashdot", label="avg: "+str(avg))
+            plt.axhline(avg, color=all_colors[i%len(all_colors)], linestyle="dashdot", label="avg: "+str(avg))
 
         ax.legend()  # Add a legend.
 
