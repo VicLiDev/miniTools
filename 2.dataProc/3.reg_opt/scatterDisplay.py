@@ -109,7 +109,13 @@ def _compareReg(reg1, reg2):
             return False
     return True
 
-
+'''
+绘制4个图，第一个文件被认为是老的数据，第二个文件被认为是新的数据
+old deleted: 两个图相比，file1有，file2没有的数据
+new add:     两个图相比，file1没有，file2有的数据
+old diff:    两个图相比，file1/file2都有，但是不同的数据，这里绘制file1
+new diff:    两个图相比，file1/file2都有，但是不同的数据，这里绘制file2
+'''
 def plotRegsDiff(file1, file2, regSet1, regSet2, hRefLine, vRefLine):
     reg1_deleted = []
     reg2_added = []
