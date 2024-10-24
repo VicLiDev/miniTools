@@ -182,6 +182,11 @@ def plotRegsDiff(file1, file2, regSet1, regSet2, hRefLine, vRefLine):
     ax1.set_xlabel('reg idx')
     ax1.set_ylabel('bit0-31')
     ax1.set_title("Register old deleted %s" % (file1))
+    print("")
+    print("")
+    print("======> old deleted beg <======")
+    print(reg1_deleted)
+    print("======> old deleted end <======")
     # reference line
     for i in range(len(hRefLine)):
         ax1.axhline(hRefLine[i], linestyle='--', c='r')
@@ -194,6 +199,11 @@ def plotRegsDiff(file1, file2, regSet1, regSet2, hRefLine, vRefLine):
     ax2.set_xlabel('reg idx')
     ax2.set_ylabel('bit0-31')
     ax2.set_title("Register new added %s" % (file2))
+    print("")
+    print("")
+    print("======> new added beg <======")
+    print(reg2_added)
+    print("======> new added end <======")
     # reference line
     for i in range(len(hRefLine)):
         ax2.axhline(hRefLine[i], linestyle='--', c='r')
@@ -206,6 +216,11 @@ def plotRegsDiff(file1, file2, regSet1, regSet2, hRefLine, vRefLine):
     ax3.set_xlabel('reg idx')
     ax3.set_ylabel('bit0-31')
     ax3.set_title("Register old diff %s" % (file1))
+    print("")
+    print("")
+    print("======> old diff beg <======")
+    print(reg1_diff)
+    print("======> old diff end <======")
     # reference line
     for i in range(len(hRefLine)):
         ax3.axhline(hRefLine[i], linestyle='--', c='r')
@@ -218,6 +233,11 @@ def plotRegsDiff(file1, file2, regSet1, regSet2, hRefLine, vRefLine):
     ax4.set_xlabel('reg idx')
     ax4.set_ylabel('bit0-31')
     ax4.set_title("Register new diff %s" % (file2))
+    print("")
+    print("")
+    print("======> new diff beg <======")
+    print(reg2_diff)
+    print("======> new diff end <======")
     # reference line
     for i in range(len(hRefLine)):
         ax4.axhline(hRefLine[i], linestyle='--', c='r')

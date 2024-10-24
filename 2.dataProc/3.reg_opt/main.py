@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-# ex: python ./main.py -i ~/Downloads/reg/rkvdec_v2_new.xlsx ~/Downloads/reg/vdpu_383_org.xlsx -d --hl 7.5 15.5 22.5
+'''
+ex: python ./main.py -i ~/Downloads/reg/rkvdec_v2_new.xlsx ~/Downloads/reg/vdpu_383_org.xlsx -d --hl 7.5 15.5 22.5
+'''
 
 try:
     import argparse

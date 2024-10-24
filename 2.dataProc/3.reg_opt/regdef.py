@@ -20,7 +20,7 @@ class Field:
         self.fld_desc = "NULL"
 
     def __repr__(self):
-        return "    fld [{}] offset:[{}] size:[{}] defVal:[{}] acm:[{}] abstract:[{}] desc:[{}]".format(
+        return "    fld [{}]    offset:[{}]    size:[{}]    defVal:[{}]    acm:[{}]    abstract:[{}]    desc:[{}]".format(
                 self.field, self.fld_offset, self.fld_size, self.fld_default,
                 self.fld_acm, self.fld_abstract, self.fld_desc.replace('\n', "  "))
         # return "    fld [{}] offset:[{}] size:[{}] defVal:[{}] acm:[{}] abstract:[{}]".format(
@@ -47,7 +47,7 @@ class Reg:
         self.fields = []
 
     def __repr__(self):
-        print("reg %s offset:%d abstract:%s defVal:%d"
+        print("reg %s    offset:%d    abstract:%s    defVal:%d"
               % (self.register, self.reg_offset, self.reg_abstract, self.reg_default))
         for i in range(0, len(self.fields)):
             print(self.fields[i])
