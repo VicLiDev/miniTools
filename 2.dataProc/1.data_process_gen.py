@@ -74,7 +74,7 @@ global_line_s = ['-', '--', '-.', ':']
 tab_loc_ha = ['center', 'right', 'left']
 tab_loc_va = ['center', 'top', 'bottom', 'baseline', 'center_baseline']
 
-def plotVal(fileNames, dataGrp, refLineEn, refLine, showTag, showLine, calcAvg):
+def plotVal(fileNames, dataGrp, refLineEn, refLine, showName, showTag, showLine, calcAvg):
     if len(fileNames) != len(dataGrp):
         print("error: file cnt and data cnt is not equal")
         print("file cnt is %d data cnt is %d" % (len(fileNames), (len(dataGrp))))
@@ -94,6 +94,13 @@ def plotVal(fileNames, dataGrp, refLineEn, refLine, showTag, showLine, calcAvg):
                 linestyle=line_style[i%len(line_style)], \
                 alpha=1/2, \
                 label=fileNames[i])  # Plot some data on the axes.
+        if showName == True:
+            fname_plt_idx = int(len(x) / 2)
+            fname_plt_point_x = x[fname_plt_idx]
+            fname_plt_point_y = dataGrp[i][fname_plt_idx]
+            plt.text(fname_plt_point_x, fname_plt_point_y, fileNames[i], \
+                     fontsize=12, color=global_color[i%len(global_color)], \
+                     ha="right", va="bottom")
 
         if showTag == True:
             for a, b in zip(x, dataGrp[i]):
@@ -120,6 +127,7 @@ def help():
     print('  -s     sort and delete repeate data')
     print('  --hl   add horizontal reference line')
     print('  --vl   add vertical reference line')
+    print('  -n     display file name in point')
     print('  -t     display point tag')
     print('  -d     display diff')
     print('  -l     display line')
@@ -135,6 +143,7 @@ def main(argv):
     drAndSort = False
     refLineEn = [False, False] # [hor, ver]
     refLine = [0, 0] # [hor, ver]
+    showName = False
     showTag = False
     showLine = False
     calcDiff = False
@@ -143,7 +152,7 @@ def main(argv):
     dataGrpCnt = 0
 
     try:
-        opts, args = getopt.getopt(argv,"hsf:tlad", ["help=", "hl=", "vl="])
+        opts, args = getopt.getopt(argv,"hsf:ntlad", ["help=", "hl=", "vl="])
     except getopt.GetoptError:
         help()
         sys.exit(2)
@@ -160,6 +169,8 @@ def main(argv):
         elif opt in ("--vl"):
             refLineEn[1] = True
             refLine[1] = arg
+        elif opt in ("-n"):
+            showName = True
         elif opt in ("-t"):
             showTag = True
         elif opt in ("-l"):
@@ -193,7 +204,7 @@ def main(argv):
         checkNumsInc(dataGrp[i])
 
     print()
-    plotVal(fileNames, dataGrp, refLineEn, refLine, showTag, showLine, calcAvg)
+    plotVal(fileNames, dataGrp, refLineEn, refLine, showName, showTag, showLine, calcAvg)
 
 
 if __name__ == '__main__':
