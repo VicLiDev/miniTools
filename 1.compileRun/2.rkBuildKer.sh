@@ -20,6 +20,7 @@ pltList=(
     "3399_android"
     "3566_android"
     "3588_android"
+    "3562_android"
     "3576_android"
     "1106_linux"
     "px30_linux"
@@ -38,6 +39,7 @@ build_mode_list=(
 
 curPlt="3588_android"
 cur_android_ver=""
+cur_android_config=""
 
 m_toolchains=""
 m_arch=""
@@ -62,6 +64,7 @@ get_arch()
             |'3399_android'\
             |'3566_android'\
             |'3588_android'\
+            |'3562_android'\
             |'3576_android'\
             |'px30_linux'\
             |'3326_linux'\
@@ -117,6 +120,11 @@ gen_cmd()
         else
             selectNode "${sel_tag_android}" "android_ver_list" "cur_android_ver" "android version"
         fi
+        if [ -n "${cur_android_ver}" ]; then
+            cur_android_config="android-${cur_android_ver}.config"
+        else
+            cur_android_config=""
+        fi
     fi
 
     if [ -n "`cat drivers/video/rockchip/mpp/Makefile | grep obj-m | sed \"s/#.*//g\"`" ]; then
@@ -143,19 +151,23 @@ gen_cmd()
                 m_target="rk3328-evb-android-avb.img BOOT_IMG=../rk_kernel_boot/boot_rk3328EVB.img"
                 ;;
             '3399_android')
-                m_config="rockchip_defconfig android-${cur_android_ver}.config disable_incfs.config"
+                m_config="rockchip_defconfig ${cur_android_config} disable_incfs.config"
                 m_target="BOOT_IMG=../rk_kernel_boot/boot_sample.img rk3399-evb-ind-lpddr4-android-avb.img"
                 ;;
             '3566_android')
-                m_config="rockchip_defconfig rk356x.config android-${cur_android_ver}.config"
+                m_config="rockchip_defconfig rk356x.config ${cur_android_config}"
                 m_target="rk3566-evb1-ddr4-v10.img BOOT_IMG=../rk_kernel_boot/boot1.img"
                 ;;
             '3588_android')
-                m_config="rockchip_defconfig android-${cur_android_ver}.config"
+                m_config="rockchip_defconfig ${cur_android_config}"
                 m_target="BOOT_IMG=../rk_kernel_boot/boot_3588.img rk3588-evb1-lp4-v10.img"
                 ;;
+            '3562_android')
+                m_config="rockchip_defconfig ${cur_android_config} rk356x.config"
+                m_target="BOOT_IMG=../rk_kernel_boot/boot_3562.img rk3562-evb2-ddr4-v10.img"
+                ;;
             '3576_android')
-                m_config="rockchip_defconfig android-${cur_android_ver}.config rk3576.config"
+                m_config="rockchip_defconfig ${cur_android_config} rk3576.config"
                 m_target="BOOT_IMG=../rk_kernel_boot/boot_3576.img rk3576-evb1-v10.img"
                 ;;
             '1106_linux')
