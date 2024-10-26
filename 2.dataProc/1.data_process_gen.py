@@ -74,7 +74,8 @@ global_line_s = ['-', '--', '-.', ':']
 tab_loc_ha = ['center', 'right', 'left']
 tab_loc_va = ['center', 'top', 'bottom', 'baseline', 'center_baseline']
 
-def plotVal(fileNames, dataGrp, refLineEn, refLine, showName, showTag, showLine, calcAvg):
+def plotVal(fileNames, dataGrp, refLineEn = [False, False], refLine = [0, 0], \
+            showName = False, showTag = False, showLine = False, calcAvg = False):
     if len(fileNames) != len(dataGrp):
         print("error: file cnt and data cnt is not equal")
         print("file cnt is %d data cnt is %d" % (len(fileNames), (len(dataGrp))))
