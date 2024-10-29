@@ -124,7 +124,7 @@ ffmpeg_cmpile_android()
 }
 
 
-source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
+source $(dirname $(readlink -f $0))/../../0.general_tools/0.dir_file_opt.sh
 
 ffmpeg_cmpile_linux_aarch64
 ffmpeg_cmpile_android arm

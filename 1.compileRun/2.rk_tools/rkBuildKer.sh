@@ -292,7 +292,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
+source $(dirname $(readlink -f $0))/../../0.general_tools/0.select_node.sh
 
 if [ -n "${cmd_wk_dir}" ]; then
     cd ${cmd_wk_dir}

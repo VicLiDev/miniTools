@@ -36,7 +36,7 @@ if [ "$1" == "linux64" ]; then bdPlt="linux64"; fi
 if [ "$1" == "x86" ]; then bdPlt="x86"; fi
 
 clear
-source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
+source $(dirname $(readlink -f $0))/../../0.general_tools/0.dir_file_opt.sh
 
 # prepare env, create dir
 echo "==> prepare env..."

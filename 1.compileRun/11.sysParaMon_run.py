@@ -9,7 +9,7 @@
 import sys
 import os
 
-mon_dir = os.path.dirname(__file__) + "/../0.general_tools/"
+mon_dir = os.path.dirname(__file__) + "/../../0.general_tools/"
 sys.path.insert(0, mon_dir)
 
 import sysParaMon
