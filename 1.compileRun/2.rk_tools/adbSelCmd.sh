@@ -133,5 +133,6 @@ elif [ "${cmd_list_devs}" == "true" ]; then
     done
 else
     adbCmd=`gen_adb_cmd`
-    if [ -z "${cmd_orgAdbOpt}" ]; then echo $adbCmd; else $adbCmd ${cmd_orgAdbOpt}; fi
+    [ -z "${adbCmd}" ] && exit 0
+    [ -z "${cmd_orgAdbOpt}" ] && echo ${adbCmd} || ${adbCmd} ${cmd_orgAdbOpt}
 fi
