@@ -99,7 +99,7 @@ selectNode()
 
         if [ "${selIdx}" == "q" ]; then
             echo "======> quit <======" >&2
-            exit 0
+            exit 1
         elif [[ -n ${selIdx} ]] \
             && [[ -z `echo ${selIdx} | sed 's/[0-9]//g'` ]] \
             && [[ "${selIdx}" -lt "${#list_ref[@]}" ]]; then
