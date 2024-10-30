@@ -6,7 +6,11 @@
 # Created Time: Mon 29 Jul 2024 03:23:30 PM CST
 #########################################################################
 
-# usage: source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
+# usage:
+# source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
+# or
+# prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+# source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
 
 create_dir()
 {

@@ -8,6 +8,9 @@
 
 # usage:
 #     1. exec cmd: source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
+#        or
+#        prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+#        source ${prjRootDir}/0.general_tools/0.select_node.sh
 #     2. selectNode "<cache tag>" "<select list>" "<select result>" "<select tip>"
 #
 # basename命令用于从文件名中剥离路径信息，只留下基本名称。

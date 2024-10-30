@@ -8,7 +8,8 @@
 
 # ln -s ${HOME}/Projects/miniTools/1.compileRun/1.ffmpeg_build_linux_test.sh .prjBuild.sh
 
-source $(dirname $(readlink -f $0))/../../0.general_tools/0.dir_file_opt.sh
+prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
 
 create_dir build
 

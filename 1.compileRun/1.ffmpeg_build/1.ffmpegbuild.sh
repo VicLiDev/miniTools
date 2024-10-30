@@ -238,7 +238,8 @@ compile_distributor()
 
 
 # ============> compile select <============
-source $(dirname $(readlink -f $0))/../../0.general_tools/0.dir_file_opt.sh
+prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
 runOpt=""
 setup_env
 case $1 in

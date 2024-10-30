@@ -120,7 +120,8 @@ gen_adb_cmd()
 }
 
 # ====== main ======
-source $(dirname $(readlink -f $0))/../../0.general_tools/0.select_node.sh
+prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+source ${prjRootDir}/0.general_tools/0.select_node.sh
 proc_paras $@
 gen_dev_info_list
 if [ ${cmd_get_count} == "true" ]; then
