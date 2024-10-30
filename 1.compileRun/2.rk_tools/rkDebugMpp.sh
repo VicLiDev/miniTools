@@ -340,6 +340,7 @@ dbgGdb_x86()
 }
 
 adbCmd=$(adbs -s)
+if [ -z "${adbCmd}" ]; then exit 0; fi
 prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
 source ${prjRootDir}/0.general_tools/0.select_node.sh
 source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh

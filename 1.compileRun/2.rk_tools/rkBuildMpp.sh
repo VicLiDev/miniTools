@@ -66,6 +66,7 @@ build_android_32()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
+        if [ -z "${adbCmd}" ]; then exit 0; fi
 
         push_bins_to_device "${adbCmd}" mpp/libmpp.so /vendor/lib
         push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /vendor/lib
@@ -93,6 +94,7 @@ build_android_64()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
+        if [ -z "${adbCmd}" ]; then exit 0; fi
 
         push_bins_to_device "${adbCmd}" mpp/libmpp.so /vendor/lib64
         push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /vendor/lib64
@@ -121,6 +123,7 @@ build_linux_32()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
+        if [ -z "${adbCmd}" ]; then exit 0; fi
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib
@@ -153,6 +156,7 @@ build_linux_64()
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
         adbCmd=$(adbs)
+        if [ -z "${adbCmd}" ]; then exit 0; fi
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib64
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib64

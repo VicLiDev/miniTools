@@ -274,6 +274,7 @@ download()
         echo ""
         echo "======> reload rk_vcodec.ko <======"
         adbCmd=$(adbs)
+        if [ -z "${adbCmd}" ]; then exit 0; fi
         ${adbCmd} push drivers/video/rockchip/mpp/rk_vcodec.ko /data
         if [ -n "`${adbCmd} shell lsmod | grep rk_vcodec`" ]; then
             echo "rmmod old rk_vcodec.ko"
