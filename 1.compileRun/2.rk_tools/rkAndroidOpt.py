@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 2.rkAndroidOpt.py
+# File Name: rkAndroidOpt.py
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri 06 Sep 2024 05:04:50 PM CST

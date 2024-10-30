@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 2.rkDebugMpp.sh
+# File Name: rkDebugMpp.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Wed Aug  9 16:58:55 2023

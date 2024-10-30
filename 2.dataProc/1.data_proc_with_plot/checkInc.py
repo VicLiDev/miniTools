@@ -6,7 +6,7 @@ import math
 def checkSort(fname):
     f = open(fname)
     lines = f.readlines()
-    
+
     lineNum = 0
     prev = 0
     cur = 0

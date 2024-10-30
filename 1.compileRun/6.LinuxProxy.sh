@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: proxy.sh
+# File Name: 6.LinuxProxy.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: 2023年06月27日 星期二 19时57分23秒

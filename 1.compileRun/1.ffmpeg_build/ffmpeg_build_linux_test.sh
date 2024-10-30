@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: compile.sh
+# File Name: ffmpeg_build_linux_test.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri May 27 11:23:39 2022

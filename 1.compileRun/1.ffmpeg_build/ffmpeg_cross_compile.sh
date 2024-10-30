@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: .prjBuild.sh
+# File Name: ffmpeg_cross_compile.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Thu 30 May 2024 02:14:53 PM CST

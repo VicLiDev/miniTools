@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 2.link.sh
+# File Name: link.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Tue Jul 25 14:39:36 2023

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: compareInterBs.sh
+# File Name: compareInterBsBatch.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Sat 03 Jun 2023 04:48:52 PM CST

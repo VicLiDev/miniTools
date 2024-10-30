@@ -1,5 +1,5 @@
 #########################################################################
-# File Name: 4.compareHexMulti.sh
+# File Name: compareHexMulti.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Tue 11 Jan 2022 12:58:16 AM CST

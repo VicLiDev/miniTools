@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: ffmpegbuild.py
+# File Name: ffmpegbuild.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: 2022年05月27日 星期五 14时49分55秒

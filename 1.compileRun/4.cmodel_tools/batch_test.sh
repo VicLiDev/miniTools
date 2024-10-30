@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 12.batch_test.sh
+# File Name: batch_test.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Mon Nov 21 15:06:58 2022

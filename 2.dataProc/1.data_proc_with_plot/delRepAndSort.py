@@ -17,7 +17,7 @@ def delRep(fname):
     for line in lines:
         cur = int(line.strip('\n'))
         nums.append(cur)
-    
+
     newNums = list(set(nums))
     newNums.sort()
     # print(nums)

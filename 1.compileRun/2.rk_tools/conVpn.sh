@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 2.conVpn.sh
+# File Name: conVpn.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Sat 20 Apr 2024 06:21:31 PM CST

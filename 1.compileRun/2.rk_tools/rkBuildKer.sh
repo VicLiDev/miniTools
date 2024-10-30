@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#########################################################################
+# File Name: rkbuildKer.sh
+# Author: LiHongjin
+# mail: 872648180@qq.com
+# Created Time: 2023年04月14日 星期五 08时47分56秒
+#########################################################################
 
 # when add new plt:
 #   1. add plt name in pltList

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 7.udooneo_build.sh
+# File Name: udooneo_build.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: 2023年07月24日 星期一 23时09分09秒

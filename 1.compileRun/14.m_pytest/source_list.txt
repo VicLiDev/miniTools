@@ -1,4 +1,3 @@
 /path/to/stream1
 # /path/to/stream2
-
 /path/to/stream3
