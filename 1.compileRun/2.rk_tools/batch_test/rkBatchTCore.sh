@@ -120,11 +120,12 @@ function exec_test()
             echo "cur test cmd: ${cur_cmd}"
             ${cur_cmd}
             if [ $? -eq 0 ]; then
-                # echo -e "\033[0m\033[1;32m pass  \033[0m"
-                printf  "\033[0m\033[1;32m pass  \033[0m\n"
+                # echo -e "\033[0m\033[1;32m pass\033[0m"
+                printf  "\033[0m\033[1;32m pass\033[0m\n"
             else
-                # echo -e "\033[0m\033[1;31m failed \033[0m"
-                printf  "\033[0m\033[1;31m failed \033[0m\n"
+                # echo -e "\033[0m\033[1;31m failed with code $?\033[0m"
+                printf  "\033[0m\033[1;31m failed with code $?\033[0m\n"
+                exit 0
             fi
 
             adbs --idx ${dev_idx} shell rm ${dev_dir}/${cur_strm}
