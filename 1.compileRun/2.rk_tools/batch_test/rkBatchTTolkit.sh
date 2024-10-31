@@ -9,6 +9,7 @@
 dev_id_l=()
 prot_l=()
 dev_dir=""
+quit_err="false"
 
 dev_info_l=(`adbs -l | awk '{print $1}'`)
 strm_list=()
@@ -32,12 +33,13 @@ strm_list_av1=(
 
 function usage()
 {
-    echo "usage: $0 [-h] [-t test_scope] [-p prot] [--ddir dev_dir]"
+    echo "usage: $0 [-h] [-t test_scope] [-p prot] [--ddir dev_dir] [-q]"
     echo "  -h|--help   help info"
     echo "  -t|--type   test scope"
     echo "  -d|--dev    device, def all"
     echo "  -p|--prot   protocol, hevc/h265/265/avc/h264/264/avs2/vp9/av1"
     echo "  --ddir      device work dir, def /sdcard"
+    echo "  -q          quit when test failed"
 }
 
 function procParas()
@@ -76,6 +78,9 @@ function procParas()
                 dev_dir="${2}"
                 shift # move to next para
                 ;;
+            -q)
+                quit_err="true"
+                ;;
             *)
                 # unknow para
                 echo "unknow para: ${key}"
@@ -104,8 +109,10 @@ function exec_batch_test()
                 echo -e "\033[0m\033[1;36m <<<<<< [cur_prot]: ${cur_prot} >>>>>>\033[0m"
                 echo -e "\033[0m\033[1;36m <<<<<< [cur_dir]:  ${cur_dir} >>>>>>\033[0m"
                 cur_cmd="rkBtC -d ${dev_idx} -p ${cur_prot} -s ${cur_dir} --ddir ${dev_dir}"
+                [ "${quit_err}" == "true" ] && cur_cmd="${cur_cmd} -q"
                 echo "cur batch test cmd: ${cur_cmd}"
                 ${cur_cmd}
+                [ $? -ne 0 ] && [ ${quit_err} == "true" ] && exit -1
             done
         done
     done
@@ -123,6 +130,7 @@ function main()
     echo "dev_id_l: ${dev_id_l[@]}"
     echo "prot_l:   ${prot_l[@]}"
     echo "dev_dir:  ${dev_dir}"
+    echo "quit_err: ${quit_err}"
 
     exec_batch_test
 }

@@ -10,6 +10,7 @@ dev_id_l=()
 prot=""
 strmsDir=""
 dev_dir=""
+quit_err="false"
 
 dev_info_l=(`adbs -l | awk '{print $1}'`)
 strm_list=()
@@ -29,12 +30,13 @@ test_cmd_av1="${exe} ${paras_av1}"
 
 function usage()
 {
-    echo "usage: $0 [-h] [-d device] <-p prot> <-s strms_dir> [--ddir dev_dir]"
+    echo "usage: $0 [-h] [-d device] <-p prot> <-s strms_dir> [--ddir dev_dir] [-q]"
     echo "  -h|--help   help info"
     echo "  -d|--dev    device, def all"
     echo "  -p|--prot   protocol, hevc/h265/265/avc/h264/264/avs2/vp9/av1"
     echo "  -s|--strms  source dir, raw stream of the same protocol"
     echo "  --ddir      device work dir, def /sdcard"
+    echo "  -q          quit when test failed"
 }
 
 function procParas()
@@ -76,6 +78,9 @@ function procParas()
             --ddir)
                 dev_dir="${2}"
                 shift # move to next para
+                ;;
+            -q)
+                quit_err="true"
                 ;;
             *)
                 # unknow para
@@ -125,7 +130,7 @@ function exec_test()
             else
                 # echo -e "\033[0m\033[1;31m failed with code $?\033[0m"
                 printf  "\033[0m\033[1;31m failed with code $?\033[0m\n"
-                exit 0
+                [ "${quit_err}" == "true" ] && exit -1
             fi
 
             adbs --idx ${dev_idx} shell rm ${dev_dir}/${cur_strm}
@@ -145,6 +150,7 @@ function main()
     echo "prot:     ${prot}"
     echo "strmsDir: ${strmsDir}"
     echo "dev_dir:  ${dev_dir}"
+    echo "quit_err: ${quit_err}"
 
     exec_test
 }
