@@ -33,6 +33,12 @@ ln -s ${prjDir}/${subDir}/adbKill.sh    ${HOME}/bin/adbKill.sh
 ln -s ${prjDir}/${subDir}/adbSelCmd.sh  ${HOME}/bin/adbs
 ln -s ${prjDir}/${subDir}/tarMpp.sh     ${HOME}/bin/tarMpp.sh
 
+# batch test tools
+rm ${HOME}/bin/rkBtC
+rm ${HOME}/bin/rkBt
+ln -s ${prjDir}/${subDir}/batch_test/rkBatchTCore.sh    ${HOME}/bin/rkBtC
+ln -s ${prjDir}/${subDir}/batch_test/rkBatchTTolkit.sh  ${HOME}/bin/rkBt
+
 
 # for prj
 # ln -s ${HOME}/bin/rkBuildMpp.sh .prjBuild.sh
