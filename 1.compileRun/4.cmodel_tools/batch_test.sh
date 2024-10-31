@@ -81,7 +81,7 @@ function hevcResultCheck()
             if [ $md5Val1 = $md5Val2 ]; then
                 echo "--> [res]: frame:${loop} file compare pass" | tee -a $logfile
             else
-                echo "--> [res]: frame:${loop} file compare faile    vimdiff ${file1} ${file2}" | tee -a $logfile
+                echo "--> [res]: frame:${loop} file compare failed    vimdiff ${file1} ${file2}" | tee -a $logfile
             fi
         fi
     done
@@ -238,7 +238,7 @@ do
     if [ $? -eq 0 ]; then
         echo "--> [res]: running test ok" | tee -a $logfile
     else
-        echo "--> [res]: running test faile" | tee -a $logfile
+        echo "--> [res]: running test failed" | tee -a $logfile
         # exit 1
         # break
     fi

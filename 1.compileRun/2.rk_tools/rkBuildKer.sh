@@ -229,21 +229,21 @@ build_kernel_mod()
     if [ "${build_mod}" == "build_kernel" ]; then
         echo "======> compile kernel begin <======"
         ${config_cmd}
-        if [ $? -ne 0 ]; then echo "config faile, cmd: ${config_cmd}"; exit 1; fi
+        if [ $? -ne 0 ]; then echo "config failed, cmd: ${config_cmd}"; exit 1; fi
         if [ ${curPlt} == "3576_fpga" ]; then
             echo "modify .config for ${curPlt}";
             sed -i "s/# CONFIG_ROCKCHIP_MPP_RKVDEC3 is not set/CONFIG_ROCKCHIP_MPP_RKVDEC3=y/g" .config;
             # sed -i "s/# CONFIG_EXFAT_FS is not set/CONFIG_EXFAT_FS=y/g" .config;
             # sed -i "s/# CONFIG_NTFS_FS is not set/CONFIG_NTFS_FS=y/g" .config;
-            if [ $? -ne 0 ]; then echo "modify .config faile"; fi
+            if [ $? -ne 0 ]; then echo "modify .config failed"; fi
         fi
         if [ ${curPlt} == "3576_android" ]; then
             echo "modify .config for ${curPlt}";
             sed -i "s/# CONFIG_DEVMEM is not set/CONFIG_DEVMEM=y/g" .config;
-            if [ $? -ne 0 ]; then echo "modify .config faile"; fi
+            if [ $? -ne 0 ]; then echo "modify .config failed"; fi
         fi
         ${build_cmd}
-        if [ $? -ne 0 ]; then echo "build faile, cmd: ${build_cmd}"; exit 1; fi
+        if [ $? -ne 0 ]; then echo "build failed, cmd: ${build_cmd}"; exit 1; fi
         echo "toolchains: ${m_toolchains}"
         echo "config cmd: ${config_cmd}"
         echo "build  cmd: ${build_cmd}"

@@ -34,11 +34,11 @@ do
     echo "run Cmd: ${runCmd}"
     ${runCmd}
     if [ $? -eq 0 ]; then
-        # echo -e "test loop idx: ${idx} \033[0m\033[1;32m pass  \033[0m"
-        printf "test loop idx: %s \033[0m\033[1;32m pass  \033[0m\n" "$idx"
+        # echo -e "test loop idx: ${idx} \033[0m\033[1;32m pass   \033[0m"
+        printf "test loop idx: %s \033[0m\033[1;32m pass   \033[0m\n" "$idx"
     else
-        # echo -e "test loop idx: ${idx} \033[0m\033[1;31m faile \033[0m"
-        printf "test loop idx: %s \033[0m\033[1;31m faile \033[0m\n" "$idx"
+        # echo -e "test loop idx: ${idx} \033[0m\033[1;31m failed \033[0m"
+        printf "test loop idx: %s \033[0m\033[1;31m failed \033[0m\n" "$idx"
     fi
 
     # exec cmd ====== end

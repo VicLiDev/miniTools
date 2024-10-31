@@ -123,8 +123,8 @@ function exec_test()
                 # echo -e "\033[0m\033[1;32m pass  \033[0m"
                 printf  "\033[0m\033[1;32m pass  \033[0m\n"
             else
-                # echo -e "\033[0m\033[1;31m faile \033[0m"
-                printf  "\033[0m\033[1;31m faile \033[0m\n"
+                # echo -e "\033[0m\033[1;31m failed \033[0m"
+                printf  "\033[0m\033[1;31m failed \033[0m\n"
             fi
 
             adbs --idx ${dev_idx} shell rm ${dev_dir}/${cur_strm}

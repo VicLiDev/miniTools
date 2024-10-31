@@ -107,7 +107,7 @@ function resultCheck()
             if [ $md5Val1 = $md5Val2 ]; then
                 echo "--> [res]: frame:${loop} file compare pass"
             else
-                echo "--> [res]: frame:${loop} file compare faile    vimdiff ${file1} ${file2}"
+                echo "--> [res]: frame:${loop} file compare failed    vimdiff ${file1} ${file2}"
             fi
         fi
     done
