@@ -267,7 +267,10 @@ download()
 
         echo ""
         echo "======> download boot.img <======"
+        # download boot.img
         rkUT.sh -di -b
+        # reset device
+        rkUT.sh -rd
     fi
 
     if [ "${build_mod}" == "build_kmod" ]; then
