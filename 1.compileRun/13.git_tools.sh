@@ -8,6 +8,9 @@
 
 # add to bashrc:
 # source ${HOME}/Projects/miniTools/1.compileRun/13.git_tools.sh
+#
+# zsh 在git仓库显示的距离最新节点的距离是用如下方法计算：
+# git rev-list --count HEAD..origin/branch_name
 
 # ====== commit forward/backword ======
 get_commit_info()
@@ -27,8 +30,10 @@ get_commit_info()
 
     # cur
     # cur_commit=$(git log --oneline ${opt_loc} | grep $(git rev-parse --short HEAD))
-    cur_commit=$(git log --oneline -n 1 ${opt_loc})
-    cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
+    # cur_commit=$(git log --oneline -n 1 ${opt_loc})
+    # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${opt_loc})
+    cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     echo "cur commit:        ${cur_commit}"
     echo "cur com_id:        ${cur_com_id}"
     echo
@@ -39,16 +44,24 @@ get_commit_info()
     echo "remote repo:       ${remote_repo}"
     echo "cur remote branch: ${cur_remote_br}"
 
-    forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
-                   --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
-    forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
+    # forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
+    #                --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    # forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
+    forward_com_id=$(git rev-list --abbrev-commit ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
+                     -- ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    forward_commit=$(git log --oneline -n 1 ${forward_com_id})
     echo "forward commit:    ${forward_commit}"
     echo "forward com_id:    ${forward_com_id}"
     echo
 
     # backward
-    backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} | grep -A ${cnt} ${cur_com_id} | tail -1)
-    backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
+    # backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} \
+    #                   | grep -A ${cnt} ${cur_com_id} | tail -1)
+    # backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
+    backward_com_id=$(git rev-list --max-count=`expr ${cnt} \* 2` \
+                      --abbrev-commit HEAD -- ${opt_loc} \
+                      | grep -A ${cnt} ${cur_com_id} | tail -1)
+    backward_commit=$(git log --oneline -n 1 ${backward_com_id})
     echo "backward commit:   ${backward_commit}"
     echo "backward com_id:   ${backward_com_id}"
 }
@@ -69,8 +82,10 @@ gmf()
 
     # cur
     # cur_commit=$(git log --oneline ${opt_loc} | grep $(git rev-parse --short HEAD))
-    cur_commit=$(git log --oneline -n 1 ${opt_loc})
-    cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
+    # cur_commit=$(git log --oneline -n 1 ${opt_loc})
+    # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${opt_loc})
+    cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     # echo "cur commit:        ${cur_commit}"
     # echo "cur com_id:        ${cur_com_id}"
     # echo
@@ -81,9 +96,12 @@ gmf()
     # echo "remote repo:       ${remote_repo}"
     # echo "cur remote branch: ${cur_remote_br}"
 
-    forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
-                   --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
-    forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
+    # forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
+    #                --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    # forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
+    forward_com_id=$(git rev-list --abbrev-commit ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
+                     -- ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    forward_commit=$(git log --oneline -n 1 ${forward_com_id})
     # echo "forward commit:    ${forward_commit}"
     # echo "forward com_id:    ${forward_com_id}"
     # echo
@@ -107,15 +125,22 @@ gmb()
 
     # cur
     # cur_commit=$(git log --oneline ${opt_loc} | grep $(git rev-parse --short HEAD))
-    cur_commit=$(git log --oneline -n 1 ${opt_loc})
-    cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
+    # cur_commit=$(git log --oneline -n 1 ${opt_loc})
+    # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${opt_loc})
+    cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     # echo "cur commit:        ${cur_commit}"
     # echo "cur com_id:        ${cur_com_id}"
     # echo
 
     # backward
-    backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} | grep -A ${cnt} ${cur_com_id} | tail -1)
-    backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
+    # backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} \
+    #                   | grep -A ${cnt} ${cur_com_id} | tail -1)
+    # backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
+    backward_com_id=$(git rev-list --max-count=`expr ${cnt} \* 2` \
+                      --abbrev-commit HEAD -- ${opt_loc} \
+                      | grep -A ${cnt} ${cur_com_id} | tail -1)
+    backward_commit=$(git log --oneline -n 1 ${backward_com_id})
     # echo "backward commit:   ${backward_commit}"
     # echo "backward com_id:   ${backward_com_id}"
 
