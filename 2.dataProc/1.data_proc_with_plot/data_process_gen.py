@@ -68,7 +68,7 @@ def checkNumsInc(nums):
     print()
     return
 
-global_color  = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+global_color  = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 global_marker = ['.', 'o', 'v', '^', '<', '1', '2', '3', '4', '8', ',']
 global_line_s = ['-', '--', '-.', ':']
 tab_loc_ha = ['center', 'right', 'left']
