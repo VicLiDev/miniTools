@@ -166,10 +166,10 @@ def main(argv):
             drAndSort = True
         elif opt in ("--hl"):
             refLineEn[0] = True
-            refLine[0] = arg
+            refLine[0] = float(arg)
         elif opt in ("--vl"):
             refLineEn[1] = True
-            refLine[1] = arg
+            refLine[1] = float(arg)
         elif opt in ("-n"):
             showName = True
         elif opt in ("-t"):
