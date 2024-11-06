@@ -44,8 +44,13 @@ function procParas()
             -l)
                 en_linux="True"
                 ;;
+            -h)
+                help
+                exit 1
+                ;;
             *)
                 echo "unknow para: ${key}"
+                help
                 exit 1
                 ;;
         esac
