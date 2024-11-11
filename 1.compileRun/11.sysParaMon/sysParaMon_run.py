@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #########################################################################
-# File Name: 11.sysParaMon_run.py
+# File Name: sysParaMon_run.py
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri 27 Sep 2024 06:58:51 PM CST
@@ -9,7 +9,7 @@
 import sys
 import os
 
-mon_dir = os.path.dirname(__file__) + "/../0.general_tools/"
+mon_dir = os.path.dirname(__file__) + "/../../0.general_tools/"
 sys.path.insert(0, mon_dir)
 
 import sysParaMon
