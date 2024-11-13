@@ -1,5 +1,5 @@
 /*************************************************************************
-    > File Name: test.c
+    > File Name: cpu_mult_thd_simulation.c
     > Author: LiHongjin
     > Mail: 872648180@qq.com
     > Created Time: Tue 12 Nov 2024 02:29:53 PM CST
