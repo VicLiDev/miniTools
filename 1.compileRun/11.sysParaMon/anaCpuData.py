@@ -168,7 +168,7 @@ def gen_ana_data(data_dic):
     for key in data_dic:
         dataTag.append(key)
         mDataGrp.append([np.nan if v < 0 else v for v in data_dic[key]])
-    plotVal(dataTag, mDataGrp, title = "gen data", showLine = True)
+    plotVal(dataTag, mDataGrp, title = "gen data", showLine = True, refLineEn = [True, False], refLine = [100, 0])
 
 def gen_dump_data(gen_usage_data_dic):
     gen_cpu_list = list(gen_usage_data_dic.keys())
@@ -231,7 +231,7 @@ def ins_ana_data(data_lst):
     dataTag = ["cpu usage", "cpu id"]
     mDataGrp = [[np.nan if v[0] < 0 else v[0] for v in data_lst],
                 [np.nan if v[1] < 0 else v[1] for v in data_lst]]
-    plotVal(dataTag, mDataGrp, title = "ins data", showLine = True)
+    plotVal(dataTag, mDataGrp, title = "ins data", showLine = True, refLineEn = [True, False], refLine = [100, 0])
 
 def ins_dump_data(ins_usages):
     for loop in range(len(ins_usages)):
@@ -332,10 +332,10 @@ def thd_ana_data(data_lst):
     # cpu_usage
     dataTag_usg,mDataGrp_usg = thd_ana_data_proc(data_lst, 3, 1)
     dataTag_usg = [v+"_usage" for v in dataTag_usg]
-    plotVal(dataTag_usg, mDataGrp_usg, title = "thd data usage", showLine = True)
+    plotVal(dataTag_usg, mDataGrp_usg, title = "thd data usage", showLine = True, refLineEn = [True, False], refLine = [100, 0])
 
     all_tag = dataTag_id + dataTag_usg
-    plotVal(all_tag, mDataGrp_id + mDataGrp_usg, title = "thd data id+usage", showLine = True)
+    plotVal(all_tag, mDataGrp_id + mDataGrp_usg, title = "thd data id+usage", showLine = True, refLineEn = [True, False], refLine = [100, 0])
 
 def thd_dump_data(thd_usages):
     for loop in range(len(thd_usages)):
