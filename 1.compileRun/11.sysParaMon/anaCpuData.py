@@ -50,6 +50,10 @@ def plotVal(fileNames, dataGrp, refLineEn = [False, False], refLine = [0, 0], \
 
     fig = plt.figure()  # an empty figure with no Axes
     ax = fig.add_subplot()
+    # 获取当前图像的 canvas 对象
+    manager = fig.canvas.manager
+    # 设置窗口标题
+    manager.set_window_title(title)
     ax.set_title(title)  # Add a title to the axes.
     loopCnt = len(fileNames)
 
