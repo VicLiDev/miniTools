@@ -256,6 +256,9 @@ def thd_load_data(filename):
                 thd_info.append(info_dict_tmp)
             elif line[:4] == "stat":
                 fields = line.split()
+                if len(fields) < 3:
+                    print(f"Error: invalid line")
+                    continue
                 # 由于抓log时多加了一个 stat开头，所以这里的字段位置会+1
                 if fields[1] not in info_dict_tmp:
                     info_dict_tmp[fields[1]] = [int(fields[14]), int(fields[15]), int(fields[39]), fields[2]]
@@ -328,6 +331,15 @@ def thd_ana_data(data_lst):
     dataTag_id,mDataGrp_id = thd_ana_data_proc(data_lst, 3, 2)
     dataTag_id = [v+"_id" for v in dataTag_id]
     plotVal(dataTag_id, mDataGrp_id, title = "thd data id", showLine = True)
+
+    # cpu id summary
+    mDataGrp_id_sum = []
+    for loop in range(len(mDataGrp_id)):
+        new_lst = [0, 0, 0, 0, 0, 0, 0, 0]
+        for cur_id in mDataGrp_id[loop]:
+            new_lst[cur_id] += 1
+        mDataGrp_id_sum.append(new_lst)
+    plotVal(dataTag_id, mDataGrp_id_sum, title = "thd data id summary", showLine = True)
 
     # cpu_usage
     dataTag_usg,mDataGrp_usg = thd_ana_data_proc(data_lst, 3, 1)
