@@ -168,7 +168,7 @@ def gen_ana_data(data_dic):
     for key in data_dic:
         dataTag.append(key)
         mDataGrp.append([np.nan if v < 0 else v for v in data_dic[key]])
-    plotVal(dataTag, mDataGrp, title = "gen data", showLine = True, refLineEn = [True, False], refLine = [100, 0])
+    plotVal(dataTag, mDataGrp, title = "gen cpu usage", showLine = True, refLineEn = [True, False], refLine = [100, 0])
 
 def gen_dump_data(gen_usage_data_dic):
     gen_cpu_list = list(gen_usage_data_dic.keys())
@@ -231,7 +231,7 @@ def ins_ana_data(data_lst):
     dataTag = ["cpu usage", "cpu id"]
     mDataGrp = [[np.nan if v[0] < 0 else v[0] for v in data_lst],
                 [np.nan if v[1] < 0 else v[1] for v in data_lst]]
-    plotVal(dataTag, mDataGrp, title = "ins data", showLine = True, refLineEn = [True, False], refLine = [100, 0])
+    plotVal(dataTag, mDataGrp, title = "ins cpu usage+id", showLine = True, refLineEn = [True, False], refLine = [100, 0])
 
 def ins_dump_data(ins_usages):
     for loop in range(len(ins_usages)):
@@ -330,17 +330,17 @@ def thd_ana_data(data_lst):
     # cpu_id
     dataTag_id,mDataGrp_id = thd_ana_data_proc(data_lst, 3, 2)
     dataTag_id = [v+"_id" for v in dataTag_id]
-    plotVal(dataTag_id, mDataGrp_id, title = "thd data id", showLine = True)
+    plotVal(dataTag_id, mDataGrp_id, title = "thd cpu id", showLine = True)
 
     # cpu id summary
-    # 每个线程使用各个cpu核心的数量统计
+    # 各个线程使用各个cpu核心的数量统计
     mDataGrp_id_sum = []
     for loop in range(len(mDataGrp_id)):
         new_lst = [0] * 8
         for cur_id in mDataGrp_id[loop]:
             new_lst[cur_id] += 1
         mDataGrp_id_sum.append(new_lst)
-    plotVal(dataTag_id, mDataGrp_id_sum, title = "thd data id summary", showLine = True)
+    plotVal(dataTag_id, mDataGrp_id_sum, title = "thd cpu id summary", showLine = True)
     # 所有线程使用各个cpu核心的数量统计
     mDataGrp_id_sum_all = []
     for loop in range(len(mDataGrp_id_sum)):
@@ -348,15 +348,21 @@ def thd_ana_data(data_lst):
             mDataGrp_id_sum_all = mDataGrp_id_sum[loop]
         else:
             mDataGrp_id_sum_all = [x + y for x, y in zip(mDataGrp_id_sum_all, mDataGrp_id_sum[loop])]
-    plotVal(["cpu id sum all"], [mDataGrp_id_sum_all], title = "thd cpu id sum all", showLine = True)
+    plotVal(["all cpu id sum"], [mDataGrp_id_sum_all], title = "all thd cpu id sum", showLine = True)
 
     # cpu_usage
+    # 各个线程的cpu占用率
     dataTag_usg,mDataGrp_usg = thd_ana_data_proc(data_lst, 3, 1)
     dataTag_usg = [v+"_usage" for v in dataTag_usg]
-    plotVal(dataTag_usg, mDataGrp_usg, title = "thd data usage", showLine = True, refLineEn = [True, False], refLine = [100, 0])
+    plotVal(dataTag_usg, mDataGrp_usg, title = "thd cpu usage", showLine = True, refLineEn = [True, False], refLine = [100, 0])
+    # 所有线程的cpu占用率
+    mDataGrp_usg_all =[0] * max([len(v) for v in mDataGrp_usg])
+    for loop in range(len(mDataGrp_usg)):
+        mDataGrp_usg_all = [x + y for x, y in zip(mDataGrp_usg_all, mDataGrp_usg[loop])]
+    plotVal(["all cpu usage sum"], [mDataGrp_usg_all], title = "all thd cpu usage sum", showLine = True)
 
     all_tag = dataTag_id + dataTag_usg
-    plotVal(all_tag, mDataGrp_id + mDataGrp_usg, title = "thd data id+usage", showLine = True, refLineEn = [True, False], refLine = [100, 0])
+    plotVal(all_tag, mDataGrp_id + mDataGrp_usg, title = "thd cpu id+usage", showLine = True, refLineEn = [True, False], refLine = [100, 0])
 
 def thd_dump_data(thd_usages):
     for loop in range(len(thd_usages)):
