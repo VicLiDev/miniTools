@@ -15,7 +15,7 @@ quit_err="false"
 dev_info_l=(`adbs -l | awk '{print $1}'`)
 strm_list=()
 
-exe="mpi_dec_test"
+exe="mpi_dec_test -v q"
 paras_hevc="-t 16777220 -i "
 paras_avc="-t 7 -i "
 paras_vp9="-t 10 -i "
