@@ -333,13 +333,22 @@ def thd_ana_data(data_lst):
     plotVal(dataTag_id, mDataGrp_id, title = "thd data id", showLine = True)
 
     # cpu id summary
+    # 每个线程使用各个cpu核心的数量统计
     mDataGrp_id_sum = []
     for loop in range(len(mDataGrp_id)):
-        new_lst = [0, 0, 0, 0, 0, 0, 0, 0]
+        new_lst = [0] * 8
         for cur_id in mDataGrp_id[loop]:
             new_lst[cur_id] += 1
         mDataGrp_id_sum.append(new_lst)
     plotVal(dataTag_id, mDataGrp_id_sum, title = "thd data id summary", showLine = True)
+    # 所有线程使用各个cpu核心的数量统计
+    mDataGrp_id_sum_all = []
+    for loop in range(len(mDataGrp_id_sum)):
+        if loop == 0:
+            mDataGrp_id_sum_all = mDataGrp_id_sum[loop]
+        else:
+            mDataGrp_id_sum_all = [x + y for x, y in zip(mDataGrp_id_sum_all, mDataGrp_id_sum[loop])]
+    plotVal(["cpu id sum all"], [mDataGrp_id_sum_all], title = "thd cpu id sum all", showLine = True)
 
     # cpu_usage
     dataTag_usg,mDataGrp_usg = thd_ana_data_proc(data_lst, 3, 1)
