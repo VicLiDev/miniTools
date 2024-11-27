@@ -35,7 +35,6 @@ function usage()
 {
     echo "usage: $0 [-h] [-t test_scope] [-p prot] [--ddir dev_dir] [-q]"
     echo "  -h|--help   help info"
-    echo "  -t|--type   test scope"
     echo "  -d|--dev    device, def all"
     echo "  -p|--prot   protocol, hevc/h265/265/avc/h264/264/avs2/vp9/av1"
     echo "  --ddir      device work dir, def /sdcard"
