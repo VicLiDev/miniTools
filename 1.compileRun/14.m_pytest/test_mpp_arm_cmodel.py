@@ -12,12 +12,11 @@ import subprocess
 import common.common as com
 import common.mpp_opt as mppOpt
 import common.cmod_opt as cmodOpt
+import argparse
 
-# prot = "hevc"
-prot = "vp9"
-# prot = "avs2"
-# prot = "avc"
-# prot = "av1"
+prot = "av1"
+
+dev_idx = 0
 
 # build paras
 mppDir = "/data"
@@ -32,7 +31,7 @@ cmodRunCmdMap = { "hevc" : "./hm -b 0 -e 5 -g hevc_cmodel_cfg -f cabac=0xFFFFFFF
                   "avc" : "./build/jm -b 0 -e 3 -g build/h264_cmodel_cfg -f cabac=0xFFFFFFFFFFFFFFFF -d build -i ",
                   "vp9"  : "./vpxdec -o testOut/rec.yuv -b 0 -e 3 -g vp9_cmodel_cfg -f cabac=0xFFFFFFFFFFFFFFFF,loopfilter=0xFFFFFFFFFFFFFFFF -d testOut -i ",
                   "avs2" : "./Lbuild/bin/ldecod -o output/rec.yuv -b 0 -e 5 -g source/bin/avs2_file_cmodel_cfg -f cabac=0xFFFFFFFFFFFFFFFF -d testOut -i ",
-                  "av1"  : "./aomdec -o testOut/output.yuv -b 0 -e 3 c av1_vdp_cfg -g av1_cmodel_cfg -f cabac=0xFFFFFFFFFFFFFFFF,inter=0x50000 -d testOut -i "}
+                  "av1"  : "./aomdec -o testOut/output.yuv -b 0 -e 3 -c av1_vdp_cfg -g av1_cmodel_cfg -f cabac=0xFFFFFFFFFFFFFFFF,inter=0x50000 -d testOut -i "}
 mppProcMap = { "hevc" : 16777220,
                "avc" : 7,
                "vp9"  : 10,
@@ -96,6 +95,30 @@ def checkReg(file1, file2, frmNo):
         #     com.runApp(os.getcwd(), "{} {} | sed '/frame_no={}/,/frame_no={}/!d' > regParseCmod.txt".format(regParseTool, file2, frmNo-1, frmNo), "Reg Parse Cmod")
         print("vimdiff regParseMpp.txt regParseCmod.txt")
 
+import subprocess
+
+def run_command(command):
+    """执行给定的 shell 命令并返回输出、错误和执行状态"""
+    try:
+        # 使用 subprocess.run() 执行命令
+        result = subprocess.run(command, shell=True, check=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # 返回标准输出、标准错误和执行状态
+        return result.stdout.strip(), result.stderr.strip(), result.returncode
+    except subprocess.CalledProcessError as e:
+        # 捕获并处理错误
+        return e.stdout.strip(), e.stderr.strip(), e.returncode
+
+'''
+command = "echo \"hello\""
+stdout, stderr, status = run_command(command)
+
+# 输出命令的结果和状态
+print("命令输出:\n", stdout)
+print("错误输出:\n", stderr)
+print("执行状态:", "成功" if status == 0 else f"失败 (状态码: {status})")
+'''
 
 def test_batch_by_list():
     print()
@@ -107,8 +130,9 @@ def test_batch_by_list():
     # os.environ["fpga_debug"] = "0x00000100"
 
     # adb cmd
-    adbCmd = "adb"
-    # adbCmd = "adb -s 25f12dbee7aa11a3"
+    command = f"adbs --idx {dev_idx}"
+    stdout, stderr, status = run_command(command)
+    adbCmd = stdout
 
     mFile = open("source_list.txt", mode='r')
     strms = mFile.readlines()
@@ -121,12 +145,14 @@ def test_batch_by_list():
 
         # ========== packet ==========
         # run mpp/cmod
+        com.runApp("", f"{adbCmd} shell \"if [ -e /data/av1 ]; then rm -rf /data/av1; fi\"", "prepare Run Mpp")
+        com.runApp("", f"{adbCmd} shell \"mkdir {mppDir}/{prot}\"", "prepare Run Mpp")
         # com.runApp("", "{} shell \"cd {} && {} {} -n 3\"".format(adbCmd, mppDir, mppRuncmd, mppDirPre + source), "Run Mpp")
-        com.runApp("", "{} shell \"cd {} && {} {} -n 3\"".format(adbCmd, mppDir, mppRuncmd, mppDirPre + source), "Run Mpp")
+        com.runApp("", "{} shell \"cd {} && {} {}\"".format(adbCmd, mppDir, mppRuncmd, mppDirPre + source), "Run Mpp")
         com.runApp(cmodWorkDirMap[prot], cmodRunCmdMap[prot] + cmdDirPre + source, "Run Cmod")
 
         # pull data from arm
-        com.runApp("", "{} pull {}/{}".format(adbCmd, mppDir, prot), "Run Mpp")
+        com.runApp("", "{} pull {}/{}".format(adbCmd, mppDir, prot), "Run Mpp pull")
 
         # check data
         if prot == "hevc":
@@ -168,15 +194,15 @@ def test_batch_by_list():
             # checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
             #          "header_debug.txt", "global_cfg_debug.txt")
             checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
-                     "stream_in.dat", "cabac_stream_in_128.dat")
-            checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
-                     "global_cfg.dat", "global_cfg.dat")
-            checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
                      "cdf_rd_def.dat", "cabac_default_cdf.dat")
+            checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
+                     "cabac_cdf_out.dat", "cabac_cdf_out.dat")
             checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
                      "cabac_cdf_in.dat", "cabac_cdf_in.dat")
             checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
-                     "cabac_cdf_out.dat", "cabac_cdf_out.dat")
+                     "stream_in.dat", "cabac_stream_in_128.dat")
+            checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
+                     "global_cfg.dat", "global_cfg.dat")
 
             # checkRes("{}/{}".format(dataDir, prot), "{}/testOut".format(cmodWorkDirMap[prot]),
             #          "colmv_cur_frame.dat", "colmv_cur_frame.dat")
@@ -211,7 +237,21 @@ def test_batch_by_list():
         # cModRegFile = "{}/testOut/{}_fpga".format(cmodWorkDirMap[prot], streamName)
         # checkReg(mppRegFile, cModRegFile, 1)
 
+def proc_paras():
+    # 创建解析器
+    parser = argparse.ArgumentParser(description="cmd paras proc demo")
+
+    parser.add_argument("-p","--prot", type=str, default="av1", help="prot hevc|vp9|avs2|avc|av1")
+    parser.add_argument("-d","--dev", type=int, default=0, help="device idx")
+
+    args = parser.parse_args()
+
+    prot = args.prot
+    dev_idx = args.dev
+
+    return
 
 if __name__ == "__main__":
+    proc_paras()
     pytest.main(["./test_mpp_arm_cmodel.py::test_batch_by_list", "-s", "-v", "-x"])
     # test_batch_by_list()
