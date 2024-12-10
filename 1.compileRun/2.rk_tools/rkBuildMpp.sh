@@ -17,6 +17,9 @@ pltList=(
     "linux_32"
     "linux_64"
     "linux_x86_64"
+    "ko_develop2"
+    "ko_kmpp_develop"
+    "ko_kmpp"
     )
 
 mSelectedArch=""
@@ -192,16 +195,9 @@ build_linux_x86_64()
     fi
 }
 
-
-
-cur_br=`git branch --show-current`
-echo "cur branch: $cur_br"
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.select_node.sh
-if [ "${cur_br}" == "develop" ]; then
-    selectNode "${sel_tag_mpp}" "pltList" "mSelectedArch" "platform"
-    build_${mSelectedArch}
-elif [ "${cur_br}" == "develop2" ]; then
+build_ko_develop2()
+{
+    echo "======> selected ${mSelectedArch} <======"
     selectNode "${sel_tag_mpp_ko}" "kdirList" "mSelectedKdir" "kernel dir"
 
     info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${mSelectedKdir} --env \
@@ -215,7 +211,17 @@ elif [ "${cur_br}" == "develop2" ]; then
         && cd build/kmpp/aarch64 \
         && ./make-Kbuild.sh --kernel ${mSelectedKdir} \
             --toolchain ${toolchains} --ndk ${toolchains}
-elif [ "${cur_br}" == "kmpp-develop" ]; then
+
+    if [ $? -eq 0 ]; then
+        echo "======> build mpp sucess! <======"
+    else
+        echo "======> build mpp error! <======"
+    fi
+}
+
+build_ko_kmpp_develop()
+{
+    echo "======> selected ${mSelectedArch} <======"
     selectNode "${sel_tag_mpp_ko}" "kdirList" "mSelectedKdir" "kernel dir"
 
     info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${mSelectedKdir} --env \
@@ -229,8 +235,18 @@ elif [ "${cur_br}" == "kmpp-develop" ]; then
         && cd build/aarch64 \
         && ./make-Kbuild.sh --kernel ${mSelectedKdir} \
             --toolchain ${toolchains} --ndk ${toolchains}
-elif [ "${cur_br}" == "kmpp" ]; then
-    # 5.10 1106_linux
+
+    if [ $? -eq 0 ]; then
+        echo "======> build mpp sucess! <======"
+    else
+        echo "======> build mpp error! <======"
+    fi
+}
+
+# 5.10 1106_linux
+build_ko_kmpp()
+{
+    echo "======> selected ${mSelectedArch} <======"
     selectNode "${sel_tag_mpp_ko}" "kdirList" "mSelectedKdir" "kernel dir"
 
     info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${mSelectedKdir} --env \
@@ -245,7 +261,21 @@ elif [ "${cur_br}" == "kmpp" ]; then
     export PATH=${toolchains}:${PATH}
     cd `git rev-parse --show-toplevel` \
         && ${kmpp_build_cmd}
-fi
+
+    if [ $? -eq 0 ]; then
+        echo "======> build mpp sucess! <======"
+    else
+        echo "======> build mpp error! <======"
+    fi
+}
+
+
+cur_br=`git branch --show-current`
+echo "cur branch: $cur_br"
+prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+source ${prjRootDir}/0.general_tools/0.select_node.sh
+selectNode "${sel_tag_mpp}" "pltList" "mSelectedArch" "platform"
+build_${mSelectedArch}
 
 
 # set +e
