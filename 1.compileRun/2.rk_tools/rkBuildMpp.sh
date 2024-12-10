@@ -195,6 +195,23 @@ build_linux_x86_64()
     fi
 }
 
+rmmod_ko()
+{
+    ko_mod_name="$1"
+    if [ -n "`${adbCmd} shell lsmod | grep ${ko_mod_name}`" ]; then
+        echo "rmmod old ${ko_mod_name}.ko"
+        ${adbCmd} shell rmmod ${ko_mod_name}.ko
+    fi
+}
+
+insmod_ko()
+{
+    ko_mod_name="$1"
+    ko_mod_dir="$2"
+    echo "insmod ${ko_mod_name}.ko"
+    ${adbCmd} shell insmod ${ko_mod_dir}/${ko_mod_name}.ko
+}
+
 build_ko_develop2()
 {
     echo "======> selected ${mSelectedArch} <======"
@@ -207,6 +224,7 @@ build_ko_develop2()
     echo "toolchains: ${toolchains}"
     echo "make_cmd: ${make_cmd}"
 
+    # build
     cd `git rev-parse --show-toplevel` \
         && cd build/kmpp/aarch64 \
         && ./make-Kbuild.sh --kernel ${mSelectedKdir} \
@@ -231,10 +249,20 @@ build_ko_kmpp_develop()
     echo "toolchains: ${toolchains}"
     echo "make_cmd: ${make_cmd}"
 
+    # build
     cd `git rev-parse --show-toplevel` \
         && cd build/aarch64 \
         && ./make-Kbuild.sh --kernel ${mSelectedKdir} \
             --toolchain ${toolchains} --ndk ${toolchains}
+
+    # install
+    adbCmd=$(adbs)
+    [ -z "${adbCmd}" ] && exit 0
+    ${adbCmd} push mpp_service/build/kmpp.ko /data
+    ${adbCmd} push sys/build/sys.ko          /data
+    ${adbCmd} push osal/build/osal.ko        /data
+    rmmod_ko kmpp && rmmod_ko sys && rmmod_ko osal
+    insmod_ko osal /data && insmod_ko sys /data && insmod_ko kmpp /data
 
     if [ $? -eq 0 ]; then
         echo "======> build mpp sucess! <======"
@@ -256,6 +284,7 @@ build_ko_kmpp()
     echo "toolchains: ${toolchains}"
     echo "make_cmd: ${make_cmd}"
 
+    # build
     kmpp_build_cmd="${make_cmd} ARCH=arm -C ${mSelectedKdir} M=`pwd` modules"
     echo "kmpp_build_cmd: ${kmpp_build_cmd}"
     export PATH=${toolchains}:${PATH}
