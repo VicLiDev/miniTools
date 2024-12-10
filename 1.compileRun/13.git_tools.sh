@@ -167,6 +167,8 @@ gfind_node()
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
+    [ -z "${git_dir}" ] && { echo "gfind_node -g <git_dir> -o <obj_dir> [-s <step>,def 1]"; return 0;}
+    [ -z "${obj_dir}" ] && { echo "gfind_node -g <git_dir> -o <obj_dir> [-s <step>,def 1]"; return 0;}
 
     while true
     do
