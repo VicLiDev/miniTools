@@ -36,6 +36,7 @@ pltList=(
     "3588_linux"
     "3576_linux"
     "3576_fpga"
+    "1126B_linux_fpga"
     )
 
 build_mode_list=(
@@ -78,7 +79,8 @@ get_arch()
             |'3566_linux'\
             |'3588_linux'\
             |'3576_linux'\
-            |'3576_fpga')
+            |'3576_fpga'\
+            |'1126B_linux_fpga')
                 m_arch="arm64"
                 ;;
         esac
@@ -207,6 +209,10 @@ gen_cmd()
             '3576_fpga')
                 m_config="rockchip_defconfig"
                 m_target="rk3576-fpga.img"
+                ;;
+            '1126B_linux_fpga')
+                m_config="rockchip_linux_defconfig"
+                m_target="rk3576-evb1-v10-linux.img"
                 ;;
         esac
     fi
