@@ -16,6 +16,16 @@ except Exception as err:
     exit(0)
 
 
+c_head_cfg_file = "gen_chead_cfg.txt"
+
+def read_file_to_list(filename):
+    """逐行读取文件到列表中，不缓存整个文件"""
+    lines = []
+    with open(filename, 'r') as file:
+        for line in file:
+            lines.append(line.strip().split())
+    return lines
+
 def main():
     # parser params
     parser = argparse.ArgumentParser(description='reg analyze')
@@ -60,8 +70,14 @@ def main():
     # gen c head
     if args.g:
         gen_chead.add_file_head(args.g)
-        gen_chead.gen_CHead_seg(args.g, regSet, "Vdpu383RegVersion", 0, 0)
-        gen_chead.gen_CHead_seg(args.g, regSet, "Vdpu383RegTest", 1, 20)
+        c_head_cfg = read_file_to_list(c_head_cfg_file)
+        for idx in range(len(c_head_cfg)):
+            if len(c_head_cfg[idx]) != 3 or c_head_cfg[idx][0][0] == "#":
+                continue
+            print(f"Reg segmentation: {c_head_cfg[idx][0]} {c_head_cfg[idx][1]}"
+                  f" {c_head_cfg[idx][2]}")
+            gen_chead.gen_CHead_seg(args.g, regSet, c_head_cfg[idx][0],
+                                    int(c_head_cfg[idx][1]), int(c_head_cfg[idx][2]))
         gen_chead.add_file_tail(args.g)
 
     hl = []
