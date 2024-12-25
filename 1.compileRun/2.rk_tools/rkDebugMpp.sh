@@ -77,88 +77,69 @@ dbgGdbPrepareEnv()
     debugCmdFile=$2
 
     # create host mirror
-    debugDirRoot="${prjRoot}/preinstall"
-    debugDirBin=""
-    debugDirLib=""
-    debugDirBin2=""
-    debugDirLib2=""
-    debugBin=""
-    debugLib=""
+    dbgRootDir="${prjRoot}/preinstall"
+    dbgBinSrcDir=()
+    dbgLibSrcDir=()
+    dbgBinDstDir=()
+    dbgLibDstDir=()
 
     if [ ${dbgPltName} == "android_32" ]; then
-        debugDirBin="${debugDirRoot}/vendor/bin"
-        debugDirLib="${debugDirRoot}/vendor/lib"
-        debugDirBin2="${debugDirRoot}/system/bin"
-        debugDirLib2="${debugDirRoot}/system/lib"
-        if [ -e ${debugCmdFile} ]; then
-            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
-        else
-            binFile="mpi_dec_test"
-        fi
-        debugBin="`find ./ | grep "android/arm.*${binFile}$"`"
-        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
-        debugLib="${prjRoot}/build/android/arm/mpp/libmpp.so"
+        dbgBinSrcDir[0]="${prjRoot}/build/android/arm/test"
+        dbgBinSrcDir[1]="${prjRoot}/build/android/arm/mpp/base/test"
+        dbgLibSrcDir[0]="${prjRoot}/build/android/arm/mpp"
+
+        dbgBinDstDir[0]="${dbgRootDir}/vendor/bin"
+        dbgBinDstDir[1]="${dbgRootDir}/system/bin"
+        dbgLibDstDir[0]="${dbgRootDir}/vendor/lib"
+        dbgLibDstDir[1]="${dbgRootDir}/system/lib"
     elif [ ${dbgPltName} == "android_64" ]; then
-        debugDirBin="${debugDirRoot}/vendor/bin"
-        debugDirLib="${debugDirRoot}/vendor/lib64"
-        debugDirBin2="${debugDirRoot}/system/bin"
-        debugDirLib2="${debugDirRoot}/system/lib64"
-        if [ -e ${debugCmdFile} ]; then
-            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
-        else
-            binFile="mpi_dec_test"
-        fi
-        debugBin="`find ./ | grep "android/aarch64.*${binFile}$"`"
-        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
-        debugLib="${prjRoot}/build/android/aarch64/mpp/libmpp.so"
+        dbgBinSrcDir[0]="${prjRoot}/build/android/aarch64/test"
+        dbgBinSrcDir[1]="${prjRoot}/build/android/aarch64/mpp/base/test"
+        dbgLibSrcDir[0]="${prjRoot}/build/android/aarch64/mpp"
+
+        dbgBinDstDir[0]="${dbgRootDir}/vendor/bin"
+        dbgBinDstDir[1]="${dbgRootDir}/system/bin"
+        dbgLibDstDir[0]="${dbgRootDir}/vendor/lib64"
+        dbgLibDstDir[1]="${dbgRootDir}/system/lib64"
     elif [ ${dbgPltName} == "linux_32" ]; then
-        debugDirBin="${debugDirRoot}/usr/bin"
-        debugDirLib="${debugDirRoot}/usr/lib"
-        debugDirBin2="${debugDirRoot}/oem/usr/bin"
-        debugDirLib2="${debugDirRoot}/oem/usr/lib"
-        if [ -e ${debugCmdFile} ]; then
-            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
-        else
-            binFile="mpi_dec_test"
-        fi
-        debugBin="`find ./ | grep "linux/arm.*${binFile}$"`"
-        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
-        debugLib="${prjRoot}/build/linux/arm/mpp/librockchip_mpp.so.0"
+        dbgBinSrcDir[0]="${prjRoot}/build/linux/arm/test"
+        dbgBinSrcDir[1]="${prjRoot}/build/linux/arm/mpp/base/test"
+        dbgLibSrcDir[0]="${prjRoot}/build/linux/arm/mpp"
+
+        dbgBinDstDir[0]="${dbgRootDir}/usr/bin"
+        dbgBinDstDir[1]="${dbgRootDir}/oem/usr/bin"
+        dbgLibDstDir[0]="${dbgRootDir}/usr/lib"
+        dbgLibDstDir[1]="${dbgRootDir}/oem/usr/lib"
     elif [ ${dbgPltName} == "linux_64" ]; then
-        debugDirBin="${debugDirRoot}/usr/bin"
-        debugDirLib="${debugDirRoot}/usr/lib64"
-        debugDirBin2="${debugDirRoot}/oem/usr/bin"
-        debugDirLib2="${debugDirRoot}/oem/usr/lib64"
-        if [ -e ${debugCmdFile} ]; then
-            binFile=`cat ${debugCmdFile} | grep serverCmd | awk '{print $3}'`
-        else
-            binFile="mpi_dec_test"
-        fi
-        debugBin="`find ./ | grep "linux/aarch64.*${binFile}$"`"
-        if [ -n "${debugBin}" ]; then debugBin="${prjRoot}/${debugBin}"; fi
-        debugLib="${prjRoot}/build/linux/aarch64/mpp/librockchip_mpp.so.0"
+        dbgBinSrcDir[0]="${prjRoot}/build/linux/aarch64/test"
+        dbgBinSrcDir[1]="${prjRoot}/build/linux/aarch64/mpp/base/test"
+        dbgLibSrcDir[0]="${prjRoot}/build/linux/aarch64/mpp"
+
+        dbgBinDstDir[0]="${dbgRootDir}/usr/bin"
+        dbgBinDstDir[1]="${dbgRootDir}/oem/usr/bin"
+        dbgBinDstDir[2]="${dbgRootDir}/bin"
+        dbgLibDstDir[0]="${dbgRootDir}/usr/lib64"
+        dbgLibDstDir[1]="${dbgRootDir}/oem/usr/lib64"
+        dbgLibDstDir[2]="${dbgRootDir}/lib64"
     fi
-    echo "exec file: ${debugBin}"
+    echo "exec bins dir: ${debugBin}"
 
 
     # Create the host library file structure
-    create_dir ${debugDirBin}
-    create_dir ${debugDirLib}
-    if [ -n "`echo ${debugBin} | grep -v attach`" ]; then
-        update_file ${debugBin} ${debugDirBin}
-    fi
-    update_file ${debugLib} ${debugDirLib}
-
-    if [ -n "${debugDirBin2}" ]; then
-        create_dir ${debugDirBin2}
-        if [ -n "`echo ${debugBin} | grep -v attach`" ]; then
-            update_file ${debugBin} ${debugDirBin2}
-        fi
-    fi
-    if [ -n "${debugDirLib2}" ]; then
-        create_dir ${debugDirLib2}
-        update_file ${debugLib} ${debugDirLib2}
-    fi
+    # for dst dir
+    for ((i = 0; i < ${#dbgBinDstDir[@]}; i++))
+    do
+        create_dir ${dbgBinDstDir[i]}
+        create_dir ${dbgLibDstDir[i]}
+        for ((j = 0; j < ${#dbgBinSrcDir[@]}; j++))
+        do
+            update_bins ${dbgBinSrcDir[j]} ${dbgBinDstDir[i]}
+        done
+        for ((j = 0; j < ${#dbgLibSrcDir[@]}; j++))
+        do
+            update_bins ${dbgLibSrcDir[j]} ${dbgLibDstDir[i]}
+        done
+    done
 
     # gdbNet do not need to proc tool
     if [ "${dbgToolName}" == "gdbNet" ]; then
@@ -173,31 +154,31 @@ dbgGdbPrepareEnv()
     if [[ ${dbgPltName} == "android_32" || ${dbgPltName} == "linux_32" ]]; then
         LocGdbSerPath="arm/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf/bin"
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
-        update_file ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}
+        update_file ${LocGdbSer} ${dbgBinDstDir[0]}/${RemoteGdbSer}
 
         haveSer=$(${adbCmd} shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
-            echo "push ${debugDirBin}/${RemoteGdbSer} to plt"
+            echo "push ${dbgBinDstDir[0]}/${RemoteGdbSer} to plt"
             if [ ${dbgPltName} == "android_32" ]; then
-                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
+                ${adbCmd} push ${dbgBinDstDir[0]}/${RemoteGdbSer} /vendor/bin;
             else # [ ${dbgPltName} == "linux_32" ]; then
-                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
-                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
+                ${adbCmd} push ${dbgBinDstDir[0]}/${RemoteGdbSer} /usr/bin;
+                ${adbCmd} push ${dbgBinDstDir[0]}/${RemoteGdbSer} /oem/usr/bin;
             fi
         fi
     elif [[ ${dbgPltName} == "android_64" || ${dbgPltName} == "linux_64" ]]; then
         LocGdbSerPath="aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin"
         LocGdbSer="${CCToolsRoot}/${LocGdbSerPath}/gdbserver"
-        update_file ${LocGdbSer} ${debugDirBin}/${RemoteGdbSer}
+        update_file ${LocGdbSer} ${dbgBinDstDir[0]}/${RemoteGdbSer}
 
         haveSer=$(${adbCmd} shell which ${RemoteGdbSer})
         if [ -z "$haveSer" ]; then
-            echo "push ${debugDirBin}/${RemoteGdbSer} to plt"
+            echo "push ${dbgBinDstDir[0]}/${RemoteGdbSer} to plt"
             if [ ${dbgPltName} == "android_64" ]; then
-                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /vendor/bin;
+                ${adbCmd} push ${dbgBinDstDir[0]}/${RemoteGdbSer} /vendor/bin;
             else # [ ${dbgPltName} == "linux_64" ]; then
-                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /usr/bin;
-                ${adbCmd} push ${debugDirBin}/${RemoteGdbSer} /oem/usr/bin;
+                ${adbCmd} push ${dbgBinDstDir[0]}/${RemoteGdbSer} /usr/bin;
+                ${adbCmd} push ${dbgBinDstDir[0]}/${RemoteGdbSer} /oem/usr/bin;
             fi
         fi
     else

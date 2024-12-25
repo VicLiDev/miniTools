@@ -33,6 +33,27 @@ update_file()
     cp -r $src $dst
 }
 
+update_bins()
+{
+    # copy src dir/bin/soft_link to dst dir
+    # usage: update_bins <src_dir/bin/soft_link> <dst_dir>
+    src="$1"
+    dst="$2"
+
+    if [[ -z "$src" || ! -e $src ]]; then echo "error: src dir/bin/soft_link $1 do not exist" >&2; exit 1; fi
+    # dts maybe file or dir
+    if [[ -z "$dst" || ! -e ${dst%/*} ]]; then echo "error: dst dir $2 do not exist" >&2; exit 1; fi
+
+    # -type l: 查找符号链接。
+    # -type f -executable: 查找可执行文件。
+    # -o: 表示“或”的逻辑条件。
+    # \( 和 \): 用于分组条件。
+    for cur_bin in `find ${src} -maxdepth 1 \( -type l -o -type f -executable \)`
+    do
+        echo "copy ${cur_bin} to ${dst}" >&2
+        cp -r ${cur_bin} ${dst}
+    done
+}
 check_exist()
 {
     if [ -e "$1" ]; then
