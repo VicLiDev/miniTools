@@ -258,11 +258,45 @@ build_ko_kmpp_develop()
     # install
     adbCmd=$(adbs)
     [ -z "${adbCmd}" ] && exit 0
-    ${adbCmd} push mpp_service/build/kmpp.ko /data
-    ${adbCmd} push sys/build/sys.ko          /data
-    ${adbCmd} push osal/build/osal.ko        /data
-    rmmod_ko kmpp && rmmod_ko sys && rmmod_ko osal
-    insmod_ko osal /data && insmod_ko sys /data && insmod_ko kmpp /data
+
+    ${adbCmd} push sys/build/sys.ko                            /data
+    ${adbCmd} push osal/build/osal.ko                          /data
+    ${adbCmd} push mpp_service/build/kmpp.ko                   /data
+    ${adbCmd} push test/sym_test/sym4/build/sym4.ko            /data
+    ${adbCmd} push test/sym_test/sym1/build/sym1.ko            /data
+    ${adbCmd} push test/sym_test/sym3/build/sym3.ko            /data
+    ${adbCmd} push test/sym_test/sym2/build/sym2.ko            /data
+    ${adbCmd} push test/osal_test/build/osal_test.ko           /data
+    ${adbCmd} push test/kmpi_enc_test/build/kmpi_enc_test.ko   /data
+    ${adbCmd} push test/kmpp_enc_test/build/kmpp_enc_test.ko   /data
+    ${adbCmd} push test/kmpp_test/build/kmpp_test.ko           /data
+    ${adbCmd} push test/sym_test/sym_test/build/sym_test.ko    /data
+
+    # rmmod_ko kmpi_enc_test
+    # rmmod_ko kmpp_enc_test
+    # rmmod_ko kmpp_test
+    # rmmod_ko sym_test
+    # rmmod_ko osal_test
+    rmmod_ko sym1
+    rmmod_ko sym3
+    rmmod_ko sym2
+    rmmod_ko sym4
+    rmmod_ko kmpp
+    rmmod_ko sys
+    rmmod_ko osal
+
+    insmod_ko osal           /data
+    insmod_ko sys            /data
+    insmod_ko kmpp           /data
+    insmod_ko sym4           /data
+    insmod_ko sym3           /data
+    insmod_ko sym2           /data
+    insmod_ko sym1           /data
+    # insmod_ko osal_test      /data
+    # insmod_ko sym_test       /data
+    # insmod_ko kmpp_test      /data
+    # insmod_ko kmpp_enc_test  /data
+    # insmod_ko kmpi_enc_test  /data
 
     if [ $? -eq 0 ]; then
         echo "======> build mpp sucess! <======"
