@@ -211,8 +211,8 @@ gen_cmd()
                 m_target="rk3576-fpga.img"
                 ;;
             '1126B_linux_fpga')
-                m_config="rockchip_linux_defconfig"
-                m_target="rk3576-evb1-v10-linux.img"
+                m_config="rv1126b_defconfig"
+                m_target="rv1126b-fpga.img"
                 ;;
         esac
     fi
