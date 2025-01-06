@@ -252,5 +252,9 @@ gapply()
     done
 }
 
+gcroot()
+{
+    cd `git rev-parse --show-toplevel`
+}
 
 alias gonel="git log --pretty=format:'%C(yellow)%h %C(blue)author: %<|(40)%an %C(cyan)%ci %C(auto) %s %d'"
