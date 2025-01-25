@@ -32,6 +32,8 @@ kdirList=(
 
 mSelectedKdir=""
 
+linux_toolchain_dir="${HOME}/Projects/prebuilts"
+
 push_bins_to_device()
 {
     adbCmd="$1"
@@ -118,10 +120,15 @@ build_android_64()
 build_linux_32()
 {
     echo "======> selected ${mSelectedArch} <======"
+    linux_32_tc_dir="${linux_toolchain_dir}/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf"
+    linux_32_tc="${linux_32_tc_dir}/bin/arm-linux-gnueabihf-"
+    echo "toolchain: ${linux_32_tc}"
     cd `git rev-parse --show-toplevel` \
         && cd build/linux/arm \
-        && ./make-Makefiles.bash \
+        && sed -i "s/#SET(CMAKE_SYSTEM_PROCESSOR \"armv7-a_hardfp\")/SET(CMAKE_SYSTEM_PROCESSOR \"armv7-a_hardfp\")/g" arm.linux.cross.cmake \
+        && ./make-Makefiles.bash --toolchain "${linux_32_tc}" \
         && make -j
+    echo "toolchain: ${linux_32_tc}"
 
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
@@ -151,10 +158,14 @@ build_linux_32()
 build_linux_64()
 {
     echo "======> selected ${mSelectedArch} <======"
+    linux_64_tc_dir="${linux_toolchain_dir}/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu"
+    linux_64_tc="${linux_64_tc_dir}/bin/aarch64-none-linux-gnu-"
+    echo "toolchain: ${linux_64_tc}"
     cd `git rev-parse --show-toplevel` \
         && cd build/linux/aarch64 \
-        && ./make-Makefiles.bash \
+        && ./make-Makefiles.bash --toolchain "${linux_64_tc}" \
         && make -j
+    echo "toolchain: ${linux_64_tc}"
 
     if [ $? -eq 0 ]; then
         echo "======> push lib and demo to dev <======"
