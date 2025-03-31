@@ -37,6 +37,8 @@ pltList=(
     "3576_linux"
     "3576_fpga"
     "1126B_linux_fpga"
+    "1126B_ipc_arm"
+    "1126B_linux_aarch"
     )
 
 build_mode_list=(
@@ -64,7 +66,8 @@ get_arch()
         case ${curPlt} in
             '1109/1126_android'\
             |'3288_android'\
-            |'1106_linux')
+            |'1106_linux'\
+            |'1126B_ipc_arm')
                 m_arch="arm"
                 ;;
             '3328_android'\
@@ -80,7 +83,8 @@ get_arch()
             |'3588_linux'\
             |'3576_linux'\
             |'3576_fpga'\
-            |'1126B_linux_fpga')
+            |'1126B_linux_fpga'\
+            |'1126B_linux_aarch')
                 m_arch="arm64"
                 ;;
         esac
@@ -89,26 +93,42 @@ get_arch()
 
 init_tools_env()
 {
+    tools_dir="${HOME}/Projects/prebuilts"
+
     if [ "${m_arch}" == "arm" ]; then  # arm
-        m_toolchains="${HOME}/Projects/prebuilts/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin"
+        # default
+        m_toolchains="${tools_dir}/toolchains/arm/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin"
         m_make="make CROSS_COMPILE=arm-linux-gnueabihf-"
+
+        # for diff platform
+        if [ "${curPlt}" == "1126B_ipc_arm" ]; then
+            m_toolchains="${tools_dir}/toolchains/arm/arm-rockchip1240-linux-gnueabihf/bin"
+            m_make="make CROSS_COMPILE=arm-rockchip1240-linux-gnueabihf-"
+        fi
     else # arm64
+        # default
         if [ -n "`echo ${curPlt} | grep linux`" ]; then # linux
-            m_toolchains="${HOME}/Projects/prebuilts/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin"
+            m_toolchains="${tools_dir}/toolchains/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin"
             m_make="make CROSS_COMPILE=aarch64-none-linux-gnu-"
         else # android
             if [ "${VERSION}" -lt "6" ]; then
-                m_toolchains="${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r416183b/bin"
+                m_toolchains="${tools_dir}/toolchains/aarch64/clang-r416183b/bin"
             else
-                m_toolchains="${HOME}/Projects/prebuilts/toolchains/linux-x86_rk/clang-r487747c/bin"
+                m_toolchains="${tools_dir}/toolchains/linux-x86_rk/clang-r487747c/bin"
             fi
             m_make="make CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1"
 
             if [ -n "`echo ${curPlt} | grep fpga`" ]; then
                 m_make="make CROSS_COMPILE=aarch64-linux-gnu- LT0=none LLVM=1 LLVM_IAS=1"
                 echo '3576 kernel6.1 fpga maybe need this toolchain'
-                echo '${HOME}/Projects/prebuilts/toolchains/aarch64/clang-r433403/bin'
+                echo '${tools_dir}/toolchains/aarch64/clang-r433403/bin'
             fi
+        fi
+
+        # for diff platform
+        if [ "${curPlt}" == "1126B_linux_aarch" ]; then
+            m_toolchains="${tools_dir}/toolchains/aarch64/aarch64-rockchip1240-linux-gnu/bin"
+            m_make="make CROSS_COMPILE=aarch64-rockchip1240-linux-gnu-"
         fi
     fi
 
@@ -213,6 +233,14 @@ gen_cmd()
             '1126B_linux_fpga')
                 m_config="rv1126b_defconfig"
                 m_target="rv1126b-fpga.img"
+                ;;
+            '1126B_ipc_arm')
+                m_config="rv1126b_defconfig rv1126b-evb.config"
+                m_target="rv1126b-evb1-v10.img BOOT_ITS=boot.its"
+                ;;
+            '1126B_linux_aarch')
+                m_config="rv1126b_defconfig"
+                m_target="rv1126b-evb1-v10.img BOOT_ITS=boot.its"
                 ;;
         esac
     fi
