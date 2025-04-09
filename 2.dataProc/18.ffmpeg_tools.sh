@@ -107,10 +107,10 @@ extBstrms()
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -h) echo "<exe> -i <in_file/dir> [-o dir]"; return 0; ;;
+            -h) echo "<exe> -i <in_file/dir> [-o dir, def vstrms]"; return 0; ;;
             -i) cmd_in="$2"; shift; ;;
             -o) cmd_out="$2"; shift; ;;
-            *)  echo "unknow para: ${key}"; echo "<exe> -i <in_file/dir> [-o dir]"; return 1; ;;
+            *)  echo "unknow para: ${key}"; echo "<exe> -i <in_file/dir> [-o dir, def vstrms]"; return 1; ;;
         esac; shift
     done
 
@@ -159,4 +159,222 @@ extBstrms()
         eval ${cmd}
         [ $? -ne 0 ] && echo "error proc file: ${file}"
     done
+}
+
+gseq()
+{
+    cmd_size="640x360"
+    cmd_fmt="nv12"
+    cmd_spec="h264"
+    cmd_time="2"
+    cmd_out_prefix=""
+
+    ffmpeg_exe=""
+    ffmpeg_spec=""
+    out_suffix=""
+    out_name=""
+
+    ffmpeg_path="${HOME}/Projects/ffmpeg_source/ffmpeg_build/bin/ffmpeg"
+    [ -e "${ffmpeg_path}" ] && { ffmpeg_exe="${ffmpeg_path}";} || { ffmpeg_exe=`which ffmpeg`;}
+
+    # proc cmd paras
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -h) echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
+                echo "-s  size, 640x340,1920x1080,2560×1440,3840x2160,7680×4320"
+                echo "-f  fmt, yuv420p,yuv420p10le, nv12"
+                echo "-sp spec, def h264/h265/avs2/vp9/av1/jpg"
+                echo "-t  len, def 2, 2s"
+                echo "-o  output name, def gen by paras"
+                echo "--out_prefix output prefix"
+                return 0; ;;
+            -s) cmd_size="$2"; shift; ;;
+            -f) cmd_fmt="$2"; shift; ;;
+            -sp) cmd_spec="$2"; shift; ;;
+            -t) cmd_time="$2"; shift; ;;
+            --out_prefix) cmd_out_prefix="$2"; shift; ;;
+            *)  echo "unknow para: ${key}"
+                echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
+                echo "-s  size, 640x340,1920x1080,2560×1440,3840x2160,7680×4320"
+                echo "-f  fmt, yuv420p,yuv420p10le, nv12"
+                echo "-sp spec, def h264/h265/avs2/vp9/av1/jpg"
+                echo "-t  len, def 2, 2s"
+                echo "-o  output name, def gen by paras"
+                echo "--out_prefix output prefix"
+                return 1; ;;
+        esac; shift
+    done
+
+    case ${cmd_spec} in
+        h264) ffmpeg_spec="libx264"; out_suffix="h264"; ;;
+        h265) ffmpeg_spec="libx265"; out_suffix="h265"; ;;
+        avs2) ffmpeg_spec="libxavs2"; out_suffix="avs2"; ;;
+        vp9) ffmpeg_spec="libvpx-vp9"; out_suffix="ivf"; ;;
+        av1) ffmpeg_spec="libaom-av1"; out_suffix="ivf"; ;;
+        jpg) ffmpeg_spec="mjpeg"; out_suffix="jpg"; ;;
+        *) echo "unsupport codec in gseq tool"; return 1; ;;
+    esac
+
+    if [ -z "${cmd_out_prefix}" ]; then
+        out_name="test_${cmd_spec}_${cmd_size}_${cmd_fmt}.${out_suffix}"
+    else
+        out_name="test_${cmd_out_prefix}_${cmd_spec}_${cmd_size}_${cmd_fmt}.${out_suffix}"
+    fi
+
+    echo "======> paras <======"
+    echo "cmd_size:    ${cmd_size}"
+    echo "cmd_fmt:     ${cmd_fmt}"
+    echo "cmd_spec:    ${cmd_spec}"
+    echo "cmd_time:    ${cmd_time}"
+    echo "ffmpeg_spec: ${ffmpeg_spec}"
+    echo "out_suffix:  ${out_suffix}"
+    echo "out_name:    ${out_name}"
+    echo "ffmpeg_exe:  ${ffmpeg_exe}"
+    echo "out_prefix:  ${cmd_out_prefix}"
+    echo "====================="
+
+    # -f lavfi -i testsrc=size=3840x2160:rate=30 - 生成一个测试视频源，4K分辨率(3840x2160)，30fps
+    # -pix_fmt yuv420p - 指定YUV420像素格式
+    # -c:v libx264 - 使用H.264编码器
+    # -preset slow - 使用较慢的预设以获得更好的压缩率
+    # -crf 18 - 设置CRF(恒定质量)值为18(质量较高，数值越小质量越高)
+    # -t 10 - 限制输出时长为10秒
+    # output.h264 - 输出文件名
+    # -strict unofficial 放宽标准限制
+    exe_cmd=()
+    if [ "${out_suffix}" = "jpg" ]; then
+        exe_cmd=(
+            ${ffmpeg_exe}
+            -v error
+            -f lavfi
+            -i "testsrc=size=${cmd_size}"
+            -pix_fmt "${cmd_fmt}"
+            -c:v "${ffmpeg_spec}"
+            -strict unofficial
+            -vframes 1
+            -q:v 2
+            "${out_name}"
+            -y
+        )
+    else
+        exe_cmd=(
+            ${ffmpeg_exe}
+            -v error
+            -f lavfi
+            -i "testsrc=size=${cmd_size}:rate=30"
+            -pix_fmt "${cmd_fmt}"
+            -c:v "${ffmpeg_spec}"
+            -preset slow
+            -crf 18
+            -t "${cmd_time}"
+            "${out_name}"
+            -y
+        )
+    fi
+
+    echo "ffmpeg cmd:  ${exe_cmd}"
+    eval ${exe_cmd}
+    echo
+}
+
+gseqs()
+{
+    cmd_size="false"
+    cmd_fmt="false"
+    cmd_10b="false"
+    cmd_all="false"
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -h) echo "<exe> [-s/-f/-a]";
+                echo "-s gen size strms"
+                echo "-f gen fmt strms"
+                echo "-10 gen 10bit strms"
+                echo "-a gen all strms"
+                return 0; ;;
+            -s) cmd_size="true"; ;;
+            -f) cmd_fmt="true"; ;;
+            -10) cmd_10b="true"; ;;
+            -a) cmd_all="true"; ;;
+            *)  echo "unknow para: ${key}"
+                echo "<exe> [-s/-f/-a]";
+                echo "-s gen size strms"
+                echo "-f gen fmt strms"
+                echo "-10 gen 10bit strms"
+                echo "-a gen all strms"
+                return 1; ;;
+        esac; shift
+    done
+
+    echo "cmd_size: ${cmd_size}"
+    echo "cmd_fmt:  ${cmd_fmt}"
+    echo "cmd_all:  ${cmd_all}"
+
+    # ==> size
+    if [[ ${cmd_size} = "true" || ${cmd_all} = "true" ]]; then
+        size_list=(
+            640x360
+            1920x1080
+            2560x1440
+            3840x2160
+            7680x4320
+            8192x8192
+        )
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp h264 --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp h265 --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp avs2 --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp vp9  --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp av1  --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp jpg  --out_prefix size; done
+    fi
+
+    # ==> yuv
+    # YUV 格式  -pix_fmt    存储顺序              典型用途
+    # YUV400    gray        YYYY...               灰度图像
+    # YUV420    yuv420p     YYYY...UU...VV...     H.264/HEVC 主流格式
+    # YUV422    yuv422p     YYYY...UU...VV...     专业视频编辑
+    # YUV440    yuv440p     YYYY...UU...VV...     特殊垂直降采样
+    # YUV411    yuv411p     YYYY...U...V...       高压缩场景
+    # YUV444    yuv444p     YYYY...UUUU...VVVV... 无损/高质量编码
+    if [[ ${cmd_fmt} = "true" || ${cmd_all} = "true" ]]; then
+        fmt_list=(
+            gray
+            nv12
+            yuv411p
+            yuv420p
+            yuv422p
+            yuv440p
+            yuv444p
+        )
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h264 --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h265 --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp avs2 --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp vp9  --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp av1  --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp jpg  --out_prefix fmt; done
+    fi
+
+    # ==> 10bit
+    # YUV400  gray            gray10le
+    # YUV420  yuv420p nv12    yuv420p10le p010le
+    # YUV422  yuv422p yuyv422 yuv422p10le y210le
+    # YUV444  yuv444p         yuv444p10le y410le
+    if [[ ${cmd_10b} = "true" || ${cmd_all} = "true" ]]; then
+        fmt_list=(
+            gray10le
+            yuv420p10le
+            p010le
+            yuv422p10le
+            y210le
+            yuv444p10le
+        )
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h264 --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h265 --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp avs2 --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp vp9  --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp av1  --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp jpg  --out_prefix 10bit; done
+    fi
 }
