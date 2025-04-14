@@ -46,5 +46,6 @@ opdev()
 {
     devSelNo=`adbs get-serialno`
     [ -z "${devSelNo}" ] && return 0
+    echo "dev No: ${devSelNo}"
     scrcpy --serial=${devSelNo}
 }
