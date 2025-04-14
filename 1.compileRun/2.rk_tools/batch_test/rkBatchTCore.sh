@@ -7,7 +7,7 @@
 #########################################################################
 
 dev_id_l=()
-prot=""
+spec=""
 strmsDir=""
 dev_dir=""
 quit_err="false"
@@ -21,20 +21,22 @@ paras_avc="-t 7 -i "
 paras_vp9="-t 10 -i "
 paras_avs2="-t 16777223 -i "
 paras_av1="-t 16777224 -i "
+paras_jpg="-t 8 -i "
 
 test_cmd_hevc="${exe} ${paras_hevc}"
 test_cmd_avc="${exe} ${paras_avc}"
 test_cmd_avs2="${exe} ${paras_avs2}"
 test_cmd_vp9="${exe} ${paras_vp9}"
 test_cmd_av1="${exe} ${paras_av1}"
+test_cmd_jpg="${exe} ${paras_jpg}"
 
 function usage()
 {
-    echo "usage: $0 [-h] [-d device] <-p prot> <-s strms_dir> [--ddir dev_dir] [-q]"
+    echo "usage: $0 [-h] [-d device] <-s spec> <-i strms_dir> [--ddir dev_dir] [-q]"
     echo "  -h|--help   help info"
     echo "  -d|--dev    device, def all"
-    echo "  -p|--prot   protocol, hevc/h265/265/avc/h264/264/avs2/vp9/av1"
-    echo "  -s|--strms  source dir, raw stream of the same protocol"
+    echo "  -s|--spec   spec, hevc/h265/265/avc/h264/264/avs2/vp9/av1/jpg"
+    echo "  -i|--input source dir, raw stream of the same spec"
     echo "  --ddir      device work dir, def /sdcard"
     echo "  -q          quit when test failed"
 }
@@ -60,18 +62,19 @@ function procParas()
                 dev_id_l=(${2})
                 shift # move to next para
                 ;;
-            -p|--prot)
+            -s|--spec)
                 case ${2} in
-                    hevc|h265|265) prot="hevc" ;;
-                    avc|h264|264) prot="avc" ;;
-                    avs2) prot="avs2" ;;
-                    vp9) prot="vp9" ;;
-                    av1) prot="av1" ;;
-                    *) echo "unsuport protocol" ;;
+                    hevc|h265|265) spec="hevc" ;;
+                    avc|h264|264) spec="avc" ;;
+                    avs2) spec="avs2" ;;
+                    vp9) spec="vp9" ;;
+                    av1) spec="av1" ;;
+                    jpg) spec="jpg" ;;
+                    *) echo "unsuport spec" ;;
                 esac
                 shift # move to next para
                 ;;
-            -s|--strms)
+            -i|--input)
                 strmsDir="${2}"
                 shift # move to next para
                 ;;
@@ -91,9 +94,9 @@ function procParas()
         shift # move to next para
     done
 
-    [ -z "${prot}" ] && echo "Err: -p|--prot is necessary" && usage && exit 0
-    [ -z "${strmsDir}" ] && echo "Err: -s|--strms is necessary" && usage && exit 0
-    [ ! -e "${strmsDir}" ] && echo "Err: -s|--strms is invalid" && usage && exit 0
+    [ -z "${spec}" ] && echo "Err: -s|--spec is necessary" && usage && exit 0
+    [ -z "${strmsDir}" ] && echo "Err: -i|--input is necessary" && usage && exit 0
+    [ ! -e "${strmsDir}" ] && echo "Err: -i|--input is invalid" && usage && exit 0
     [ -z "${dev_dir}" ] && dev_dir="/sdcard"
 
     # strm_list=(`ls -1 ${strmsDir}`)
@@ -114,14 +117,20 @@ function exec_test()
     do
         for cur_strm in ${strm_list[@]}
         do
+            # for jpg
+            img_wh_cmd=""
+
             echo "[dev_id]: ${dev_idx} [name]: ${dev_info_l[${dev_idx}]} [strm]: ${cur_strm}"
 
             adbs --idx ${dev_idx} shell "ls -d ${dev_dir} > /dev/null 2>&1"
             [ "$?" -ne "0" ] && echo "Error: device dir not exist: ${dev_dir}" && exit 0
             adbs --idx ${dev_idx} push ${strmsDir}/${cur_strm} ${dev_dir}
 
-            eval test_cmd='$'test_cmd_${prot}
-            cur_cmd="adbs --idx ${dev_idx} shell ${test_cmd} ${dev_dir}/${cur_strm}"
+            eval test_cmd='$'test_cmd_${spec}
+            if [ ${spec} == "jpg" ]; then
+                img_wh_cmd=`mediainfo --Output="Image;-w %Width% -h %Height%" ${strmsDir}/${cur_strm}`
+            fi
+            cur_cmd="adbs --idx ${dev_idx} shell ${test_cmd} ${dev_dir}/${cur_strm} ${img_wh_cmd}"
             echo "cur test cmd: ${cur_cmd}"
             ${cur_cmd}
             if [ $? -eq 0 ]; then
@@ -147,7 +156,7 @@ function main()
 
     echo "======> $0 paras <======"
     echo "dev_id_l: ${dev_id_l[@]}"
-    echo "prot:     ${prot}"
+    echo "spec:     ${spec}"
     echo "strmsDir: ${strmsDir}"
     echo "dev_dir:  ${dev_dir}"
     echo "quit_err: ${quit_err}"
