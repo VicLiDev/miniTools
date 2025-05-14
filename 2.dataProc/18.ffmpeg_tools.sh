@@ -174,7 +174,7 @@ gseq()
     out_suffix=""
     out_name=""
 
-    ffmpeg_path="${HOME}/Projects/ffmpeg_source/ffmpeg_build/bin/ffmpeg"
+    ffmpeg_path="${HOME}/Projects/ffmpeg/build_linux_x86/bin/ffmpeg"
     [ -e "${ffmpeg_path}" ] && { ffmpeg_exe="${ffmpeg_path}";} || { ffmpeg_exe=`which ffmpeg`;}
 
     # proc cmd paras
@@ -184,7 +184,7 @@ gseq()
             -h) echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
                 echo "-s  size, 640x340,1920x1080,2560×1440,3840x2160,7680×4320"
                 echo "-f  fmt, yuv420p,yuv420p10le, nv12"
-                echo "-sp spec, def h264/h265/avs2/vp9/av1/jpg"
+                echo "-sp spec, def h264/h265/avs2/vp8/vp9/av1/mpg/m2v/m4v/jpg"
                 echo "-t  len, def 2, 2s"
                 echo "-o  output name, def gen by paras"
                 echo "--out_prefix output prefix"
@@ -198,7 +198,7 @@ gseq()
                 echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
                 echo "-s  size, 640x340,1920x1080,2560×1440,3840x2160,7680×4320"
                 echo "-f  fmt, yuv420p,yuv420p10le, nv12"
-                echo "-sp spec, def h264/h265/avs2/vp9/av1/jpg"
+                echo "-sp spec, def h264/h265/avs2/vp8/vp9/av1/mpg/m2v/m4v/jpg"
                 echo "-t  len, def 2, 2s"
                 echo "-o  output name, def gen by paras"
                 echo "--out_prefix output prefix"
@@ -210,8 +210,12 @@ gseq()
         h264) ffmpeg_spec="libx264"; out_suffix="h264"; ;;
         h265) ffmpeg_spec="libx265"; out_suffix="h265"; ;;
         avs2) ffmpeg_spec="libxavs2"; out_suffix="avs2"; ;;
+        vp8) ffmpeg_spec="libvpx"; out_suffix="ivf"; ;;
         vp9) ffmpeg_spec="libvpx-vp9"; out_suffix="ivf"; ;;
         av1) ffmpeg_spec="libaom-av1"; out_suffix="ivf"; ;;
+        mpg) ffmpeg_spec="mpeg1video"; out_suffix="mpg"; ;;
+        m2v) ffmpeg_spec="mpeg2video"; out_suffix="m2v"; ;;
+        m4v) ffmpeg_spec="mpeg4"; out_suffix="m4v"; ;;
         jpg) ffmpeg_spec="mjpeg"; out_suffix="jpg"; ;;
         *) echo "unsupport codec in gseq tool"; return 1; ;;
     esac
@@ -273,8 +277,8 @@ gseq()
         )
     fi
 
-    echo "ffmpeg cmd:  ${exe_cmd}"
-    eval ${exe_cmd}
+    echo "ffmpeg cmd:  ${exe_cmd[@]}"
+    eval ${exe_cmd[@]}
     echo
 }
 
@@ -325,8 +329,12 @@ gseqs()
         for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp h264 --out_prefix size; done
         for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp h265 --out_prefix size; done
         for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp avs2 --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp vp8  --out_prefix size; done
         for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp vp9  --out_prefix size; done
         for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp av1  --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp mpg  --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp m2v  --out_prefix size; done
+        for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp m4v  --out_prefix size; done
         for cur_size in ${size_list[@]}; do gseq -s ${cur_size} -f nv12 -sp jpg  --out_prefix size; done
     fi
 
@@ -351,8 +359,12 @@ gseqs()
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h264 --out_prefix fmt; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h265 --out_prefix fmt; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp avs2 --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp vp8  --out_prefix fmt; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp vp9  --out_prefix fmt; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp av1  --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp mpg  --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp m2v  --out_prefix fmt; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp m4v  --out_prefix fmt; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp jpg  --out_prefix fmt; done
     fi
 
@@ -373,8 +385,12 @@ gseqs()
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h264 --out_prefix 10bit; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp h265 --out_prefix 10bit; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp avs2 --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp vp8  --out_prefix 10bit; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp vp9  --out_prefix 10bit; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp av1  --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp mpg  --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp m2v  --out_prefix 10bit; done
+        for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp m4v  --out_prefix 10bit; done
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp jpg  --out_prefix 10bit; done
     fi
 }
