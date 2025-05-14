@@ -1,0 +1,95 @@
+# enc demo
+# enc  nv12    1920x1080 libx264    fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libx264    medium /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libx264    slow   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libx265    fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libx265    medium /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libx265    slow   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libvpx     fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libvpx     medium /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libvpx     slow   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libvpx-vp9 fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libvpx-vp9 medium /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libvpx-vp9 slow   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libaom-av1 fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libaom-av1 medium /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libaom-av1 slow   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libxavs2   fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libxavs2   medium /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+# enc  nv12    1920x1080 libxavs2   slow   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_1s_nv12.yuv
+
+# dec demo
+# dec ./test_streams/output_vp8.webm
+# dec ./test_streams/output_mpeg2.mpg
+# dec ./test_streams/output_mpeg4.avi
+
+# ======================================================================================
+# ==================================== enc test cfg ====================================
+# ======================================================================================
+
+# enc nv12    1920x1080 libvpx  fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_nv12.yuv
+# enc yuv444p 1920x1080 libvpx  fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_yuv444p.yuv
+# enc yuv422p 1920x1080 libvpx  fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_yuv422p.yuv
+# enc yuv420p 1920x1080 libvpx  fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_yuv420p.yuv
+# enc nv12    1920x1080 libx264 fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_nv12.yuv
+# enc yuv444p 1920x1080 libx264 fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_yuv444p.yuv
+# enc yuv422p 1920x1080 libx264 fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_yuv422p.yuv
+# enc yuv420p 1920x1080 libx264 fast   /home/lhj/Projects/streams/test_streams_yuv/output_1920x1080_10s_yuv420p.yuv
+
+enc yuv420p 1920x1080 libvpx fast /home/lhj/Projects/streams/test_streams_yuv/Beauty_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libvpx fast /home/lhj/Projects/streams/test_streams_yuv/Bosphorus_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libvpx fast /home/lhj/Projects/streams/test_streams_yuv/HoneyBee_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libvpx fast /home/lhj/Projects/streams/test_streams_yuv/Jockey_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libvpx fast /home/lhj/Projects/streams/test_streams_yuv/ReadySteadyGo_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libvpx fast /home/lhj/Projects/streams/test_streams_yuv/ShakeNDry_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libvpx fast /home/lhj/Projects/streams/test_streams_yuv/YachtRide_1920x1080_120fps_420_8bit_YUV.yuv
+
+enc yuv420p 1920x1080 libx264 fast /home/lhj/Projects/streams/test_streams_yuv/Beauty_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libx264 fast /home/lhj/Projects/streams/test_streams_yuv/Bosphorus_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libx264 fast /home/lhj/Projects/streams/test_streams_yuv/HoneyBee_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libx264 fast /home/lhj/Projects/streams/test_streams_yuv/Jockey_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libx264 fast /home/lhj/Projects/streams/test_streams_yuv/ReadySteadyGo_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libx264 fast /home/lhj/Projects/streams/test_streams_yuv/ShakeNDry_1920x1080_120fps_420_8bit_YUV.yuv
+enc yuv420p 1920x1080 libx264 fast /home/lhj/Projects/streams/test_streams_yuv/YachtRide_1920x1080_120fps_420_8bit_YUV.yuv
+
+# ======================================================================================
+# ==================================== dec test cfg ====================================
+# ======================================================================================
+
+# smb://10.10.10.90/Media/public/全格式覆盖测试/M2TS
+dec ./test_streams/1280x1080,10.1_Mbps,29.970fps,MPEG-2_Video,AC-3,384_Kbps,Shaolin_Soccer1.ts
+dec ./test_streams/1280x720,10.8_Mbps,59.940fps,MPEG-2_Video,DTS_768_Kbps_AC-3_448_Kbps,,今夜何温馨_艾尔顿约翰_MV.ts
+dec ./test_streams/1280x720,12.2_Mbps,59.940fps,MPEG-2_Video,AC-3,384_Kbps,One-Best_FIFA_World_Cup_Moments.ts
+dec ./test_streams/1280x720,12.5_Mbps,59.940fps,MPEG-2_Video,DTS_768_Kbps_AC-3_448_Kbps_AC-3_384_Kbps,,狮子王主题曲_生生相息_.ts
+dec ./test_streams/1280x720,37.9_Mbps,59.940fps,MPEG-2_Video,AC-3,640_Kbps,Avril_Lavigne_-_Hot.ts
+dec ./test_streams/1440x1080,9056_Kbps,29.970fps,MPEG-2_Video,AC-3,384_Kbps,Police_Academy.sample.ts
+dec ./test_streams/1920x1080,18.4_Mbps,29.970fps,MPEG-2_Video,AC-3,256_Kbps,Air.Show.ts
+dec ./test_streams/1920x1080,18.7_Mbps,29.970fps,MPEG-2_Video,DTS,1_536_Kbps,加州旅馆hotel_california.ts
+dec ./test_streams/1920x1080,19.2_Mbps,23.976fps,MPEG-2_Video,DTS,1_536_Kbps,DTS_1536_Kbps_AC-3_640_Kbps_AC-3_384_Kbps_AC-3_384_Kbps,Dinosaur_D4.ts
+dec ./test_streams/1920x1080,24.8_Mbps,23.976fps,VC-1,AC-3_PCML,640_Kbps,G蓝光演示片断.ts
+dec ./test_streams/1920x1080,,29.970fps,VC-1,DTS,,Rambo.2.First.Blood.Part.II-disk4.ts
+dec ./test_streams/1920x1080,35.3_Mbps,25.000fps,VC1,MPEG_Audio,384_Kbps,IMAX.Blue.Planet-DISK2.ts
+dec ./test_streams/1920x1088,15.8_Mbps,25.000fps,MPEG-2_Video,MPEG_Audio,256_Kbps,Vienna.New.Years.Concert_disk4.ts
+dec ./test_streams/1920x1088,21.6_Mbps,30.000fps,MPEG-2_Video,AC-3,384_Kbps,23.ts
+dec ./test_streams/704x576_3916Kbps_25fps_MPEG_2_Video_MPEG_Audio_192_Kbps_MPEG_Audio_192_Kbps_超级工厂_法拉利_芯片bug马赛克.ts
+dec ./test_streams/MPEG2_1440x1080_29F_XM_8B_乃木坂_SSTV.ts
+
+# smb://10.10.10.90/Media/public/全格式覆盖测试/mpeg
+dec ./test_streams/1280x720,19_Mbps,59.940fps,MPEG-2_Video,AC3,448_Kbps,I.See.You_Live_.mpg
+dec ./test_streams/1280x720,39_Mbps,59.940fps,MPEG-2_Video,AC3,384_Kbps,科比精彩瞬间.mpg
+dec ./test_streams/1920x1080,19_Mbps,29.970fps,MPEG-2_Video,AC3,384_Kbps,When.You_re.Gone.in.mpg
+dec ./test_streams/1920x1080,24.1_Mbps,29.970fps,MPEG-2_Video,MPEG_Audio,384_Kbps,SONY高清演示片.mpg
+dec ./test_streams/1920x1080,25_Mbps,25.000fps,MPEG-2_Video,MPEG-1_Audio_layer_2,224_Kbps,_SONY高清演示片_.QuantumOfSolace.mpg
+dec ./test_streams/1920x1080,26.4_Mbps,29.970fps,MPEG-2_Video,PCM,1536_Kbps,2008.Taipei.101.FireWorks.Trailer.mpg
+dec ./test_streams/1920x1080,38.9Mbps,29.970fps,MPEG_Video,PCM,48KHZ,1536kbps_Audio,_2011元旦101烟火秀_.mpg
+dec ./test_streams/352x240,1075_Kbps,29.970fps,MPEG-1_Video,MPEG_Audio,224_Kbps,上户彩_-_29个Live合集.mpg
+dec ./test_streams/352x240,1076_Kbps,29.970fps,MPEG-1_Video,MPEG_Audio,224_Kbps,五月天.-.乱世浮生.mpg
+dec ./test_streams/352x288,1074_Kbps,25.000fps,MPEG-1_Video,MPEG_Audio,224_Kbps,必备职业素养篇.mpg
+dec ./test_streams/640x480,3754_Kbps,25.000fps,MPEG-2_Video,MPEG_Audio,224_Kbps,交换空间.mpg
+dec ./test_streams/720x576,4404_Kbps,25.000fps,MPEG-2_Video,MPEG_Audio,224_Kbps,梦想的翅膀.mpg
+dec ./test_streams/720x576,4998kbps,25fps,_MPEG_Video,48KHZ,224kbps_mpeg_Audio,【标清】周笔畅.061008.天津歌友会.mpg
+
+# smb://10.10.10.90/Media/video/04-视频分类/MPEG4
+dec ./test_streams/clryq.mp4
+dec ./test_streams/cluo.mp4
+dec ./test_streams/daomeixiog.mp4
