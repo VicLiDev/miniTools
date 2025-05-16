@@ -10,39 +10,44 @@
 # -a: tar android lib
 # -l: tar linux lib
 
-mppRoot="${HOME}/Projects/mpp"
-tarPkgName="mpplib.tar.gz"
-mppLibDir="mpplib"
-pushTool="push.sh"
-logFile="ReadMe.md"
+wk_dir="`pwd`"
+mpp_root="${HOME}/Projects/mpp"
+tar_pkt_name="mpplib.tar.gz"
+mpp_lib_dir="mpplib"
+push_tool="push.sh"
+log_file="ReadMe.md"
 
 
-android_32_dir="${mppLibDir}/android_32"
-android_64_dir="${mppLibDir}/android_64"
-linux_32_dir="${mppLibDir}/linux_32"
-linux_64_dir="${mppLibDir}/linux_64"
+android_32_dir="${mpp_lib_dir}/android_32"
+android_64_dir="${mpp_lib_dir}/android_64"
+linux_32_dir="${mpp_lib_dir}/linux_32"
+linux_64_dir="${mpp_lib_dir}/linux_64"
 
-en_android="False"
-en_linux="False"
+cmd_sel_plt="None"
+cmd_build="false"
 
 function help()
 {
-    echo "usage: ./2.tarMpp.sh -a -l"
+    echo "usage: <ext> <-a|-l> [-b]"
     echo "  -a: tar android lib"
     echo "  -l: tar linux lib"
+    echo "  -b: build mpp lib"
 }
 
-function procParas()
+function proc_paras()
 {
     # proc cmd paras
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
             -a)
-                en_android="True"
+                cmd_sel_plt="android"
                 ;;
             -l)
-                en_linux="True"
+                cmd_sel_plt="linux"
+                ;;
+            -b)
+                cmd_build="true"
                 ;;
             -h)
                 help
@@ -56,6 +61,15 @@ function procParas()
         esac
         shift
     done
+
+    # check paras
+    if [[ ${cmd_sel_plt} != "android" && ${cmd_sel_plt} != "linux" ]]; then help; exit 1; fi
+
+    # print result
+    echo "======> cmd paras <======"
+    echo "cmd_sel_plt : ${cmd_sel_plt}"
+    echo "cmd_build   : ${cmd_build}"
+    echo
 }
 
 
@@ -65,41 +79,41 @@ function update_android()
     create_dir ${android_32_dir}
     create_dir ${android_64_dir}
 
-    update_file ${mppRoot}/build/android/arm/mpp/libmpp.so                ${android_32_dir}
-    update_file ${mppRoot}/build/android/arm/mpp/legacy/libvpu.so         ${android_32_dir}
-    update_file ${mppRoot}/build/android/arm/test/mpi_dec_test            ${android_32_dir}
-    update_file ${mppRoot}/build/android/arm/test/mpi_dec_mt_test         ${android_32_dir}
-    update_file ${mppRoot}/build/android/arm/test/mpi_dec_multi_test      ${android_32_dir}
-    update_file ${mppRoot}/build/android/arm/test/mpi_enc_test            ${android_32_dir}
-    update_file ${mppRoot}/build/android/arm/test/mpi_enc_mt_test         ${android_32_dir}
-    update_file ${mppRoot}/build/android/aarch64/mpp/libmpp.so            ${android_64_dir}
-    update_file ${mppRoot}/build/android/aarch64/mpp/legacy/libvpu.so     ${android_64_dir}
-    update_file ${mppRoot}/build/android/aarch64/test/mpi_dec_test        ${android_64_dir}
-    update_file ${mppRoot}/build/android/aarch64/test/mpi_dec_mt_test     ${android_64_dir}
-    update_file ${mppRoot}/build/android/aarch64/test/mpi_dec_multi_test  ${android_64_dir}
-    update_file ${mppRoot}/build/android/aarch64/test/mpi_enc_test        ${android_64_dir}
-    update_file ${mppRoot}/build/android/aarch64/test/mpi_enc_mt_test     ${android_64_dir}
+    update_file ${mpp_root}/build/android/arm/mpp/libmpp.so                ${android_32_dir}
+    update_file ${mpp_root}/build/android/arm/mpp/legacy/libvpu.so         ${android_32_dir}
+    update_file ${mpp_root}/build/android/arm/test/mpi_dec_test            ${android_32_dir}
+    update_file ${mpp_root}/build/android/arm/test/mpi_dec_mt_test         ${android_32_dir}
+    update_file ${mpp_root}/build/android/arm/test/mpi_dec_multi_test      ${android_32_dir}
+    update_file ${mpp_root}/build/android/arm/test/mpi_enc_test            ${android_32_dir}
+    update_file ${mpp_root}/build/android/arm/test/mpi_enc_mt_test         ${android_32_dir}
+    update_file ${mpp_root}/build/android/aarch64/mpp/libmpp.so            ${android_64_dir}
+    update_file ${mpp_root}/build/android/aarch64/mpp/legacy/libvpu.so     ${android_64_dir}
+    update_file ${mpp_root}/build/android/aarch64/test/mpi_dec_test        ${android_64_dir}
+    update_file ${mpp_root}/build/android/aarch64/test/mpi_dec_mt_test     ${android_64_dir}
+    update_file ${mpp_root}/build/android/aarch64/test/mpi_dec_multi_test  ${android_64_dir}
+    update_file ${mpp_root}/build/android/aarch64/test/mpi_enc_test        ${android_64_dir}
+    update_file ${mpp_root}/build/android/aarch64/test/mpi_enc_mt_test     ${android_64_dir}
 
-    echo "adbCmd=adb"                                                    >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/libmpp.so          /vendor/lib"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/libvpu.so          /vendor/lib"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/libmpp.so          /system/lib"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/libvpu.so          /system/lib"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/mpi_dec_test       /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/mpi_enc_test       /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/mpi_dec_mt_test    /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/mpi_dec_multi_test /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_32/mpi_enc_mt_test    /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo ""                                                            >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/libmpp.so          /vendor/lib64" >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/libvpu.so          /vendor/lib64" >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/libmpp.so          /system/lib64" >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/libvpu.so          /system/lib64" >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/mpi_dec_test       /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/mpi_enc_test       /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/mpi_dec_mt_test    /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/mpi_dec_multi_test /vendor/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push android_64/mpi_enc_mt_test    /vendor/bin"   >> ${mppLibDir}/${pushTool}
+    echo "adbCmd=adb"                                                    >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/libmpp.so          /vendor/lib"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/libvpu.so          /vendor/lib"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/libmpp.so          /system/lib"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/libvpu.so          /system/lib"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/mpi_dec_test       /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/mpi_enc_test       /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/mpi_dec_mt_test    /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/mpi_dec_multi_test /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_32/mpi_enc_mt_test    /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo ""                                                            >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/libmpp.so          /vendor/lib64" >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/libvpu.so          /vendor/lib64" >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/libmpp.so          /system/lib64" >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/libvpu.so          /system/lib64" >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/mpi_dec_test       /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/mpi_enc_test       /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/mpi_dec_mt_test    /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/mpi_dec_multi_test /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push android_64/mpi_enc_mt_test    /vendor/bin"   >> ${mpp_lib_dir}/${push_tool}
 }
 
 function update_linux()
@@ -108,76 +122,91 @@ function update_linux()
     create_dir ${linux_32_dir}
     create_dir ${linux_64_dir}
 
-    update_file ${mppRoot}/build/linux/arm/mpp/librockchip_mpp.so.0            ${linux_32_dir}
-    update_file ${mppRoot}/build/linux/arm/mpp/legacy/librockchip_vpu.so.0     ${linux_32_dir}
-    update_file ${mppRoot}/build/linux/arm/test/mpi_dec_test                   ${linux_32_dir}
-    update_file ${mppRoot}/build/linux/arm/test/mpi_dec_mt_test                ${linux_32_dir}
-    update_file ${mppRoot}/build/linux/arm/test/mpi_dec_multi_test             ${linux_32_dir}
-    update_file ${mppRoot}/build/linux/arm/test/mpi_enc_test                   ${linux_32_dir}
-    update_file ${mppRoot}/build/linux/arm/test/mpi_enc_mt_test                ${linux_32_dir}
-    update_file ${mppRoot}/build/linux/aarch64/mpp/librockchip_mpp.so.0        ${linux_64_dir}
-    update_file ${mppRoot}/build/linux/aarch64/mpp/legacy/librockchip_vpu.so.0 ${linux_64_dir}
-    update_file ${mppRoot}/build/linux/aarch64/test/mpi_dec_test               ${linux_64_dir}
-    update_file ${mppRoot}/build/linux/aarch64/test/mpi_dec_mt_test            ${linux_64_dir}
-    update_file ${mppRoot}/build/linux/aarch64/test/mpi_dec_multi_test         ${linux_64_dir}
-    update_file ${mppRoot}/build/linux/aarch64/test/mpi_enc_test               ${linux_64_dir}
-    update_file ${mppRoot}/build/linux/aarch64/test/mpi_enc_mt_test            ${linux_64_dir}
+    update_file ${mpp_root}/build/linux/arm/mpp/librockchip_mpp.so.0            ${linux_32_dir}
+    update_file ${mpp_root}/build/linux/arm/mpp/legacy/librockchip_vpu.so.0     ${linux_32_dir}
+    update_file ${mpp_root}/build/linux/arm/test/mpi_dec_test                   ${linux_32_dir}
+    update_file ${mpp_root}/build/linux/arm/test/mpi_dec_mt_test                ${linux_32_dir}
+    update_file ${mpp_root}/build/linux/arm/test/mpi_dec_multi_test             ${linux_32_dir}
+    update_file ${mpp_root}/build/linux/arm/test/mpi_enc_test                   ${linux_32_dir}
+    update_file ${mpp_root}/build/linux/arm/test/mpi_enc_mt_test                ${linux_32_dir}
+    update_file ${mpp_root}/build/linux/aarch64/mpp/librockchip_mpp.so.0        ${linux_64_dir}
+    update_file ${mpp_root}/build/linux/aarch64/mpp/legacy/librockchip_vpu.so.0 ${linux_64_dir}
+    update_file ${mpp_root}/build/linux/aarch64/test/mpi_dec_test               ${linux_64_dir}
+    update_file ${mpp_root}/build/linux/aarch64/test/mpi_dec_mt_test            ${linux_64_dir}
+    update_file ${mpp_root}/build/linux/aarch64/test/mpi_dec_multi_test         ${linux_64_dir}
+    update_file ${mpp_root}/build/linux/aarch64/test/mpi_enc_test               ${linux_64_dir}
+    update_file ${mpp_root}/build/linux/aarch64/test/mpi_enc_mt_test            ${linux_64_dir}
 
-    echo "adbCmd=adb"                                                       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/librockchip_mpp.so.0   /usr/lib"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/librockchip_vpu.so.0   /usr/lib"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_dec_test           /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_enc_test           /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_dec_mt_test        /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_dec_multi_test     /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_enc_mt_test        /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/librockchip_mpp.so.0   /oem/usr/lib"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/librockchip_vpu.so.0   /oem/usr/lib"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_dec_test           /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_enc_test           /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_dec_mt_test        /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_dec_multi_test     /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_32/mpi_enc_mt_test        /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo ""                                                                 >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/librockchip_mpp.so.0   /usr/lib64"     >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/librockchip_vpu.so.0   /usr/lib64"     >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_dec_test           /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_enc_test           /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_dec_mt_test        /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_dec_multi_test     /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_enc_mt_test        /usr/bin"       >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/librockchip_mpp.so.0   /oem/usr/lib64" >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/librockchip_vpu.so.0   /oem/usr/lib64" >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_dec_test           /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_enc_test           /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_dec_mt_test        /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_dec_multi_test     /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
-    echo "\${adbCmd} push linux_64/mpi_enc_mt_test        /oem/usr/bin"   >> ${mppLibDir}/${pushTool}
+    echo "adbCmd=adb"                                                       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/librockchip_mpp.so.0   /usr/lib"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/librockchip_vpu.so.0   /usr/lib"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_dec_test           /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_enc_test           /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_dec_mt_test        /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_dec_multi_test     /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_enc_mt_test        /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/librockchip_mpp.so.0   /oem/usr/lib"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/librockchip_vpu.so.0   /oem/usr/lib"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_dec_test           /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_enc_test           /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_dec_mt_test        /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_dec_multi_test     /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_32/mpi_enc_mt_test        /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo ""                                                                 >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/librockchip_mpp.so.0   /usr/lib64"     >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/librockchip_vpu.so.0   /usr/lib64"     >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_dec_test           /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_enc_test           /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_dec_mt_test        /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_dec_multi_test     /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_enc_mt_test        /usr/bin"       >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/librockchip_mpp.so.0   /oem/usr/lib64" >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/librockchip_vpu.so.0   /oem/usr/lib64" >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_dec_test           /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_enc_test           /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_dec_mt_test        /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_dec_multi_test     /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
+    echo "\${adbCmd} push linux_64/mpi_enc_mt_test        /oem/usr/bin"   >> ${mpp_lib_dir}/${push_tool}
 }
 
 function add_log()
 {
-    echo "create time: `date +"%Y_%m_%d_%H:%M:%S"`" > ${mppLibDir}/${logFile}
-    echo "collect dir: ~${mppRoot#${HOME}}" >> ${mppLibDir}/${logFile}
+    echo "create time: `date +"%Y_%m_%d_%H:%M:%S"`" > ${mpp_lib_dir}/${log_file}
+    echo "collect dir: ~${mpp_root#${HOME}}" >> ${mpp_lib_dir}/${log_file}
 }
 
 
 # ====== main ======
 
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
+prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+source ${prj_root_dir}/0.general_tools/0.dir_file_opt.sh
 
-procParas $@
+proc_paras $@
 
-if [[ ${en_android} == "False" && ${en_linux} == "False" ]]; then help; exit 1; fi
+[ -e ${mpp_lib_dir} ] && rm -rf ${mpp_lib_dir}
+[ -e ${tar_pkt_name} ] && rm -rf ${tar_pkt_name}
 
-if [ -e ${mppLibDir} ]; then rm -rf ${mppLibDir}; fi
-if [ -e ${tarPkgName} ]; then rm -rf ${tarPkgName}; fi
-
-if [ ${en_android} == "True" ]; then update_android; fi
-if [ ${en_linux} == "True" ]; then update_linux; fi
+if [ ${cmd_sel_plt} == "android" ]; then
+    if [ "${cmd_build}" == "true" ]; then
+        cd ${mpp_root}
+        rm -rf build && git checkout build/
+        bash .prjBuild.sh -p 0 -i "false"
+        bash .prjBuild.sh -p 1 -i "false"
+        cd ${wk_dir}
+    fi
+    update_android
+elif [ ${cmd_sel_plt} == "linux" ]; then
+    if [ "${cmd_build}" == "true" ]; then
+        cd ${mpp_root}
+        rm -rf build && git checkout build/
+        bash .prjBuild.sh -p 2 -i "false"
+        bash .prjBuild.sh -p 3 -i "false"
+        cd ${wk_dir}
+    fi
+    update_linux
+fi
 
 add_log
 
-echo tarcmd: "tar -czvf ${tarPkgName} ${mppLibDir}"
-tar -czvf ${tarPkgName} ${mppLibDir}
+echo tarcmd: "tar -czvf ${tar_pkt_name} ${mpp_lib_dir}"
+tar -czvf ${tar_pkt_name} ${mpp_lib_dir}

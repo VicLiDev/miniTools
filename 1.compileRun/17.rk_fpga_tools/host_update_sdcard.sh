@@ -169,7 +169,7 @@ if [ $# -eq 0 ]; then
         opt_only_rfs="False"
         cur_time="`date +"%Y_%m_%d %H:%M:%S"`"
         echo -e "\033[0m\033[1;33mcur time: ${cur_time}\033[0m"
-        selectNode "${sel_tag_fpga}" "update_list" "cur_update" "update node"
+        select_node "${sel_tag_fpga}" "update_list" "cur_update" "update node"
         clear
         main ${cur_update}
     done

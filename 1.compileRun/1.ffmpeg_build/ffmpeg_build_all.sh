@@ -1401,7 +1401,7 @@ source ${prjRootDir}/0.general_tools/0.select_node.sh
 
 main()
 {
-    selectNode "${sel_tag_ffmpeg_b}" "pltList" "m_sel_arch" "platform"
+    select_node "${sel_tag_ffmpeg_b}" "pltList" "m_sel_arch" "platform"
     
     setup_env
 

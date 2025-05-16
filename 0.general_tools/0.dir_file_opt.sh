@@ -9,8 +9,8 @@
 # usage:
 # source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
 # or
-# prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-# source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
+# prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+# source ${prj_root_dir}/0.general_tools/0.dir_file_opt.sh
 
 create_dir()
 {

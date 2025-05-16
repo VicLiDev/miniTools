@@ -121,7 +121,7 @@ source ${prj_root_dir}/0.general_tools/0.dir_file_opt.sh
 while true; do
     cur_time="`date +"%Y_%m_%d %H:%M:%S"`"
     echo -e "\033[0m\033[1;33mcur time: ${cur_time}\033[0m"
-    selectNode "${sel_tag_fpga}" "plt_list" "cur_plt" "platform"
+    select_node "${sel_tag_fpga}" "plt_list" "cur_plt" "platform"
     clear
     update_prj_dirs
     update_imgs_path

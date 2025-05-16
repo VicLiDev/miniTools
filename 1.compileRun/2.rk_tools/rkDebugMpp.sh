@@ -325,8 +325,8 @@ if [ -z "${adbCmd}" ]; then exit 0; fi
 prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
 source ${prjRootDir}/0.general_tools/0.select_node.sh
 source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
-selectNode "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
-selectNode "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
+select_node "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
+select_node "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
 echo "tool:$dbgToolName pltName:$dbgPltName"
 
 cd ${prjRoot}

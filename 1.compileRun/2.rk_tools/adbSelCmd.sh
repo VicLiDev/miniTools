@@ -102,7 +102,7 @@ gen_adb_cmd()
 
     if [ "${cmd_sel_idx}" == "" ]; then
         if [ ${#devTPIDList[@]} -gt 1 ]; then
-            selectNode "${sel_tag_adbs}" "selectList" "mSelectedDev" "device"
+            select_node "${sel_tag_adbs}" "selectList" "mSelectedDev" "device"
         else
             mSelectedDev=${selectList[0]}
         fi

@@ -9,9 +9,9 @@
 # usage:
 #     1. exec cmd: source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
 #        or
-#        prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-#        source ${prjRootDir}/0.general_tools/0.select_node.sh
-#     2. selectNode "<cache tag>" "<select list>" "<select result>" "<select tip>"
+#        prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
+#        source ${prj_root_dir}/0.general_tools/0.select_node.sh
+#     2. select_node "<cache tag>" "<select list>" "<select result>" "<select tip>"
 #
 # basename命令用于从文件名中剥离路径信息，只留下基本名称。
 # basename NAME [SUFFIX]
@@ -78,11 +78,11 @@ wr_sel_cache()
     fi
 }
 
-selectNode()
+select_node()
 {
-    defSelIdx=0
+    def_sel_idx=0
     sel_tag="$1"
-    defSelIdx=`rd_sel_cache ${sel_tag} ${defSelIdx}`
+    def_sel_idx=`rd_sel_cache ${sel_tag} ${def_sel_idx}`
     local list_name="$2"
     declare -n list_ref="$2"
     declare -n sel_res="$3"
@@ -94,17 +94,17 @@ selectNode()
     echo "cur dir: `pwd`" >&2
     while [ True ]
     do
-        read -p "Please select ${sel_tip} or quit(q), def[${defSelIdx}]:" selIdx >&2
-        selIdx=${selIdx:-${defSelIdx}}
+        read -p "Please select ${sel_tip} or quit(q), def[${def_sel_idx}]:" sel_idx >&2
+        sel_idx=${sel_idx:-${def_sel_idx}}
 
-        if [ "${selIdx}" == "q" ]; then
+        if [ "${sel_idx}" == "q" ]; then
             echo "======> quit <======" >&2
             exit 1
-        elif [[ -n ${selIdx} ]] \
-            && [[ -z `echo ${selIdx} | sed 's/[0-9]//g'` ]] \
-            && [[ "${selIdx}" -lt "${#list_ref[@]}" ]]; then
-            sel_res=${list_ref[${selIdx}]}
-            echo "--> selected index:${selIdx}, ${sel_tip}:${sel_res}" >&2
+        elif [[ -n ${sel_idx} ]] \
+            && [[ -z `echo ${sel_idx} | sed 's/[0-9]//g'` ]] \
+            && [[ "${sel_idx}" -lt "${#list_ref[@]}" ]]; then
+            sel_res=${list_ref[${sel_idx}]}
+            echo "--> selected index:${sel_idx}, ${sel_tip}:${sel_res}" >&2
             break
         else
             sel_res=""
@@ -113,6 +113,6 @@ selectNode()
         fi
     done
 
-    wr_sel_cache ${sel_tag} ${selIdx}
+    wr_sel_cache ${sel_tag} ${sel_idx}
     echo -e "\033[0m" >&2
 }

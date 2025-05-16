@@ -146,7 +146,7 @@ gen_cmd()
         if [ "${#android_ver_list[@]}" -le "1" ]; then
             cur_android_ver=${android_ver_list[0]}
         else
-            selectNode "${sel_tag_android}" "android_ver_list" "cur_android_ver" "android version"
+            select_node "${sel_tag_android}" "android_ver_list" "cur_android_ver" "android version"
         fi
         if [ -n "${cur_android_ver}" ]; then
             cur_android_config="android-${cur_android_ver}.config"
@@ -158,7 +158,7 @@ gen_cmd()
     if [ -n "`cat drivers/video/rockchip/mpp/Makefile | grep obj-m | sed \"s/#.*//g\"`" ]; then
         # modify drivers/video/rockchip/mpp/Makefile need modify:
         # obj-$(CONFIG_ROCKCHIP_MPP_SERVICE) --> obj-m
-        selectNode "${sel_tag_mod}" "build_mode_list" "build_mod" "build method"
+        select_node "${sel_tag_mod}" "build_mode_list" "build_mod" "build method"
     else
         # default build kernel
         build_mod="build_kernel";
@@ -366,7 +366,7 @@ echo "VERSION    = ${VERSION}"
 echo "PATCHLEVEL = ${PATCHLEVEL}"
 echo "SUBLEVEL   = ${SUBLEVEL}"
 
-selectNode "${sel_tag_ker}" "pltList" "curPlt" "platform"
+select_node "${sel_tag_ker}" "pltList" "curPlt" "platform"
 get_arch
 init_tools_env
 gen_cmd
