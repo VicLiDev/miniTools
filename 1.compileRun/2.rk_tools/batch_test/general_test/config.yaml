@@ -1,0 +1,39 @@
+dec_infos:
+- path: "/videos/test1"
+  tags: ["base"]
+  videos:
+  - name: "video1.h264"
+    width: 1920
+    height: 1080
+    spec: h264
+    md5: "abc123def456"
+    reference_yuv: "/ref/video1_ffmpeg.yuv"
+    demo_info: "/ref/video1.chk"
+  - name: "video2.h265"
+    width: 1280
+    height: 720
+    md5: "789xyz000"
+
+- path: "/videos/test2"
+  tags: ["base", "sys"]
+  videos:
+  - name: "video3.h264"
+end_infos:
+- resolution:
+  - 4x4
+  - 8x8
+  - 16x16
+  - 32x32
+  - 64x64
+  - 640x360
+  - 854x480
+  - 1280x720
+  - 1920x1080
+  - 2560x1440
+  - 3840x2160
+  - 16384x8192
+  - 16384x9384
+  - 16384x10384
+  - 16384x16384
+  - 65472x65472
+  - 65520x65520
