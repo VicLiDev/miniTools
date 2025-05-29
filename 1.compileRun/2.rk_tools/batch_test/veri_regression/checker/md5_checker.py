@@ -15,9 +15,11 @@ def md5sum(filepath):
             h.update(chunk)
     return h.hexdigest()
 
-def verify_md5(filepath, reference_md5):
+def md5_verify(filepath, reference_md5, org_file):
     current_md5 = md5sum(filepath)
     if current_md5 != reference_md5:
-        print(f"[MD5 FAIL] {filepath}: {current_md5} ≠ {reference_md5}")
+        print(f"[\033[0m\033[1;31m MD5 FAIL \033[0m] {org_file}: {current_md5} ≠ {reference_md5}")
+        return False
     else:
-        print(f"[MD5 PASS] {filepath}")
+        print(f"[\033[0m\033[1;32m MD5 PASS \033[0m] {org_file}")
+        return True

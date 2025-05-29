@@ -1,0 +1,844 @@
+dec_support:
+  - platform : rk3588
+    support  : ["jpg", "mjpeg", "jpeg", "motion_jpeg", "h265", "hevc", "h264", "avc", "mvc_h264", "h263", "vp8", "vp9", "av1", "avs2", "mpeg1", "mpeg2", "mpeg4", "vc-1"]
+  - platform : rk3576
+    support  : ["jpg", "mjpeg", "jpeg", "h265", "hevc", "h264", "avc", "mvc_h264", "vp9", "av1", "avs2"]
+  - platform : rk3566
+    support  : ["jpg", "mjpeg", "jpeg", "motion_jpeg", "bmp", "gif", "png", "webp", "h265", "hevc", "h264", "avc", "mvc_h264", "h263", "vp8", "mpeg1", "mpeg2", "mpeg4", "vc-1"]
+  - platform : rk3568
+    support  : ["jpg", "mjpeg", "jpeg", "motion_jpeg", "bmp", "gif", "png", "webp", "h265", "hevc", "h264", "avc", "mvc_h264", "h263", "vp8", "mpeg1", "mpeg2", "mpeg4", "vc-1"]
+  - platform : rk3399
+    support  : ["jpg", "mjpeg", "jpeg", "motion_jpeg", "bmp", "gif", "png", "webp", "h265", "hevc", "h264", "avc", "mvc_h264", "h263", "vp8", "mpeg1", "mpeg2", "mpeg4"]
+  - platform : rk3528
+    support  : ["jpg", "mjpeg", "jpeg", "motion_jpeg", "h265", "hevc", "h264", "avc", "mvc_h264", "h263", "vp8", "avs2", "mpeg1", "mpeg2", "mpeg4", "vc-1"]
+  - platform : rv1126b
+    support  : ["jpg", "mjpeg", "jpeg", "motion_jpeg", "h265", "hevc", "h264", "avc"]
+  - platform : rv1126
+    support  : ["jpg", "mjpeg", "jpeg", "motion_jpeg", "h265", "hevc", "h264", "avc"]
+enc_support:
+  - platform : rk3588
+    support  : ["jpg", "mjpeg", "jpeg", "h265", "hevc", "h264", "avc", "vp8"]
+  - platform : rk3576
+    support  : ["jpg", "mjpeg", "jpeg", "h265", "hevc", "h264", "avc"]
+  - platform : rk3566
+    support  : ["jpg", "mjpeg", "jpeg", "h264", "avc"]
+  - platform : rk3568
+    support  : ["jpg", "mjpeg", "jpeg", "h264", "avc"]
+  - platform : rk3399
+    support  : ["jpg", "mjpeg", "jpeg", "h264", "avc"]
+  - platform : rk3528
+    support  : ["jpg", "mjpeg", "jpeg", "h265", "hevc", "h264", "avc", "vp8"]
+  - platform : rv1126b
+    support  : ["jpg", "mjpeg", "jpeg", "h265", "hevc", "h264", "avc"]
+  - platform : rv1126
+    support  : ["jpg", "mjpeg", "jpeg", "h265", "hevc", "h264", "avc"]
+dec_infos:
+- path: /home/lhj/Projects/streams/m_h264/vstream
+  tags: ["all"]
+  videos:
+  - name: Big_Buck_Bunny_360_10s_1MB.h264
+    tags: ["base"]
+  - name: Big_Buck_Bunny_360_10s_2MB.h264
+  - name: Big_Buck_Bunny_360_10s_5MB.h264
+  - name: Big_Buck_Bunny_360_10s_10MB.h264
+  - name: Big_Buck_Bunny_360_10s_20MB.h264
+  - name: Big_Buck_Bunny_360_10s_30MB.h264
+  - name: Big_Buck_Bunny_720_10s_1MB.h264
+  - name: Big_Buck_Bunny_720_10s_2MB.h264
+  - name: Big_Buck_Bunny_720_10s_5MB.h264
+  - name: Big_Buck_Bunny_720_10s_10MB.h264
+  - name: Big_Buck_Bunny_720_10s_20MB.h264
+  - name: Big_Buck_Bunny_720_10s_30MB.h264
+  - name: Big_Buck_Bunny_1080_10s_1MB.h264
+  - name: Big_Buck_Bunny_1080_10s_2MB.h264
+  - name: Big_Buck_Bunny_1080_10s_5MB.h264
+  - name: Big_Buck_Bunny_1080_10s_10MB.h264
+  - name: Big_Buck_Bunny_1080_10s_20MB.h264
+  - name: Big_Buck_Bunny_1080_10s_30MB.h264
+  # - name: bbb_sunflower_2160p_30fps_normal.h264
+  # - name: output_4k_yuv420.h264
+  # - name: 356x_cabac_cavlc/PartyScene_832x480_50_10bit_422_cabac.h264
+  # - name: 356x_cabac_cavlc/356x_cavlc_stuck.h264
+  # - name: 356x_cabac_cavlc/356x_cabac_stuck.h264
+
+- path: /home/lhj/Projects/streams/m_h265/vstream
+  tags: ["all"]
+  videos:
+  - name: Big_Buck_Bunny_360_10s_1MB.h265
+    tags: ["base"]
+  - name: Big_Buck_Bunny_360_10s_2MB.h265
+  - name: Big_Buck_Bunny_360_10s_5MB.h265
+  - name: Big_Buck_Bunny_360_10s_10MB.h265
+  - name: Big_Buck_Bunny_360_10s_20MB.h265
+  - name: Big_Buck_Bunny_720_10s_1MB.h265
+  - name: Big_Buck_Bunny_720_10s_2MB.h265
+  - name: Big_Buck_Bunny_720_10s_5MB.h265
+  - name: Big_Buck_Bunny_720_10s_10MB.h265
+  - name: Big_Buck_Bunny_720_10s_20MB.h265
+  - name: Big_Buck_Bunny_720_10s_30MB.h265
+  - name: Big_Buck_Bunny_1080_10s_1MB.h265
+  - name: Big_Buck_Bunny_1080_10s_2MB.h265
+  - name: Big_Buck_Bunny_1080_10s_5MB.h265
+  - name: Big_Buck_Bunny_1080_10s_10MB.h265
+  - name: Big_Buck_Bunny_1080_10s_20MB.h265
+  - name: Big_Buck_Bunny_1080_10s_30MB.h265
+  # - name: H265_4k_60fps_20M-RIO.h265
+
+- path: /home/lhj/Projects/streams/m_vp9/vstream
+  tags: ["all"]
+  videos:
+  - name: Big_Buck_Bunny_360_10s_1MB.ivf
+    tags: ["base"]
+  - name: Big_Buck_Bunny_360_10s_2MB.ivf
+  - name: Big_Buck_Bunny_360_10s_5MB.ivf
+  - name: Big_Buck_Bunny_360_10s_10MB.ivf
+  - name: Big_Buck_Bunny_360_10s_20MB.ivf
+  - name: Big_Buck_Bunny_360_10s_30MB.ivf
+  - name: Big_Buck_Bunny_720_10s_1MB.ivf
+  - name: Big_Buck_Bunny_720_10s_2MB.ivf
+  - name: Big_Buck_Bunny_720_10s_5MB.ivf
+  - name: Big_Buck_Bunny_720_10s_10MB.ivf
+  - name: Big_Buck_Bunny_720_10s_20MB.ivf
+  - name: Big_Buck_Bunny_720_10s_30MB.ivf
+  - name: Big_Buck_Bunny_1080_10s_1MB.ivf
+  - name: Big_Buck_Bunny_1080_10s_2MB.ivf
+  - name: Big_Buck_Bunny_1080_10s_5MB.ivf
+  - name: Big_Buck_Bunny_1080_10s_10MB.ivf
+  - name: Big_Buck_Bunny_1080_10s_20MB.ivf
+  - name: Big_Buck_Bunny_1080_10s_30MB.ivf
+  # - name: Sony_Food_Fizzle_4K_60fps_VP9.ivf
+
+- path: /home/lhj/Projects/streams/m_av1/vstream
+  tags: ["all"]
+  videos:
+  - name: Sintel_360_10s_1MB.ivf
+    tags: ["base"]
+  - name: Sintel_360_10s_2MB.ivf
+  - name: Sintel_360_10s_5MB.ivf
+  - name: Sintel_360_10s_10MB.ivf
+  - name: Sintel_720_10s_1MB.ivf
+  - name: Sintel_720_10s_2MB.ivf
+  - name: Sintel_720_10s_5MB.ivf
+  - name: Sintel_720_10s_10MB.ivf
+  - name: Sintel_720_10s_20MB.ivf
+  - name: Sintel_720_10s_30MB.ivf
+  - name: Sintel_1080_10s_1MB.ivf
+  - name: Sintel_1080_10s_2MB.ivf
+  - name: Sintel_1080_10s_5MB.ivf
+  - name: Sintel_1080_10s_10MB.ivf
+  - name: Sintel_1080_10s_20MB.ivf
+  - name: Sintel_1080_10s_30MB.ivf
+  # - name: Real_4K_HDR_60fps.ivf
+  # - name: av1.rk3576.failure.ivf
+
+- path: /home/lhj/Projects/streams/m_AV1_90_ser
+  tags: ["all"]
+  videos:
+  # - name: vstream/Japan_AV1-8bit-3840x2160-12mbps.ivf
+  # - name: vstream/Japan_AV1-8bit-7680x4320-26mbps.ivf
+  - name: vstream/Chimera-AV1-8bit-480x270-552kbps.ivf
+  # - name: vstream/Chimera-AV1-8bit-768x432-1160kbps.ivf
+  # - name: vstream/Chimera-AV1-8bit-1280x720-3363kbps.ivf
+  # - name: vstream/Chimera-AV1-8bit-1920x1080-6736kbps.ivf
+  - name: vstream/Chimera-AV1-10bit-480x270-531kbps.ivf
+  # - name: vstream/Chimera-AV1-10bit-768x432-1090kbps.ivf
+  # - name: vstream/Chimera-AV1-10bit-1280x720-2380kbps.ivf
+  # - name: vstream/Chimera-AV1-10bit-1920x1080-6191kbps.ivf
+  - name: Chimera-AV1-8bit-480x270-552kbps.ivf
+  # - name: Chimera-AV1-8bit-768x432-1160kbps.ivf
+  # - name: Chimera-AV1-8bit-1280x720-3363kbps.ivf
+  # - name: Chimera-AV1-8bit-1920x1080-6736kbps.ivf
+  - name: Chimera-AV1-10bit-480x270-531kbps.ivf
+  # - name: Chimera-AV1-10bit-768x432-1090kbps.ivf
+  # - name: Chimera-AV1-10bit-1280x720-2380kbps.ivf
+  # - name: Chimera-AV1-10bit-1920x1080-6191kbps.ivf
+
+- path: /home/lhj/Projects/streams/m_avs2/vstream
+  tags: ["all"]
+  videos:
+  - name: CCTV8K.AVS3.MP2.CB_10bit_HDR.avs2
+  - name: masterchef.australia.s12e59.hdtv.cavs-fqm[eztv.io].avs2
+  - name: test1_avs2.avs2
+  - name: test5_avs3.avs2
+  - name: CCTV4K.AVS2-10bit.AC3.CB.08-27-6s.avs2
+  - name: test5_avs2.avs2
+  - name: jellyfish-640x360-avs3-10bit.avs2
+  - name: HDR-JNDNet_Test_qp37_avs3_HDR.avs2
+  - name: HDRPlus_PA_DTSX_avs2_4K_18s.avs2
+  - name: HDR10Plus_PA_DTSX_768x432_HDR_avs3_20s.avs2
+
+- path: /home/lhj/Projects/streams/m_avs2/avs2stream/ES
+  tags: ["all"]
+  videos:
+  - name: BQMall_832x480_60_ra/test.avs2
+  - name: ParkScene_1920x1080_24_ra/test.avs2
+  - name: BQSquare_416x240_60_ra/test.avs2
+  - name: BasketballPass_416x240_50_ld/test.avs2
+  - name: RaceHorses_416x240_30_ai/test.avs2
+  - name: BasketballPass_416x240_50_ra/test.avs2
+  - name: BQSquare_416x240_60_ld/test.avs2
+  - name: RaceHorses_416x240_30_ld/test.avs2
+  - name: PartyScene_832x480_50_ra/test.avs2
+  - name: BQSquare_416x240_60_ai/test.avs2
+  - name: RaceHorses_416x240_30_ra/test.avs2
+  - name: BasketballPass_416x240_50_ai/test.avs2
+
+- path: /home/lhj/Projects/streams/m_jpeg
+  tags: ["all"]
+  videos:
+  - name: 70.jpg
+    tags: ["base"]
+  - name: 0.origin.jpg
+
+- path: "/home/lhj/Projects/streams/sys_cfg_test"
+  tags: ["all", "buf_raster"]
+  videos:
+  - name: h264/test_size_h264_1024x1024_nv12.h264
+  - name: h264/test_size_h264_1024x1024_yuv420p10le.h264
+  - name: h264/test_size_h264_1080x1920_nv12.h264
+  - name: h264/test_size_h264_1080x1920_yuv420p10le.h264
+  - name: h264/test_size_h264_1280x720_nv12.h264
+  - name: h264/test_size_h264_1280x720_yuv420p10le.h264
+  - name: h264/test_size_h264_128x72_nv12.h264
+  - name: h264/test_size_h264_128x72_yuv420p10le.h264
+  - name: h264/test_size_h264_1440x2560_nv12.h264
+  - name: h264/test_size_h264_1440x2560_yuv420p10le.h264
+  - name: h264/test_size_h264_1920x1080_nv12.h264
+  - name: h264/test_size_h264_1920x1080_yuv420p10le.h264
+  - name: h264/test_size_h264_2560x1080_nv12.h264
+  - name: h264/test_size_h264_2560x1080_yuv420p10le.h264
+  - name: h264/test_size_h264_2560x1440_nv12.h264
+  - name: h264/test_size_h264_2560x1440_yuv420p10le.h264
+  - name: h264/test_size_h264_256x144_nv12.h264
+  - name: h264/test_size_h264_256x144_yuv420p10le.h264
+  - name: h264/test_size_h264_3440x1440_nv12.h264
+  - name: h264/test_size_h264_3440x1440_yuv420p10le.h264
+  - name: h264/test_size_h264_3840x1600_nv12.h264
+  - name: h264/test_size_h264_3840x1600_yuv420p10le.h264
+  - name: h264/test_size_h264_3840x2160_nv12.h264
+  - name: h264/test_size_h264_3840x2160_yuv420p10le.h264
+  - name: h264/test_size_h264_4096x2160_nv12.h264
+  - name: h264/test_size_h264_4096x2160_yuv420p10le.h264
+  - name: h264/test_size_h264_512x512_nv12.h264
+  - name: h264/test_size_h264_512x512_yuv420p10le.h264
+  - name: h264/test_size_h264_640x360_nv12.h264
+  - name: h264/test_size_h264_640x360_yuv420p10le.h264
+  - name: h264/test_size_h264_64x36_nv12.h264
+  - name: h264/test_size_h264_64x36_yuv420p10le.h264
+  - name: h264/test_size_h264_64x64_nv12.h264
+  - name: h264/test_size_h264_64x64_yuv420p10le.h264
+  - name: h264/test_size_h264_7680x4320_nv12.h264
+  - name: h264/test_size_h264_854x480_nv12.h264
+  - name: h264/test_size_h264_854x480_yuv420p10le.h264
+  - name: h265/test_size_h265_1024x1024_nv12.h265
+  - name: h265/test_size_h265_1024x1024_yuv420p10le.h265
+  - name: h265/test_size_h265_1080x1920_nv12.h265
+  - name: h265/test_size_h265_1080x1920_yuv420p10le.h265
+  - name: h265/test_size_h265_1280x720_nv12.h265
+  - name: h265/test_size_h265_1280x720_yuv420p10le.h265
+  - name: h265/test_size_h265_128x72_nv12.h265
+  - name: h265/test_size_h265_128x72_yuv420p10le.h265
+  - name: h265/test_size_h265_1440x2560_nv12.h265
+  - name: h265/test_size_h265_1440x2560_yuv420p10le.h265
+  - name: h265/test_size_h265_1920x1080_nv12.h265
+  - name: h265/test_size_h265_1920x1080_yuv420p10le.h265
+  - name: h265/test_size_h265_2560x1080_nv12.h265
+  - name: h265/test_size_h265_2560x1080_yuv420p10le.h265
+  - name: h265/test_size_h265_2560x1440_nv12.h265
+  - name: h265/test_size_h265_2560x1440_yuv420p10le.h265
+  - name: h265/test_size_h265_256x144_nv12.h265
+  - name: h265/test_size_h265_256x144_yuv420p10le.h265
+  - name: h265/test_size_h265_3440x1440_nv12.h265
+  - name: h265/test_size_h265_3440x1440_yuv420p10le.h265
+  - name: h265/test_size_h265_3840x1600_nv12.h265
+  - name: h265/test_size_h265_3840x1600_yuv420p10le.h265
+  - name: h265/test_size_h265_3840x2160_nv12.h265
+  - name: h265/test_size_h265_3840x2160_yuv420p10le.h265
+  - name: h265/test_size_h265_4096x2160_nv12.h265
+  - name: h265/test_size_h265_4096x2160_yuv420p10le.h265
+  - name: h265/test_size_h265_512x512_nv12.h265
+  - name: h265/test_size_h265_512x512_yuv420p10le.h265
+  - name: h265/test_size_h265_640x360_nv12.h265
+  - name: h265/test_size_h265_640x360_yuv420p10le.h265
+  - name: h265/test_size_h265_64x36_nv12.h265
+  - name: h265/test_size_h265_64x36_yuv420p10le.h265
+  - name: h265/test_size_h265_64x64_nv12.h265
+  - name: h265/test_size_h265_64x64_yuv420p10le.h265
+  - name: h265/test_size_h265_7680x4320_nv12.h265
+  - name: h265/test_size_h265_7680x4320_yuv420p10le.h265
+  - name: h265/test_size_h265_854x480_nv12.h265
+  - name: h265/test_size_h265_854x480_yuv420p10le.h265
+  - name: vp8/test_size_vp8_1024x1024_nv12.ivf
+  - name: vp8/test_size_vp8_1024x1024_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_1080x1920_nv12.ivf
+  - name: vp8/test_size_vp8_1080x1920_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_1280x720_nv12.ivf
+  - name: vp8/test_size_vp8_1280x720_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_128x72_nv12.ivf
+  - name: vp8/test_size_vp8_128x72_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_1440x2560_nv12.ivf
+  - name: vp8/test_size_vp8_1440x2560_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_1919x1079_nv12.ivf
+  - name: vp8/test_size_vp8_1919x1079_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_1920x1080_nv12.ivf
+  - name: vp8/test_size_vp8_1920x1080_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_2560x1080_nv12.ivf
+  - name: vp8/test_size_vp8_2560x1080_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_2560x1440_nv12.ivf
+  - name: vp8/test_size_vp8_2560x1440_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_256x144_nv12.ivf
+  - name: vp8/test_size_vp8_256x144_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_3440x1440_nv12.ivf
+  - name: vp8/test_size_vp8_3440x1440_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_3840x1600_nv12.ivf
+  - name: vp8/test_size_vp8_3840x1600_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_3840x2160_nv12.ivf
+  - name: vp8/test_size_vp8_3840x2160_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_4096x2160_nv12.ivf
+  - name: vp8/test_size_vp8_4096x2160_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_512x512_nv12.ivf
+  - name: vp8/test_size_vp8_512x512_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_513x289_nv12.ivf
+  - name: vp8/test_size_vp8_513x289_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_640x360_nv12.ivf
+  - name: vp8/test_size_vp8_640x360_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_64x36_nv12.ivf
+  - name: vp8/test_size_vp8_64x36_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_64x64_nv12.ivf
+  - name: vp8/test_size_vp8_64x64_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_7680x4320_nv12.ivf
+  - name: vp8/test_size_vp8_7680x4320_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_8192x8192_nv12.ivf
+  - name: vp8/test_size_vp8_8192x8192_yuv420p10le.ivf
+  - name: vp8/test_size_vp8_854x480_nv12.ivf
+  - name: vp8/test_size_vp8_854x480_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_1024x1024_nv12.ivf
+  - name: vp9/test_size_vp9_1024x1024_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_1080x1920_nv12.ivf
+  - name: vp9/test_size_vp9_1080x1920_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_1280x720_nv12.ivf
+  - name: vp9/test_size_vp9_1280x720_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_128x72_nv12.ivf
+  - name: vp9/test_size_vp9_128x72_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_1440x2560_nv12.ivf
+  - name: vp9/test_size_vp9_1440x2560_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_1919x1079_nv12.ivf
+  - name: vp9/test_size_vp9_1919x1079_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_1920x1080_nv12.ivf
+  - name: vp9/test_size_vp9_1920x1080_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_2560x1080_nv12.ivf
+  - name: vp9/test_size_vp9_2560x1080_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_2560x1440_nv12.ivf
+  - name: vp9/test_size_vp9_2560x1440_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_256x144_nv12.ivf
+  - name: vp9/test_size_vp9_256x144_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_3440x1440_nv12.ivf
+  - name: vp9/test_size_vp9_3440x1440_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_3840x1600_nv12.ivf
+  - name: vp9/test_size_vp9_3840x1600_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_3840x2160_nv12.ivf
+  - name: vp9/test_size_vp9_3840x2160_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_4096x2160_nv12.ivf
+  - name: vp9/test_size_vp9_4096x2160_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_512x512_nv12.ivf
+  - name: vp9/test_size_vp9_512x512_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_513x289_nv12.ivf
+  - name: vp9/test_size_vp9_513x289_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_640x360_nv12.ivf
+  - name: vp9/test_size_vp9_640x360_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_64x36_nv12.ivf
+  - name: vp9/test_size_vp9_64x36_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_64x64_nv12.ivf
+  - name: vp9/test_size_vp9_64x64_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_7680x4320_nv12.ivf
+  - name: vp9/test_size_vp9_7680x4320_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_8192x8192_yuv420p10le.ivf
+  - name: vp9/test_size_vp9_854x480_nv12.ivf
+  - name: vp9/test_size_vp9_854x480_yuv420p10le.ivf
+  - name: av1/test_size_av1_1024x1024_nv12.ivf
+  - name: av1/test_size_av1_1024x1024_yuv420p10le.ivf
+  - name: av1/test_size_av1_1080x1920_nv12.ivf
+  - name: av1/test_size_av1_1080x1920_yuv420p10le.ivf
+  - name: av1/test_size_av1_1280x720_nv12.ivf
+  - name: av1/test_size_av1_1280x720_yuv420p10le.ivf
+  - name: av1/test_size_av1_128x72_nv12.ivf
+  - name: av1/test_size_av1_128x72_yuv420p10le.ivf
+  - name: av1/test_size_av1_1440x2560_nv12.ivf
+  - name: av1/test_size_av1_1440x2560_yuv420p10le.ivf
+  - name: av1/test_size_av1_1919x1079_nv12.ivf
+  - name: av1/test_size_av1_1919x1079_yuv420p10le.ivf
+  - name: av1/test_size_av1_1920x1080_nv12.ivf
+  - name: av1/test_size_av1_1920x1080_yuv420p10le.ivf
+  - name: av1/test_size_av1_2560x1080_nv12.ivf
+  - name: av1/test_size_av1_2560x1080_yuv420p10le.ivf
+  - name: av1/test_size_av1_2560x1440_nv12.ivf
+  - name: av1/test_size_av1_2560x1440_yuv420p10le.ivf
+  - name: av1/test_size_av1_256x144_nv12.ivf
+  - name: av1/test_size_av1_256x144_yuv420p10le.ivf
+  - name: av1/test_size_av1_3440x1440_nv12.ivf
+  - name: av1/test_size_av1_3440x1440_yuv420p10le.ivf
+  - name: av1/test_size_av1_3840x1600_nv12.ivf
+  - name: av1/test_size_av1_3840x1600_yuv420p10le.ivf
+  - name: av1/test_size_av1_3840x2160_nv12.ivf
+  - name: av1/test_size_av1_3840x2160_yuv420p10le.ivf
+  - name: av1/test_size_av1_4096x2160_nv12.ivf
+  - name: av1/test_size_av1_4096x2160_yuv420p10le.ivf
+  - name: av1/test_size_av1_512x512_nv12.ivf
+  - name: av1/test_size_av1_512x512_yuv420p10le.ivf
+  - name: av1/test_size_av1_513x289_nv12.ivf
+  - name: av1/test_size_av1_513x289_yuv420p10le.ivf
+  - name: av1/test_size_av1_640x360_nv12.ivf
+  - name: av1/test_size_av1_640x360_yuv420p10le.ivf
+  - name: av1/test_size_av1_64x36_nv12.ivf
+  - name: av1/test_size_av1_64x36_yuv420p10le.ivf
+  - name: av1/test_size_av1_64x64_nv12.ivf
+  - name: av1/test_size_av1_64x64_yuv420p10le.ivf
+  - name: av1/test_size_av1_7680x4320_nv12.ivf
+  - name: av1/test_size_av1_854x480_nv12.ivf
+  - name: av1/test_size_av1_854x480_yuv420p10le.ivf
+  - name: avs2/test_size_avs2_1024x1024_nv12.avs2
+  - name: avs2/test_size_avs2_1024x1024_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_1080x1920_nv12.avs2
+  - name: avs2/test_size_avs2_1080x1920_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_1280x720_nv12.avs2
+  - name: avs2/test_size_avs2_1280x720_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_128x72_nv12.avs2
+  - name: avs2/test_size_avs2_128x72_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_1440x2560_nv12.avs2
+  - name: avs2/test_size_avs2_1440x2560_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_1919x1079_nv12.avs2
+  - name: avs2/test_size_avs2_1919x1079_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_1920x1080_nv12.avs2
+  - name: avs2/test_size_avs2_1920x1080_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_2560x1080_nv12.avs2
+  - name: avs2/test_size_avs2_2560x1080_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_2560x1440_nv12.avs2
+  - name: avs2/test_size_avs2_2560x1440_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_256x144_nv12.avs2
+  - name: avs2/test_size_avs2_256x144_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_3440x1440_nv12.avs2
+  - name: avs2/test_size_avs2_3440x1440_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_3840x1600_nv12.avs2
+  - name: avs2/test_size_avs2_3840x1600_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_3840x2160_nv12.avs2
+  - name: avs2/test_size_avs2_3840x2160_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_4096x2160_nv12.avs2
+  - name: avs2/test_size_avs2_4096x2160_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_512x512_nv12.avs2
+  - name: avs2/test_size_avs2_512x512_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_513x289_nv12.avs2
+  - name: avs2/test_size_avs2_513x289_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_640x360_nv12.avs2
+  - name: avs2/test_size_avs2_640x360_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_64x36_nv12.avs2
+  - name: avs2/test_size_avs2_64x36_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_64x64_nv12.avs2
+  - name: avs2/test_size_avs2_64x64_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_7680x4320_nv12.avs2
+  - name: avs2/test_size_avs2_7680x4320_yuv420p10le.avs2
+  - name: avs2/test_size_avs2_854x480_nv12.avs2
+  - name: avs2/test_size_avs2_854x480_yuv420p10le.avs2
+  - name: fbc_crop/fbc_crop_stride.h264
+  - name: fbc_crop/fbc_crop_stride.h265
+  - name: mpg/test_size_mpg_1024x1024_nv12.mpg
+  - name: mpg/test_size_mpg_1024x1024_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_1080x1920_nv12.mpg
+  - name: mpg/test_size_mpg_1080x1920_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_1280x720_nv12.mpg
+  - name: mpg/test_size_mpg_1280x720_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_128x72_nv12.mpg
+  - name: mpg/test_size_mpg_128x72_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_1440x2560_nv12.mpg
+  - name: mpg/test_size_mpg_1440x2560_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_1919x1079_nv12.mpg
+  - name: mpg/test_size_mpg_1919x1079_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_1920x1080_nv12.mpg
+  - name: mpg/test_size_mpg_1920x1080_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_2560x1080_nv12.mpg
+  - name: mpg/test_size_mpg_2560x1080_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_2560x1440_nv12.mpg
+  - name: mpg/test_size_mpg_2560x1440_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_256x144_nv12.mpg
+  - name: mpg/test_size_mpg_256x144_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_3440x1440_nv12.mpg
+  - name: mpg/test_size_mpg_3440x1440_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_3840x1600_nv12.mpg
+  - name: mpg/test_size_mpg_3840x1600_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_3840x2160_nv12.mpg
+  - name: mpg/test_size_mpg_3840x2160_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_512x512_nv12.mpg
+  - name: mpg/test_size_mpg_512x512_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_513x289_nv12.mpg
+  - name: mpg/test_size_mpg_513x289_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_640x360_nv12.mpg
+  - name: mpg/test_size_mpg_640x360_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_64x36_nv12.mpg
+  - name: mpg/test_size_mpg_64x36_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_64x64_nv12.mpg
+  - name: mpg/test_size_mpg_64x64_yuv420p10le.mpg
+  - name: mpg/test_size_mpg_854x480_nv12.mpg
+  - name: mpg/test_size_mpg_854x480_yuv420p10le.mpg
+  - name: m2v/test_size_m2v_1024x1024_nv12.m2v
+  - name: m2v/test_size_m2v_1024x1024_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_1080x1920_nv12.m2v
+  - name: m2v/test_size_m2v_1080x1920_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_1280x720_nv12.m2v
+  - name: m2v/test_size_m2v_1280x720_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_128x72_nv12.m2v
+  - name: m2v/test_size_m2v_128x72_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_1440x2560_nv12.m2v
+  - name: m2v/test_size_m2v_1440x2560_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_1919x1079_nv12.m2v
+  - name: m2v/test_size_m2v_1919x1079_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_1920x1080_nv12.m2v
+  - name: m2v/test_size_m2v_1920x1080_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_2560x1080_nv12.m2v
+  - name: m2v/test_size_m2v_2560x1080_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_2560x1440_nv12.m2v
+  - name: m2v/test_size_m2v_2560x1440_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_256x144_nv12.m2v
+  - name: m2v/test_size_m2v_256x144_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_3440x1440_nv12.m2v
+  - name: m2v/test_size_m2v_3440x1440_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_3840x1600_nv12.m2v
+  - name: m2v/test_size_m2v_3840x1600_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_3840x2160_nv12.m2v
+  - name: m2v/test_size_m2v_3840x2160_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_512x512_nv12.m2v
+  - name: m2v/test_size_m2v_512x512_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_513x289_nv12.m2v
+  - name: m2v/test_size_m2v_513x289_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_640x360_nv12.m2v
+  - name: m2v/test_size_m2v_640x360_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_64x36_nv12.m2v
+  - name: m2v/test_size_m2v_64x36_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_64x64_nv12.m2v
+  - name: m2v/test_size_m2v_64x64_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_7680x4320_nv12.m2v
+  - name: m2v/test_size_m2v_7680x4320_yuv420p10le.m2v
+  - name: m2v/test_size_m2v_854x480_nv12.m2v
+  - name: m2v/test_size_m2v_854x480_yuv420p10le.m2v
+  - name: m4v/test_size_m4v_1024x1024_nv12.m4v
+  - name: m4v/test_size_m4v_1024x1024_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_1080x1920_nv12.m4v
+  - name: m4v/test_size_m4v_1080x1920_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_1280x720_nv12.m4v
+  - name: m4v/test_size_m4v_1280x720_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_128x72_nv12.m4v
+  - name: m4v/test_size_m4v_128x72_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_1440x2560_nv12.m4v
+  - name: m4v/test_size_m4v_1440x2560_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_1919x1079_nv12.m4v
+  - name: m4v/test_size_m4v_1919x1079_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_1920x1080_nv12.m4v
+  - name: m4v/test_size_m4v_1920x1080_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_2560x1080_nv12.m4v
+  - name: m4v/test_size_m4v_2560x1080_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_2560x1440_nv12.m4v
+  - name: m4v/test_size_m4v_2560x1440_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_256x144_nv12.m4v
+  - name: m4v/test_size_m4v_256x144_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_3440x1440_nv12.m4v
+  - name: m4v/test_size_m4v_3440x1440_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_3840x1600_nv12.m4v
+  - name: m4v/test_size_m4v_3840x1600_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_3840x2160_nv12.m4v
+  - name: m4v/test_size_m4v_3840x2160_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_4096x2160_nv12.m4v
+  - name: m4v/test_size_m4v_4096x2160_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_512x512_nv12.m4v
+  - name: m4v/test_size_m4v_512x512_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_513x289_nv12.m4v
+  - name: m4v/test_size_m4v_513x289_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_640x360_nv12.m4v
+  - name: m4v/test_size_m4v_640x360_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_64x36_nv12.m4v
+  - name: m4v/test_size_m4v_64x36_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_64x64_nv12.m4v
+  - name: m4v/test_size_m4v_64x64_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_7680x4320_nv12.m4v
+  - name: m4v/test_size_m4v_7680x4320_yuv420p10le.m4v
+  - name: m4v/test_size_m4v_854x480_nv12.m4v
+  - name: m4v/test_size_m4v_854x480_yuv420p10le.m4v
+  - name: jpg/test_size_jpg_1024x1024_nv12.jpg
+  - name: jpg/test_size_jpg_1024x1024_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_1080x1920_nv12.jpg
+  - name: jpg/test_size_jpg_1080x1920_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_1280x720_nv12.jpg
+  - name: jpg/test_size_jpg_1280x720_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_128x72_nv12.jpg
+  - name: jpg/test_size_jpg_128x72_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_1440x2560_nv12.jpg
+  - name: jpg/test_size_jpg_1440x2560_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_1919x1079_nv12.jpg
+  - name: jpg/test_size_jpg_1919x1079_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_1920x1080_nv12.jpg
+  - name: jpg/test_size_jpg_1920x1080_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_2560x1080_nv12.jpg
+  - name: jpg/test_size_jpg_2560x1080_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_2560x1440_nv12.jpg
+  - name: jpg/test_size_jpg_2560x1440_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_256x144_nv12.jpg
+  - name: jpg/test_size_jpg_256x144_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_3440x1440_nv12.jpg
+  - name: jpg/test_size_jpg_3440x1440_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_3840x1600_nv12.jpg
+  - name: jpg/test_size_jpg_3840x1600_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_3840x2160_nv12.jpg
+  - name: jpg/test_size_jpg_3840x2160_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_4096x2160_nv12.jpg
+  - name: jpg/test_size_jpg_4096x2160_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_512x512_nv12.jpg
+  - name: jpg/test_size_jpg_512x512_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_513x289_nv12.jpg
+  - name: jpg/test_size_jpg_513x289_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_640x360_nv12.jpg
+  - name: jpg/test_size_jpg_640x360_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_64x36_nv12.jpg
+  - name: jpg/test_size_jpg_64x36_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_64x64_nv12.jpg
+  - name: jpg/test_size_jpg_64x64_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_7680x4320_nv12.jpg
+  - name: jpg/test_size_jpg_7680x4320_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_8192x8192_nv12.jpg
+  - name: jpg/test_size_jpg_8192x8192_yuv420p10le.jpg
+  - name: jpg/test_size_jpg_854x480_nv12.jpg
+  - name: jpg/test_size_jpg_854x480_yuv420p10le.jpg
+  # - name: xlm_support/avs2/test_avs2_1920x1080.avi
+  # - name: xlm_support/avs2/test_avs2_1280x720.avi
+  # - name: xlm_support/avs2/test_avs2_3440x1440.avi
+  # - name: xlm_support/avs2/test_avs2_64x64.avi
+  # - name: xlm_support/avs2/test_avs2_3840x2160.avi
+  # - name: xlm_support/avs2/test_avs2_480x360.avi
+  # - name: xlm_support/avs2/test_avs2_1278x718.avi
+  # - name: xlm_support/avs2/test_avs2_1024x768.avi
+  # - name: xlm_support/avs2/test_avs2_640x480.avi
+  # - name: xlm_support/avs2/test_avs2_3840x64.avi
+  # - name: xlm_support/avs2/test_avs2_854x480.avi
+  # - name: xlm_support/avs2/test_avs2_160x90.avi
+  # - name: xlm_support/avs2/test_avs2_128x72.avi
+  # - name: xlm_support/avs2/test_avs2_1080x1920.avi
+  # - name: xlm_support/avs2/test_avs2_512x512.avi
+  # - name: xlm_support/avs2/test_avs2_320x240.avi
+  # - name: xlm_support/avs2/test_avs2_176x144.avi
+  # - name: xlm_support/avs2/test_avs2_80x60.avi
+  # - name: xlm_support/avs2/test_avs2_2560x1440.avi
+  # - name: xlm_support/avs2/test_avs2_640x360.avi
+  # - name: xlm_support/avs2/test_avs2_1280x800.avi
+  # - name: xlm_support/vstrms/test_vp9_854x480.ivf
+  # - name: xlm_support/vstrms/test_av1_512x512.ivf
+  # - name: xlm_support/vstrms/test_h264_1918x1078_10bit.h264
+  # - name: xlm_support/vstrms/test_h264_1280x800.h264
+  # - name: xlm_support/vstrms/test_mpeg4_3440x1440.m4v
+  # - name: xlm_support/vstrms/test_vp8_854x480.ivf
+  # - name: xlm_support/vstrms/test_h265_1278x718.h265
+  # - name: xlm_support/vstrms/test_h265_160x90.h265
+  # - name: xlm_support/vstrms/test_avs2_3840x2160.avs2
+  # - name: xlm_support/vstrms/crowd_run_256X144_fr15_bd10_8buf_l1.ivf
+  # - name: xlm_support/vstrms/test_avs2_1080x1920.avs2
+  # - name: xlm_support/vstrms/test_vp8_176x144.ivf
+  # - name: xlm_support/vstrms/test_vp8_80x60.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_1280x720.m4v
+  # - name: xlm_support/vstrms/test_h264_320x240.h264
+  # - name: xlm_support/vstrms/test_vp8_1278x718.ivf
+  # - name: xlm_support/vstrms/test_vp9_176x144.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_1920x1080_10bit.m2v
+  # - name: xlm_support/vstrms/test_avs2_480x360.avs2
+  # - name: xlm_support/vstrms/test_avs2_3840x64.avs2
+  # - name: xlm_support/vstrms/test_vp9_2560x1440_10bit.ivf
+  # - name: xlm_support/vstrms/test_h265_480x360.h265
+  # - name: xlm_support/vstrms/test_h265_3840x64.h265
+  # - name: xlm_support/vstrms/test_av1_640x360.ivf
+  # - name: xlm_support/vstrms/test_avs2_176x144.avs2
+  # - name: xlm_support/vstrms/test_mpeg4_1278x718.m4v
+  # - name: xlm_support/vstrms/test_vp9_1278x718.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_64x64.m4v
+  # - name: xlm_support/vstrms/test_mpeg2_854x480.m2v
+  # - name: xlm_support/vstrms/test_vp9_640x360.ivf
+  # - name: xlm_support/vstrms/test_h264_1080x1920.h264
+  # - name: xlm_support/vstrms/test_h264_1920x1080_10bit.h264
+  # - name: xlm_support/vstrms/test_mpeg2_3840x2160_10bit.m2v
+  # - name: xlm_support/vstrms/test_mpeg4_1280x800.m4v
+  # - name: xlm_support/vstrms/test_mpeg4_1080x1920.m4v
+  # - name: xlm_support/vstrms/test_mpeg2_3440x1440.m2v
+  # - name: xlm_support/vstrms/test_vp8_3440x1440.ivf
+  # - name: xlm_support/vstrms/test_vp8_1280x720.ivf
+  # - name: xlm_support/vstrms/test_vp9_3840x64.ivf
+  # - name: xlm_support/vstrms/test_av1_80x60.ivf
+  # - name: xlm_support/vstrms/test_h265_1280x800.h265
+  # - name: xlm_support/vstrms/test_avs2_1280x800.avs2
+  # - name: xlm_support/vstrms/test_h264_640x360.h264
+  # - name: xlm_support/vstrms/test_h264_1278x718.h264
+  # - name: xlm_support/vstrms/test_av1_2560x1440_10bit.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_2560x1440.m4v
+  # - name: xlm_support/vstrms/test_avs2_80x60.avs2
+  # - name: xlm_support/vstrms/test_av1_1280x720.ivf
+  # - name: xlm_support/vstrms/test_h264_176x144.h264
+  # - name: xlm_support/vstrms/test_h265_512x512.h265
+  # - name: xlm_support/vstrms/test_mpeg4_854x480.m4v
+  # - name: xlm_support/vstrms/test_av1_854x480.ivf
+  # - name: xlm_support/vstrms/test_avs2_160x90.avs2
+  # - name: xlm_support/vstrms/test_h264_512x512.h264
+  # - name: xlm_support/vstrms/test_mpeg4_1920x1080_10bit.m4v
+  # - name: xlm_support/vstrms/test_h264_3840x64.h264
+  # - name: xlm_support/vstrms/test_h265_2560x1440.h265
+  # - name: xlm_support/vstrms/test_h264_64x64.h264
+  # - name: xlm_support/vstrms/test_av1_1278x718.ivf
+  # - name: xlm_support/vstrms/test_vp8_1080x1920.ivf
+  # - name: xlm_support/vstrms/test_vp9_512x512.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_640x480.m4v
+  # - name: xlm_support/vstrms/test_av1_1080x1920.ivf
+  # - name: xlm_support/vstrms/test_h264_128x72.h264
+  # - name: xlm_support/vstrms/test_h265_1024x768.h265
+  # - name: xlm_support/vstrms/test_vp8_640x480.ivf
+  # - name: xlm_support/vstrms/test_av1_3440x1440.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_3840x2160_10bit.m4v
+  # - name: xlm_support/vstrms/test_vp8_3840x2160_10bit.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_1080x1920.m2v
+  # - name: xlm_support/vstrms/test_mpeg2_320x240.m2v
+  # - name: xlm_support/vstrms/test_mpeg2_176x144.m2v
+  # - name: xlm_support/vstrms/test_vp9_1920x1080_10bit.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_80x60.m2v
+  # - name: xlm_support/vstrms/test_vp8_1280x800.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_480x360.m4v
+  # - name: xlm_support/vstrms/test_av1_64x64.ivf
+  # - name: xlm_support/vstrms/test_h264_80x60.h264
+  # - name: xlm_support/vstrms/test_av1_2560x1440.ivf
+  # - name: xlm_support/vstrms/test_vp9_480x360.ivf
+  # - name: xlm_support/vstrms/test_vp9_1918x1078_10bit.ivf
+  # - name: xlm_support/vstrms/test_av1_3840x2160.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_1278x718.m2v
+  # - name: xlm_support/vstrms/test_h265_80x60.h265
+  # - name: xlm_support/vstrms/test_mpeg2_2560x1440_10bit.m2v
+  # - name: xlm_support/vstrms/test_vp9_1024x768.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_2560x1440_10bit.m4v
+  # - name: xlm_support/vstrms/test_h264_2560x1440_10bit.h264
+  # - name: xlm_support/vstrms/test_mpeg2_160x90.m2v
+  # - name: xlm_support/vstrms/test_vp8_64x64.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_640x480.m2v
+  # - name: xlm_support/vstrms/test_h265_320x240.h265
+  # - name: xlm_support/vstrms/test_vp8_1918x1078_10bit.ivf
+  # - name: xlm_support/vstrms/test_vp9_2560x1440.ivf
+  # - name: xlm_support/vstrms/test_av1_480x360.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_512x512.m2v
+  # - name: xlm_support/vstrms/test_mpeg4_1024x768.m4v
+  # - name: xlm_support/vstrms/test_vp9_3440x1440.ivf
+  # - name: xlm_support/vstrms/test_vp8_320x240.ivf
+  # - name: xlm_support/vstrms/test_avs2_1278x718.avs2
+  # - name: xlm_support/vstrms/test_avs2_3440x1440.avs2
+  # - name: xlm_support/vstrms/test_mpeg4_160x90.m4v
+  # - name: xlm_support/vstrms/test_avs2_640x360.avs2
+  # - name: xlm_support/vstrms/test_mpeg2_64x64.m2v
+  # - name: xlm_support/vstrms/test_avs2_854x480.avs2
+  # - name: xlm_support/vstrms/test_avs2_512x512.avs2
+  # - name: xlm_support/vstrms/test_vp8_160x90.ivf
+  # - name: xlm_support/vstrms/test_vp8_480x360.ivf
+  # - name: xlm_support/vstrms/test_vp9_3840x2160.ivf
+  # - name: xlm_support/vstrms/test_vp8_640x360.ivf
+  # - name: xlm_support/vstrms/test_av1_1918x1078_10bit.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_640x360.m4v
+  # - name: xlm_support/vstrms/test_mpeg2_480x360.m2v
+  # - name: xlm_support/vstrms/test_mpeg4_3840x64.m4v
+  # - name: xlm_support/vstrms/test_av1_160x90.ivf
+  # - name: xlm_support/vstrms/test_h265_640x480.h265
+  # - name: xlm_support/vstrms/test_mpeg4_3840x2160.m4v
+  # - name: xlm_support/vstrms/test_vp9_80x60.ivf
+  # - name: xlm_support/vstrms/test_avs2_128x72.avs2
+  # - name: xlm_support/vstrms/test_h265_3840x2160.h265
+  # - name: xlm_support/vstrms/test_vp9_160x90.ivf
+  # - name: xlm_support/vstrms/test_avs2_2560x1440.avs2
+  # - name: xlm_support/vstrms/test_vp9_64x64.ivf
+  # - name: xlm_support/vstrms/test_h264_1024x768.h264
+  # - name: xlm_support/vstrms/test_h265_1920x1080_10bit.h265
+  # - name: xlm_support/vstrms/test_h265_1080x1920.h265
+  # - name: xlm_support/vstrms/test_h264_854x480.h264
+  # - name: xlm_support/vstrms/test_h265_128x72.h265
+  # - name: xlm_support/vstrms/test_h265_854x480.h265
+  # - name: xlm_support/vstrms/test_vp9_1080x1920.ivf
+  # - name: xlm_support/vstrms/test_vp8_3840x2160.ivf
+  # - name: xlm_support/vstrms/test_av1_1920x1080.ivf
+  # - name: xlm_support/vstrms/test_vp9_3840x2160_10bit.ivf
+  # - name: xlm_support/vstrms/test_vp8_128x72.ivf
+  # - name: xlm_support/vstrms/test_h264_3840x2160_10bit.h264
+  # - name: xlm_support/vstrms/test_mpeg2_2560x1440.m2v
+  # - name: xlm_support/vstrms/test_avs2_1920x1080.avs2
+  # - name: xlm_support/vstrms/test_mpeg2_1280x720.m2v
+  # - name: xlm_support/vstrms/test_h265_1918x1078_10bit.h265
+  # - name: xlm_support/vstrms/test_avs2_320x240.avs2
+  # - name: xlm_support/vstrms/test_h265_176x144.h265
+  # - name: xlm_support/vstrms/test_av1_320x240.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_640x360.m2v
+  # - name: xlm_support/vstrms/test_h264_2560x1440.h264
+  # - name: xlm_support/vstrms/test_mpeg2_1024x768.m2v
+  # - name: xlm_support/vstrms/test_avs2_1280x720.avs2
+  # - name: xlm_support/vstrms/test_avs2_1024x768.avs2
+  # - name: xlm_support/vstrms/test_vp9_640x480.ivf
+  # - name: xlm_support/vstrms/test_vp9_1920x1080.ivf
+  # - name: xlm_support/vstrms/test_h264_3440x1440.h264
+  # - name: xlm_support/vstrms/test_mpeg2_1918x1078_10bit.m2v
+  # - name: xlm_support/vstrms/test_av1_640x480.ivf
+  # - name: xlm_support/vstrms/test_vp8_1920x1080_10bit.ivf
+  # - name: xlm_support/vstrms/test_vp8_1920x1080.ivf
+  # - name: xlm_support/vstrms/test_h264_480x360.h264
+  # - name: xlm_support/vstrms/test_vp8_512x512.ivf
+  # - name: xlm_support/vstrms/test_h264_160x90.h264
+  # - name: xlm_support/vstrms/test_avs2_640x480.avs2
+  # - name: xlm_support/vstrms/test_av1_128x72.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_1920x1080.m2v
+  # - name: xlm_support/vstrms/test_vp8_2560x1440.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_320x240.m4v
+  # - name: xlm_support/vstrms/test_mpeg2_128x72.m2v
+  # - name: xlm_support/vstrms/test_avs2_64x64.avs2
+  # - name: xlm_support/vstrms/test_av1_1024x768.ivf
+  # - name: xlm_support/vstrms/test_h265_1280x720.h265
+  # - name: xlm_support/vstrms/test_vp9_1280x720.ivf
+  # - name: xlm_support/vstrms/test_h265_2560x1440_10bit.h265
+  # - name: xlm_support/vstrms/test_h265_640x360.h265
+  # - name: xlm_support/vstrms/test_h264_1280x720.h264
+  # - name: xlm_support/vstrms/test_h265_1920x1080.h265
+  # - name: xlm_support/vstrms/test_mpeg4_1920x1080.m4v
+  # - name: xlm_support/vstrms/test_mpeg2_3840x2160.m2v
+  # - name: xlm_support/vstrms/test_mpeg4_1918x1078_10bit.m4v
+  # - name: xlm_support/vstrms/test_h264_1920x1080.h264
+  # - name: xlm_support/vstrms/color_bands_176x176_av1_10bit.ivf
+  # - name: xlm_support/vstrms/test_vp8_2560x1440_10bit.ivf
+  # - name: xlm_support/vstrms/test_av1_3840x2160_10bit.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_80x60.m4v
+  # - name: xlm_support/vstrms/test_mpeg2_1280x800.m2v
+  # - name: xlm_support/vstrms/test_vp9_1280x800.ivf
+  # - name: xlm_support/vstrms/test_mpeg4_128x72.m4v
+  # - name: xlm_support/vstrms/test_mpeg4_512x512.m4v
+  # - name: xlm_support/vstrms/test_vp9_128x72.ivf
+  # - name: xlm_support/vstrms/test_h265_3840x2160_10bit.h265
+  # - name: xlm_support/vstrms/test_vp9_320x240.ivf
+  # - name: xlm_support/vstrms/test_mpeg2_3840x64.m2v
+  # - name: xlm_support/vstrms/test_h264_640x480.h264
+  # - name: xlm_support/vstrms/test_vp8_3840x64.ivf
+  # - name: xlm_support/vstrms/test_h264_3840x2160.h264
+  # - name: xlm_support/vstrms/test_av1_1920x1080_10bit.ivf
+  # - name: xlm_support/vstrms/test_h265_3440x1440.h265
+  # - name: xlm_support/vstrms/test_mpeg4_176x144.m4v
+  # - name: xlm_support/vstrms/test_av1_3840x64.ivf
+  # - name: xlm_support/vstrms/test_h265_64x64.h265
+  # - name: xlm_support/vstrms/test_av1_176x144.ivf
+  # - name: xlm_support/vstrms/test_vp8_1024x768.ivf
+
+enc_infos:
+- resolution:
+  - 4x4
+  - 8x8
+  - 16x16
+  - 32x32
+  - 64x64
+  - 640x360
+  - 854x480
+  - 1280x720
+  - 1920x1080
+  - 2560x1440
+  - 3840x2160
+  - 16384x8192
+  - 16384x9384
+  - 16384x10384
+  - 16384x16384
+  - 65472x65472
+  - 65520x65520

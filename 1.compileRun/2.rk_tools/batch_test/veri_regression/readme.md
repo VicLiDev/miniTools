@@ -1,3 +1,19 @@
+Validator 验证正确性
+Regression 回归
+
+项目取名:
+RegressGuard
+（Regression + Guard）
+"回归守卫"，突出验证和保护作用。
+
+VeriRegression
+（Verification + Regression）
+"验证回归"，直接表明核心功能。
+
+AutoValidate
+（Automated + Validation）
+"自动验证"，强调自动化测试。
+
 设计目标
 1. 支持多种校验方式：
    a. 直接比较当前解码得到的yuv数据的md5值与之前解码得到的md5值
