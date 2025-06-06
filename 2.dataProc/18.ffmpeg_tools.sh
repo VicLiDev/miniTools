@@ -167,10 +167,12 @@ gseq()
     cmd_fmt="nv12"
     cmd_spec="h264"
     cmd_time="2"
+    cmd_speed="fast"
     cmd_out_prefix=""
 
     ffmpeg_exe=""
     ffmpeg_spec=""
+    quality=""
     out_suffix=""
     out_name=""
 
@@ -181,28 +183,56 @@ gseq()
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -h) echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
-                echo "-s  size, 640x340,1920x1080,2560×1440,3840x2160,7680×4320"
-                echo "-f  fmt, yuv420p,yuv420p10le, nv12"
-                echo "-sp spec, def h264/h265/avs2/vp8/vp9/av1/mpg/m2v/m4v/jpg"
-                echo "-t  len, def 2, 2s"
-                echo "-o  output name, def gen by paras"
-                echo "--out_prefix output prefix"
-                return 0; ;;
             -s) cmd_size="$2"; shift; ;;
             -f) cmd_fmt="$2"; shift; ;;
             -sp) cmd_spec="$2"; shift; ;;
             -t) cmd_time="$2"; shift; ;;
+            --speed) cmd_speed="$2"; shift; ;;
             --out_prefix) cmd_out_prefix="$2"; shift; ;;
-            *)  echo "unknow para: ${key}"
-                echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
+            -h|*) echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
                 echo "-s  size, 640x340,1920x1080,2560×1440,3840x2160,7680×4320"
-                echo "-f  fmt, yuv420p,yuv420p10le, nv12"
+                echo "-f  Supported Pixel Formats:"
+                echo "    1. YUV400 (Gray):"
+                echo "       - 8bit: gray, yuv400p"
+                echo "       - 10bit: gray10le, yuv400p10le"
+                echo "    2. YUV411:"
+                echo "       - Planar (P): yuv411p"
+                echo "       - Packed: yvu411p, uyvy411"
+                echo "    3. YUV420:"
+                echo "       - Planar (P): yuv420p, yuv420p10le"
+                echo "       - Semi-Planar (SP): nv12, p010le"
+                echo "    4. YUV422:"
+                echo "       - Planar (P): yuv422p, yuv422p10le"
+                echo "       - Semi-Planar (SP): nv16, nv20le"
+                echo "       - Packed: yuyv422, uyvy422"
+                echo "    5. YUV440:"
+                echo "       - Planar (P): yuv440p, yuv440p10le"
+                echo "       - Semi-Planar (SP): nv24 (8bit only)"
+                echo "    6. YUV444:"
+                echo "       - Planar (P): yuv444p, yuv444p10le"
+                echo "       - Semi-Planar (SP): nv42 (8bit only)"
+                echo "       - Packed: ayuv4444, xyuv4444"
+                echo "    7. RGB:"
+                echo "       - 8bit: rgb24, bgr24, rgba, bgra, argb, abgr"
+                echo "       - 16bit: rgb48le, bgr48le, rgba64le, bgra64le"
+                echo "       - Planar: gbrp, gbrap (8bit); gbrp10le, gbrap10le (10bit)"
+                echo "       - Float: rgbaf, bgra (32-bit floating point)"
+                echo "    Notes:"
+                echo "       - All 10bit/16bit formats use little-endian by default (append 'be' for big-endian)"
+                echo "       - Formats with 'a' include alpha channel"
+                echo "       - Subsampling notation:"
+                echo "         * 411: 4:1:1 (horizontal only)"
+                echo "         * 420: 4:2:0 (horizontal and vertical)"
+                echo "         * 422: 4:2:2 (horizontal only)"
+                echo "         * 440: 4:4:0 (vertical only)"
+                echo "         * 444: 4:4:4 (no subsampling)"
+                echo "       - SP formats: NVxx series (NV12/NV16/NV24/NV42)echo "
                 echo "-sp spec, def h264/h265/avs2/vp8/vp9/av1/mpg/m2v/m4v/jpg"
                 echo "-t  len, def 2, 2s"
                 echo "-o  output name, def gen by paras"
+                echo "--speed  fast|medium|slow, def fast"
                 echo "--out_prefix output prefix"
-                return 1; ;;
+                return 0; ;;
         esac; shift
     done
 
@@ -220,6 +250,33 @@ gseq()
         *) echo "unsupport codec in gseq tool"; return 1; ;;
     esac
 
+    # avs2 的 quality 设置看起来没有效果
+    if [ "${cmd_speed}" = "fast" ]; then
+        # 快速预览 / 实时，速度最快
+        [ "${cmd_spec}" = "h264" ] && quality="-preset ultrafast -crf 28"
+        [ "${cmd_spec}" = "h265" ] && quality="-preset ultrafast -crf 30"
+        [ "${cmd_spec}" = "vp8"  ] && quality="-deadline realtime -cpu-used 5 -crf 32 -b:v 0"
+        [ "${cmd_spec}" = "vp9"  ] && quality="-deadline realtime -cpu-used 5 -crf 40 -b:v 0"
+        [ "${cmd_spec}" = "av1"  ] && quality="-cpu-used 8 -crf 40 -b:v 0"
+        [ "${cmd_spec}" = "avs2" ] && quality="-preset ultrafast"  # 假设支持该预设
+    elif [ "${cmd_speed}" = "medium" ]; then
+        # 日常发布（速度与质量折中），速度适中
+        [ "${cmd_spec}" = "h264" ] && quality="-preset medium -crf 23"
+        [ "${cmd_spec}" = "h265" ] && quality="-preset medium -crf 28"
+        [ "${cmd_spec}" = "vp8"  ] && quality="-deadline good -cpu-used 2 -crf 28 -b:v 0"
+        [ "${cmd_spec}" = "vp9"  ] && quality="-deadline good -cpu-used 2 -crf 34 -b:v 0"
+        [ "${cmd_spec}" = "av1"  ] && quality="-cpu-used 4 -crf 32 -b:v 0"
+        [ "${cmd_spec}" = "avs2" ] && quality="-preset medium"
+    elif [ "${cmd_speed}" = "slow" ]; then
+        # 高质量压缩（尽可能高压缩效率），速度最慢
+        [ "${cmd_spec}" = "h264" ] && quality="-preset veryslow -crf 18"
+        [ "${cmd_spec}" = "h265" ] && quality="-preset veryslow -crf 20"
+        [ "${cmd_spec}" = "vp8"  ] && quality="-deadline best -cpu-used 0 -crf 20 -b:v 0"
+        [ "${cmd_spec}" = "vp9"  ] && quality="-deadline best -cpu-used 0 -crf 28 -b:v 0"
+        [ "${cmd_spec}" = "av1"  ] && quality="-cpu-used 0 -crf 28 -b:v 0"
+        [ "${cmd_spec}" = "avs2" ] && quality="-preset slow"
+    fi
+
     if [ -z "${cmd_out_prefix}" ]; then
         out_name="test_${cmd_spec}_${cmd_size}_${cmd_fmt}.${out_suffix}"
     else
@@ -231,7 +288,9 @@ gseq()
     echo "cmd_fmt:     ${cmd_fmt}"
     echo "cmd_spec:    ${cmd_spec}"
     echo "cmd_time:    ${cmd_time}"
+    echo "cmd_speed:   ${cmd_speed}"
     echo "ffmpeg_spec: ${ffmpeg_spec}"
+    echo "quality:     ${quality}"
     echo "out_suffix:  ${out_suffix}"
     echo "out_name:    ${out_name}"
     echo "ffmpeg_exe:  ${ffmpeg_exe}"
@@ -269,7 +328,7 @@ gseq()
             -i "testsrc=size=${cmd_size}:rate=30"
             -pix_fmt "${cmd_fmt}"
             -c:v "${ffmpeg_spec}"
-            -preset slow
+            ${quality}
             -crf 18
             -t "${cmd_time}"
             "${out_name}"
