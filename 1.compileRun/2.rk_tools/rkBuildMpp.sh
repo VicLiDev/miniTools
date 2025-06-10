@@ -10,6 +10,7 @@
 
 cmd_sel_plt=""
 cmd_install="true"
+cmd_ins_dev=""
 
 sel_tag_mpp="rk_mpp_b: "
 sel_tag_mpp_ko="rk_mpp_ko_b: "
@@ -75,8 +76,9 @@ build_android_32()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=$(adbs)
-        if [ -z "${adbCmd}" ]; then exit 0; fi
+        adbCmd=""
+        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        [ -z "${adbCmd}" ] && exit 0
 
         push_bins_to_device "${adbCmd}" mpp/libmpp.so /vendor/lib
         push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /vendor/lib
@@ -91,6 +93,7 @@ build_android_32()
         push_bins_to_device "${adbCmd}" mpp/base/test /system/bin
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
@@ -105,8 +108,9 @@ build_android_64()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=$(adbs)
-        if [ -z "${adbCmd}" ]; then exit 0; fi
+        adbCmd=""
+        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        [ -z "${adbCmd}" ] && exit 0
 
         push_bins_to_device "${adbCmd}" mpp/libmpp.so /vendor/lib64
         push_bins_to_device "${adbCmd}" mpp/legacy/libvpu.so /vendor/lib64
@@ -121,6 +125,7 @@ build_android_64()
         push_bins_to_device "${adbCmd}" mpp/base/test /system/bin
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
@@ -141,8 +146,9 @@ build_linux_32()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=$(adbs)
-        if [ -z "${adbCmd}" ]; then exit 0; fi
+        adbCmd=""
+        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        [ -z "${adbCmd}" ] && exit 0
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib
@@ -161,6 +167,7 @@ build_linux_32()
         push_bins_to_device "${adbCmd}" mpp/base/test /oem/usr/bin
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
@@ -180,8 +187,9 @@ build_linux_64()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=$(adbs)
-        if [ -z "${adbCmd}" ]; then exit 0; fi
+        adbCmd=""
+        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        [ -z "${adbCmd}" ] && exit 0
 
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib64
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib64
@@ -200,6 +208,7 @@ build_linux_64()
         push_bins_to_device "${adbCmd}" mpp/base/test /oem/usr/bin
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
@@ -214,6 +223,7 @@ build_linux_x86_64()
         echo "======> build mpp sucess! <======"
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
@@ -256,6 +266,7 @@ build_ko_develop2()
         echo "======> build mpp sucess! <======"
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
@@ -282,7 +293,8 @@ build_ko_kmpp_develop()
 
         echo "======> push lib and demo to dev <======"
         # install
-        adbCmd=$(adbs)
+        adbCmd=""
+        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
         [ -z "${adbCmd}" ] && exit 0
 
         ${adbCmd} push sys/build/sys.ko                            /data
@@ -325,6 +337,7 @@ build_ko_kmpp_develop()
         # insmod_ko kmpi_enc_test  /data
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
@@ -352,12 +365,13 @@ build_ko_kmpp()
         echo "======> build mpp sucess! <======"
     else
         echo "======> build mpp error! <======"
+        return 1
     fi
 }
 
 function usage()
 {
-    echo "usage: $0 [-p|--plt 0...n] [-i|--install \"true\"|\"false\"]"
+    echo "usage: $0 [-p|--plt 0...n] [-i|--install \"true\"|\"false\"] [-d|--dev install_dev_idx]"
 }
 
 function proc_paras()
@@ -385,6 +399,10 @@ function proc_paras()
                 cmd_install="$2"
                 shift # move to next para
                 ;;
+            -d|--dev)
+                cmd_ins_dev="$2"
+                shift # move to next para
+                ;;
             *)
                 # unknow para
                 echo "unknow para: ${key}"
@@ -399,6 +417,7 @@ function proc_paras()
     echo "======> cmd paras <======"
     echo "cmd_sel_plt : ${cmd_sel_plt}"
     echo "cmd_install : ${cmd_install}"
+    echo "cmd_ins_dev : ${cmd_ins_dev}"
     echo
 }
 
