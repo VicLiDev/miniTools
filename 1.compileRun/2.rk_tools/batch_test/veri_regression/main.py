@@ -78,6 +78,8 @@ def proc_paras():
     parser.add_argument("--px_fmt", default="", help="pix format")
     parser.add_argument("--bit_dpt", default="", help="bit depth, 8/10")
     # enc
+    # Backtracking
+    parser.add_argument("--bt", default="", help="Backtrack specified strm")
 
     # 解析命令行参数
     args = parser.parse_args()
@@ -174,64 +176,168 @@ def video_generator(cfg, args, check_cnd = True):
 
             yield adb_prefix, path, video, dev_s_lst[idx]
 
-def dec_regression(args, cfg):
+def git_mv(prj_dir, g_dir, g_cnt):
+    '''
+    g_dir: False: 回退 True: 前进
+    '''
+    cur_dir = os.getcwd()  # 获取当前工作目录
+    print(f"cur work dir: {cur_dir}")
+
+    try:
+        os.chdir(prj_dir)  # 切换工作目录
+        print(f"has change dir to : {os.getcwd()}")
+    except FileNotFoundError:
+        print(f"dir not exist: {prj_dir}")
+    except PermissionError:
+        print(f"don't have access permision': {prj_dir}")
+
+    if g_dir:
+        utl.gmf(g_cnt)
+    else:
+        utl.gmb(g_cnt)
+    os.chdir(cur_dir)
+
+
+def update_lib(prj_dir, arch_id, dev_id):
+    cur_dir = os.getcwd()  # 获取当前工作目录
+
+    try:
+        os.chdir(prj_dir)  # 切换工作目录
+        print(f"has change dir to : {os.getcwd()}")
+    except FileNotFoundError:
+        print(f"dir not exist: {prj_dir}")
+    except PermissionError:
+        print(f"don't have access permision': {prj_dir}")
+
+    cmd = ["bash", ".prjBuild.sh", "-p", f"{arch_id}", "-d", f"{dev_id}"]
+    stdout, stderr, status = utl.run_command(cmd)
+    if int(status) != 0:
+        print(f"\033[0m\033[1;36m <stdout> \033[0m\n{stdout}")
+        print(f"\033[0m\033[1;36m <stderr> \033[0m\n{stderr}")
+        print(f"\033[0m\033[1;36m <status> \033[0m\n{status}")
+        return False
+    os.chdir(cur_dir)
+    return True
+
+
+def dec_check(args, cfg, adb_pfx, ck_p, ck_v, ck_plt):
+    res = True
+    ck_org_f = f"{ck_p + '/' + ck_v.get('name', '--')}"
     m_dec = DecExecutor()
 
+    if args.dbg:
+        print(f"cur video info: "+
+              f"spec: {ck_v.get('spec', '--')} "+
+              f"width: {ck_v.get('width', '--')} "+
+              f"height: {ck_v.get('height', '--')} "+
+              f"px_fmt: {ck_v.get('pix_fmt', '--')} "+
+              f"bit_dpt: {ck_v.get('bit_depth', '--')} "+
+              f"path: {ck_org_f}")
+
+    m_dec.setup(ck_v.get("spec"), ck_v.get("width"), ck_v.get("height"),
+                host_wk_dir = str(host_wk_dir), dev_wk_dir = "/data")
+
+    if args.chk == "md5":
+        out_file = m_dec.dev_run(ck_org_f, adb_pfx)
+        if len(ck_v.get(f"md5_{ck_plt}", "")):
+            res = chk.md5_verify(out_file, ck_v.get(f"md5_{ck_plt}"), ck_org_f)
+        else:
+            print(f"error: md5_{ck_plt} val is Null")
+    elif args.chk == "slt":
+        out_file = m_dec.dev_run(ck_org_f, adb_pfx, True)
+        if len(ck_v.get(f"slt_{ck_plt}", "")):
+            res = chk.slt_cmp_verify(out_file, ck_v.get(f"slt_{ck_plt}"),
+                                     ck_org_f)
+        else:
+            print(f"error: md5_{ck_plt} val is Null")
+    elif args.chk == "yuv":
+        ff_o_fmt = ""
+        if ck_v.get('pix_fmt', "") == "yuv420p":
+            ff_o_fmt = "nv12"
+        elif ck_v.get('pix_fmt', "") == "yuvj440p":
+            ff_o_fmt = "yuvj440p"
+        else:
+            print(f"error: unsupported format: {ck_v.get('pix_fmt', '')} | {ck_org_f}")
+            res = False
+
+        ff_o_file = m_dec.ffmpeg_dec(ck_org_f, ff_o_fmt)
+        dev_o_file = m_dec.dev_run(ck_org_f, adb_pfx)
+        res = chk.diff_verify(ff_o_file, dev_o_file,
+                              int(ck_v.get('width', '--')),
+                              int(ck_v.get('height', '--')),
+                              ff_o_fmt,
+                              ck_org_f, threshold = 10)
+    else:
+        print("No check method specified")
+        res = False
+
+    return res
+
+def dec_regression(args, cfg):
     dev_adb = utl.ADBDevSelector()
     dev_adb.proc_paras(["-l"])
     dev_lst = dev_adb.execute(quiet = True)
 
-    for cur_adb_pfx, cur_p, cur_v, cur_plt in video_generator(cfg, args, args.dev):
-        cur_org_f = f"{cur_p + '/' + cur_v.get('name', '--')}"
-        if args.dbg:
-            print(f"cur video info: "+
-                  f"spec: {cur_v.get('spec', '--')} "+
-                  f"width: {cur_v.get('width', '--')} "+
-                  f"height: {cur_v.get('height', '--')} "+
-                  f"px_fmt: {cur_v.get('pix_fmt', '--')} "+
-                  f"bit_dpt: {cur_v.get('bit_depth', '--')} "+
-                  f"path: {cur_org_f}")
+    for cur_adb_pfx, cur_p, cur_v, cur_plt in video_generator(cfg, args):
+        dec_check(args, cfg, cur_adb_pfx, cur_p, cur_v, cur_plt)
 
-        m_dec.setup(cur_v.get("spec"), cur_v.get("width"), cur_v.get("height"),
-                    host_wk_dir = str(host_wk_dir), dev_wk_dir = "/data")
+def dec_backtrack(args, cfg):
+    bt_adb_pfx = ""
+    bt_p = ""
+    bt_v = {}
+    bt_plt = ""
+    step = 100
+    mpp_dir = "/home/lhj/Projects/mpp"
+    git_dir = False
+    git_off = 0
 
-        if args.chk == "md5":
-            out_file = m_dec.dev_run(cur_org_f, cur_adb_pfx)
-            if len(cur_v.get(f"md5_{cur_plt}", "")):
-                res = chk.md5_verify(out_file, cur_v.get(f"md5_{cur_plt}"), cur_org_f)
-            else:
-                print(f"error: md5_{cur_plt} val is Null")
-        elif args.chk == "slt":
-            out_file = m_dec.dev_run(cur_org_f, cur_adb_pfx, True)
-            if len(cur_v.get(f"slt_{cur_plt}", "")):
-                res = chk.slt_cmp_verify(out_file, cur_v.get(f"slt_{cur_plt}"),
-                                         cur_org_f)
-            else:
-                print(f"error: md5_{cur_plt} val is Null")
-        elif args.chk == "yuv":
-            ff_o_fmt = ""
-            if cur_v.get('pix_fmt', "") == "yuv420p":
-                ff_o_fmt = "nv12"
-            elif cur_v.get('pix_fmt', "") == "yuvj440p":
-                ff_o_fmt = "yuvj440p"
-            else:
-                print(f"error: unsupported format: {cur_v.get('pix_fmt', '')} | {cur_org_f}")
-                continue
+    for cur_adb_pfx, cur_p, cur_v, cur_plt in video_generator(cfg, args, False):
+        abs_p = cur_p + "/" + cur_v.get("name", "")
+        if abs_p == args.bt:
+            bt_adb_pfx = cur_adb_pfx
+            bt_p = cur_p
+            bt_v = cur_v
+            bt_plt = cur_plt
+            break
 
-            ff_o_file = m_dec.ffmpeg_dec(cur_org_f, ff_o_fmt)
-            dev_o_file = m_dec.dev_run(cur_org_f, cur_adb_pfx)
-            res = chk.diff_verify(ff_o_file, dev_o_file,
-                                  int(cur_v.get('width', '--')),
-                                  int(cur_v.get('height', '--')),
-                                  ff_o_fmt,
-                                  cur_org_f, threshold = 10)
+    # print(f"backtrack: path[{bt_p}] video:{bt_v}")
+    while True:
+        print("")
+        if git_dir:
+            git_off = git_off - step
         else:
-            print("No check method specified")
+            git_off = git_off + step
+        git_mv(mpp_dir, git_dir, step)
+        ret = update_lib(mpp_dir, 1, args.dev)
+        if ret == False:
+            break
+        res = dec_check(args, cfg, bt_adb_pfx, bt_p, bt_v, bt_plt)
+        print(f"\033[0m\033[1;36m check:{res} dir:{git_dir} step:{step} git_off:{git_off} \033[0m")
+
+        if git_dir == False and res == False:
+            continue
+
+        if git_dir == False and res == True and step == 1:
+            break
+        if git_dir == True and res == False and step == 1:
+            break
+
+        step = step // 2;
+        if git_dir:
+            git_dir = False
+        else:
+            git_dir = True
+
+def enc_check(args, cfg, adb_pfx, ck_p, ck_v, ck_plt):
+    pass
 
 def enc_regression(args, cfg):
     m_enc = EncExecutor()
     m_enc.setup()
     m_enc.dev_run()
+
+def enc_backtrack(args, cfg):
+    pass
 
 def main():
     args = proc_paras()
@@ -298,9 +404,15 @@ def main():
         exit(0)
 
     if args.mode == "dec":
-        dec_regression(args, cfg)
+        if len(args.bt):
+            dec_backtrack(args, cfg)
+        else:
+            dec_regression(args, cfg)
     if args.mode == "enc":
-        enc_regression(args, cfg)
+        if len(args.bt):
+            enc_backtrack(args, cfg)
+        else:
+            enc_regression(args, cfg)
 
 if __name__ == "__main__":
     main()

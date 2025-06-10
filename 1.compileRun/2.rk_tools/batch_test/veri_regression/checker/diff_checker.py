@@ -26,10 +26,11 @@ def diff_verify(yuv1_path, yuv2_path, width, height, pix_fmt, org_file, threshol
                 break
             if len(d1) != len(d2):
                 print(f"[\033[0m\033[1;31m DIFF FAIL \033[0m] Frm size mismatch at frm {frm_idx} | {org_file}")
-                return
+                return False
             diffs = sum(abs(a - b) > threshold for a, b in zip(d1, d2))
             if diffs > 0:
                 print(f"[\033[0m\033[1;31m DIFF FAIL \033[0m] Frm {frm_idx} has {diffs} differing bytes | {org_file}")
-                return
+                return False
             frm_idx += 1
     print(f"[\033[0m\033[1;32m DIFF PASS \033[0m] {yuv1_path} vs {yuv2_path} | {org_file}")
+    return True
