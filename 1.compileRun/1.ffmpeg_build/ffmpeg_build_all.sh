@@ -1078,6 +1078,41 @@ compile_xavs2()
     make -j$(nproc) && make install
 }
 
+compile_libjpeg()
+{
+    #-- libjpeg
+    prj_dir="${FFMPEG_EX_LIBS_DIR}/libjpeg-turbo"
+    if [ ! -d "${prj_dir}" ]; then
+        cd ${FFMPEG_EX_LIBS_DIR}
+        git clone https://github.com/libjpeg-turbo/libjpeg-turbo.git
+    fi
+
+    wk_dir="${FFMPEG_EX_LIBS_DIR}/libjpeg-turbo/build"
+    create_dir ${wk_dir} && cd ${wk_dir}
+
+    make clean
+
+    if [ "${m_sel_arch}" == "android_32" ]; then
+        echo
+    elif [ "${m_sel_arch}" == "android_64" ]; then
+        echo
+    elif [ "${m_sel_arch}" == "linux_32" ]; then
+        echo
+    elif [ "${m_sel_arch}" == "linux_64" ]; then
+        echo
+    elif [ "${m_sel_arch}" == "linux_x86" ]; then
+        PATH=${FFMPEG_PATH} cmake -G "Unix Makefiles" \
+            -DCMAKE_INSTALL_PREFIX=${FFMPEG_PREFIX} \
+            -DENABLE_SHARED=off \
+            ..
+    else
+        echo "err: platform select error"
+        return
+    fi
+
+    make -j$(nproc) && make install
+}
+
 compile_distributor()
 {
     components=$1
@@ -1087,14 +1122,16 @@ compile_distributor()
     build_func="compile_${components}"
     echo "Build components: ${components}"
     echo "Build components func: ${build_func}"
+
+    if [ "${run_opt}" != "c" ]; then
+        read -p "continue? [y/n/s/c] def[y]:" run_opt
+        [ "$run_opt" = "n" ] && exit 0
+        [ "$run_opt" = "s" ] && return 0
+    fi
+
     ${build_func}
     res=$?
     echo "======> compile ${components} finish res:${res} <======"
-
-    if [ "${run_opt}" != "c" ]; then
-        read -p "continue? [y/n/c] def[y]:" run_opt
-        if [ "$run_opt" = "n" ];then exit 0; fi
-    fi
     echo ""
 }
 
@@ -1370,6 +1407,10 @@ compile_ffmpeg()
             --enable-libdav1d
             --enable-libdavs2
             --enable-libxavs2
+            # --enable-libjpeg       # 启用 libjpeg 支持
+            # --enable-libjpeg-turbo
+            --enable-encoder=mjpeg # 启用 MJPEG 编码器（基于 libjpeg）
+            --enable-decoder=mjpeg # 启用 MJPEG 解码器
         )
         # 为了避免参数被错误解析，${ffmpeg_config[@]} 需要加引号
         PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../../configure "${ffmpeg_config[@]}"
@@ -1452,6 +1493,7 @@ main()
             compile_distributor "vmaf"
             compile_distributor "davs2"
             compile_distributor "xavs2"
+            compile_distributor "libjpeg"
         else
             echo "err: platform select error"
             return
