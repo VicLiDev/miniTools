@@ -171,13 +171,16 @@ gseq()
     cmd_out_prefix=""
 
     ffmpeg_exe=""
+    cjpeg_exe=""
     ffmpeg_spec=""
+    spec_paras=""
     quality=""
     out_suffix=""
     out_name=""
 
     ffmpeg_path="${HOME}/Projects/ffmpeg/build_linux_x86/bin/ffmpeg"
     [ -e "${ffmpeg_path}" ] && { ffmpeg_exe="${ffmpeg_path}";} || { ffmpeg_exe=`which ffmpeg`;}
+    cjpeg_exe="${HOME}/Projects/LearnVcodec/jpeg/libjpeg-turbo/build/cjpeg"
 
     # proc cmd paras
     while [[ $# -gt 0 ]]; do
@@ -191,6 +194,8 @@ gseq()
             --out_prefix) cmd_out_prefix="$2"; shift; ;;
             -h|*) echo "<exe> [-s size] [-f fmt] [-sp spec] [-t len] [-o out] [--out_prefix pfx]";
                 echo "-s  size, 640x340,1920x1080,2560×1440,3840x2160,7680×4320"
+                echo "    h263: sqcif(128x96) qcif(176x144) cif(352x288)"
+                echo "          4cif(704x576) 16cif(1408x1152)"
                 echo "-f  Supported Pixel Formats:"
                 echo "    1. YUV400 (Gray):"
                 echo "       - 8bit: gray, yuv400p"
@@ -237,6 +242,22 @@ gseq()
     done
 
     case ${cmd_spec} in
+        h263)
+            ffmpeg_spec="h263"; out_suffix="h263";
+            # H.263最初设计用于低带宽视频通信，标准定义了几种固定分辨率：
+            # SQCIF (128x96)
+            # QCIF (176x144)
+            # CIF (352x288)
+            # 4CIF (704x576)
+            # 16CIF (1408x1152)
+            # FFmpeg的H.263编码器默认只支持这些标准分辨率
+            [ "${cmd_size}" = "sqcif" ] && { spec_paras="-s sqcif";cmd_size="128x96"; }
+            [ "${cmd_size}" = "qcif"  ] && { spec_paras="-s qcif"; cmd_size="176x144"; }
+            [ "${cmd_size}" = "cif"   ] && { spec_paras="-s cif";  cmd_size="352x288"; }
+            [ "${cmd_size}" = "4cif"  ] && { spec_paras="-s 4cif"; cmd_size="704x576"; }
+            [ "${cmd_size}" = "16cif" ] && { spec_paras="-s 16cif";cmd_size="1408x1152"; }
+            [ -z "${spec_paras}" ] && { echo "-s must in sqcif|qcif|cif|4cif|16cif"; return 1; }
+            ;;
         h264) ffmpeg_spec="libx264"; out_suffix="h264"; ;;
         h265) ffmpeg_spec="libx265"; out_suffix="h265"; ;;
         avs2) ffmpeg_spec="libxavs2"; out_suffix="avs2"; ;;
@@ -307,6 +328,34 @@ gseq()
     # -strict unofficial 放宽标准限制
     exe_cmd=()
     if [ "${out_suffix}" = "jpg" ]; then
+        if [ "${cmd_fmt}" = "gray" ]; then
+            tmp_file="tmp_yuv400.pgm"
+            ffmpeg_cmd=(
+                ${ffmpeg_exe}
+                -v error
+                -f lavfi
+                -i "testsrc=size=${cmd_size}:rate=1"
+                -vframes 1
+                -pix_fmt "${cmd_fmt}"
+                -f image2
+                ${tmp_file}
+            )
+            # or convert -size 1920x1080 gradient: -colorspace gray tmp_yuv400.pgm
+            cjpeg_cmd=(
+                ${cjpeg_exe}
+                -grayscale
+                -quality 95
+                -outfile "${out_name}"
+                ${tmp_file}
+            )
+            [ -z "${cjpeg_exe}" ] && { echo "cjpeg tool not exist"; return 1; }
+            echo "ffmpeg cmd: ${ffmpeg_cmd[@]}"
+            echo "cjpeg  cmd: ${cjpeg_cmd[@]}"
+            eval ${ffmpeg_cmd[@]}
+            eval ${cjpeg_cmd[@]}
+            return 0
+        fi
+
         exe_cmd=(
             ${ffmpeg_exe}
             -v error
@@ -321,6 +370,8 @@ gseq()
             -y
         )
     else
+        # for h263, strm fix size is 1920x1080
+        [ "${cmd_spec}" = "h263" ] && { cmd_size="1920x1080"; }
         exe_cmd=(
             ${ffmpeg_exe}
             -v error
@@ -329,8 +380,8 @@ gseq()
             -pix_fmt "${cmd_fmt}"
             -c:v "${ffmpeg_spec}"
             ${quality}
-            -crf 18
             -t "${cmd_time}"
+            ${spec_paras}
             "${out_name}"
             -y
         )
