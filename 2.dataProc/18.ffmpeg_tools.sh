@@ -180,7 +180,8 @@ gseq()
 
     ffmpeg_path="${HOME}/Projects/ffmpeg/build_linux_x86/bin/ffmpeg"
     [ -e "${ffmpeg_path}" ] && { ffmpeg_exe="${ffmpeg_path}";} || { ffmpeg_exe=`which ffmpeg`;}
-    cjpeg_exe="${HOME}/Projects/LearnVcodec/jpeg/libjpeg-turbo/build/cjpeg"
+    cjpeg_path="${HOME}/Projects/LearnVcodec/jpeg/libjpeg-turbo/build/cjpeg"
+    [ -e "${cjpeg_path}" ] && { cjpeg_exe="${cjpeg_path}";} || { cjpeg_exe=`which cjpeg`;}
 
     # proc cmd paras
     while [[ $# -gt 0 ]]; do
@@ -328,8 +329,11 @@ gseq()
     # -strict unofficial 放宽标准限制
     exe_cmd=()
     if [ "${out_suffix}" = "jpg" ]; then
-        if [ "${cmd_fmt}" = "gray" ]; then
-            tmp_file="tmp_yuv400.pgm"
+        if [ "${cmd_fmt}" = "gray" ] \
+            || [ "${cmd_fmt}" = "nv12" ] \
+            || [ "${cmd_fmt}" = "nv16" ] \
+            || [ "${cmd_fmt}" = "nv42" ]; then
+            tmp_file="tmp_${cmd_fmt}.ppm"
             ffmpeg_cmd=(
                 ${ffmpeg_exe}
                 -v error
@@ -339,12 +343,18 @@ gseq()
                 -pix_fmt "${cmd_fmt}"
                 -f image2
                 ${tmp_file}
+                -y
             )
             # or convert -size 1920x1080 gradient: -colorspace gray tmp_yuv400.pgm
+            sample=""
+            [ "${cmd_fmt}" = "gray" ] && sample="-grayscale"
+            [ "${cmd_fmt}" = "nv12" ] && sample="-sample 2x2"
+            [ "${cmd_fmt}" = "nv16" ] && sample="-sample 2x1"
+            [ "${cmd_fmt}" = "nv42" ] && sample="-sample 1x1"
             cjpeg_cmd=(
                 ${cjpeg_exe}
-                -grayscale
                 -quality 95
+                ${sample}
                 -outfile "${out_name}"
                 ${tmp_file}
             )
@@ -353,6 +363,7 @@ gseq()
             echo "cjpeg  cmd: ${cjpeg_cmd[@]}"
             eval ${ffmpeg_cmd[@]}
             eval ${cjpeg_cmd[@]}
+            rm ${tmp_file}
             return 0
         fi
 
