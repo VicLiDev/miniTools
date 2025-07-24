@@ -371,7 +371,7 @@ function build_ko_kmpp_develop_mkf()
         | grep -E "toolchains|m_make"`
     toolchains="`echo -e ${info_list} | awk '{print $2}'`"
     make_cmd=${info_list#*m_make: }
-    cross_cmp="${toolchains}/$(ls -1 ${toolchains} | grep gcc$ | sed 's/gcc//g')"
+    cross_cmp="$(find ${toolchains} -maxdepth 1 -type f | grep gcc$ | sed 's/gcc$//g')"
     m_arch="$1"
     mod_build_type="$2"
     enable_one_ko="y"
