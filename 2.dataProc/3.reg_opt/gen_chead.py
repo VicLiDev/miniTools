@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 
-def _add_reg(file, reg):
+def _fmt_reg_idx(offset, pad_width=0):
+    """格式化寄存器编号，pad_width=0 表示不补零"""
+    if pad_width > 0:
+        return f"{offset:0{pad_width}d}"
+    return str(offset)
+
+def _add_reg(file, reg, pad_w):
     if (len(reg.fields) == 1) and (reg.fields[0].fld_offset == 0):
         field_name = reg.fields[0].field
-        reg_name = "reg" + str(int(reg.reg_offset/4)) + field_name[field_name.index("_"):]
+        reg_name = f"reg{_fmt_reg_idx(int(reg.reg_offset/4), pad_w)}{field_name[field_name.index('_'):]}"
         file.write("    /* %s */\n" % (reg.register))
         file.write("    RK_U32 %s;\n\n" % (reg_name))
     else:
@@ -32,7 +38,7 @@ def _add_reg(file, reg):
                        % (("reserve"+str(int(fld_reverse_cnt))).ljust(30,' '), 31 - last_proc_offset))
 
 
-        file.write("    } reg%d;\n\n" % (int(reg.reg_offset/4)))
+        file.write(f"    }} reg{_fmt_reg_idx(int(reg.reg_offset/4), pad_w)};\n\n")
 
 def add_file_head(fileName):
     file = open(fileName,'w')
@@ -60,7 +66,7 @@ def add_file_tail(fileName):
     file.write("#endif /* __%s__ */" % (fileName.upper().replace('.', '_')))
     file.close()
 
-def gen_CHead_seg(fileName, regSet, segName, begIdx, endIdx):
+def gen_CHead_seg(fileName, regSet, segName, begIdx, endIdx, pad_w = 0):
     if begIdx > endIdx:
         print("error: offBegin %d > offEnd %d" % (offBegin, offEnd))
         return
@@ -83,23 +89,26 @@ def gen_CHead_seg(fileName, regSet, segName, begIdx, endIdx):
         # add reserve
         reserve_cnt = cur_reg_idx - last_reg_idx - 1;
         if reserve_cnt > 1:
-            file.write("    RK_U32 reserve_reg%d_%d[%d];\n\n"
-                       % (int(last_reg_idx+1), int(cur_reg_idx-1), reserve_cnt))
+            file.write(f"    RK_U32 reserve_reg"
+                       f"{_fmt_reg_idx(int(last_reg_idx+1), pad_w)}"
+                       f"_{_fmt_reg_idx(int(cur_reg_idx-1), pad_w)}"
+                       f"[{int(reserve_cnt)}];\n\n")
         elif reserve_cnt == 1:
-            file.write("    RK_U32 reserve_reg%d;\n\n" % (int(cur_reg_idx-1)))
+            file.write(f"    RK_U32 reserve_reg{_fmt_reg_idx(int(cur_reg_idx-1), pad_w)};\n\n" )
         last_reg_idx = cur_reg_idx - 1
 
         # add reg
-        _add_reg(file, cur_reg)
+        _add_reg(file, cur_reg, pad_w)
         last_reg_idx = cur_reg_idx
 
 
     reserve_cnt = endIdx - last_reg_idx;
     if reserve_cnt > 1:
-        file.write("    RK_U32 reserve_reg%d_%d[%d];\n\n"
-                   % (int(last_reg_idx+1), int(endIdx), reserve_cnt))
+        file.write(f"    RK_U32 reserve_reg{_fmt_reg_idx(int(last_reg_idx+1), pad_w)}"
+                   f"_{_fmt_reg_idx(int(endIdx), pad_w)}"
+                   f"[{int(reserve_cnt)}];\n\n")
     elif reserve_cnt == 1:
-        file.write("    RK_U32 reserve_reg%d;\n\n" % (int(endIdx)))
+        file.write(f"    RK_U32 reserve_reg{_fmt_reg_idx(int(endIdx), pad_w)};\n\n")
 
     file.write("} %s;\n\n" % (segName))
     file.close()

@@ -34,7 +34,7 @@ def main():
     parser.add_argument('-c', action='store_true', default=False, help="check reg")
     parser.add_argument('-u', action='store_true', default=False, help="update reg name")
     parser.add_argument('-d', action='store_true', default=False, help="compare 2 reg list")
-    parser.add_argument('-g', type=str, default="", help="generate chead")
+    parser.add_argument('-g', type=str, default="", help=f"generate chead, cfg file: {c_head_cfg_file}")
     parser.add_argument('-p', action='store_true', default=False, help="plot reg scatter")
     parser.add_argument('--hl', type=float, nargs='+', help="reference line")
     parser.add_argument('--vl', type=float, nargs='+', help="reference line")
@@ -69,6 +69,7 @@ def main():
     # print(regSet)
     # gen c head
     if args.g:
+        pad_w = 0;
         gen_chead.add_file_head(args.g)
         c_head_cfg = read_file_to_list(c_head_cfg_file)
         for idx in range(len(c_head_cfg)):
@@ -77,7 +78,8 @@ def main():
             print(f"Reg segmentation: {c_head_cfg[idx][0]} {c_head_cfg[idx][1]}"
                   f" {c_head_cfg[idx][2]}")
             gen_chead.gen_CHead_seg(args.g, regSet, c_head_cfg[idx][0],
-                                    int(c_head_cfg[idx][1]), int(c_head_cfg[idx][2]))
+                                    int(c_head_cfg[idx][1]), int(c_head_cfg[idx][2]),
+                                    pad_w)
         gen_chead.add_file_tail(args.g)
 
     hl = []
