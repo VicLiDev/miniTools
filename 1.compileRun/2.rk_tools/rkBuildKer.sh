@@ -39,6 +39,7 @@ pltList=(
     "1126B_linux_fpga"
     "1126B_ipc_arm"
     "1126B_linux_aarch"
+    "intel_linux_fpga"
     )
 
 build_mode_list=(
@@ -84,7 +85,8 @@ get_arch()
             |'3576_linux'\
             |'3576_fpga'\
             |'1126B_linux_fpga'\
-            |'1126B_linux_aarch')
+            |'1126B_linux_aarch'\
+            |'intel_linux_fpga')
                 m_arch="arm64"
                 ;;
         esac
@@ -242,18 +244,37 @@ gen_cmd()
                 m_config="rv1126b_defconfig"
                 m_target="rv1126b-evb1-v10.img BOOT_ITS=boot.its"
                 ;;
+            'intel_linux_fpga')
+                m_config="socfpga_stratix10_defconfig"
+                # 这里的modules是为了生成kernel根目录下的 Module.symvers
+                # 1. Module.symvers 的作用
+                #   这个文件是 内核构建系统生成的符号表，记录了所有
+                #   EXPORT_SYMBOL() / EXPORT_SYMBOL_GPL() 导出的符号及其 CRC 校验值。
+                #   modpost 阶段会用它来：
+                #       确认外部模块用到的符号是否存在
+                #       检查符号的 CRC，保证内核与模块 ABI 一致
+                #   没有这个文件，modpost 就认为没有任何可用的导出符号，于是就出现
+                #   undefined! 警告。
+                # 2. 生成时机
+                #   执行 make modules（编译内核所有模块）会生成一个完整的 Module.symvers。
+                #   执行 make modules_prepare 也会生成一个空的 Module.symvers，
+                #   并生成 scripts/module.lds 和 include/generated/*，以便外部模块能正常编译。
+                #   如果内核源码树里既没执行过 make modules 也没执行过 make modules_prepare，
+                #   那么根目录下就不会有 Module.symvers。
+                m_target="Image altera/socfpga_stratix10_socdk.dtb modules"
+                ;;
         esac
     fi
     echo "m_config: ${m_config}"
     echo "m_target: ${m_target}"
     if [ "${build_mod}" == "build_kernel" ]; then
         config_cmd="${m_make} ARCH=${m_arch} ${m_config}"
-        build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j20"
+        build_cmd="${m_make} ARCH=${m_arch} ${m_target} -j$(nproc)"
         echo "config cmd: ${config_cmd}"
         echo "build  cmd: ${build_cmd}"
     fi
     if [ "${build_mod}" == "build_kmod" ]; then
-        build_mod_cmd="${m_make} ARCH=${m_arch} -C `pwd` M=`pwd`/drivers/video/rockchip/mpp modules"
+        build_mod_cmd="${m_make} ARCH=${m_arch} -C `pwd` M=`pwd`/drivers/video/rockchip/mpp modules -j$(nproc)"
         echo "build mod cmd: ${build_mod_cmd}"
     fi
 }
