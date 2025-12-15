@@ -11,6 +11,12 @@
 
 function mount_smb()
 {
+    if [ "$(uname)" != "Linux" ]
+    then
+        echo "Unsupported system"
+        return 1
+    fi
+
     # install CIFS maybe necessary
     # sudo apt-get install cifs-utils
 
@@ -25,7 +31,7 @@ function mount_smb()
     if [[ -z "${rmt_ip}" || -z "${rmt_dir}" || -z "${usr}" || -z "${pw}" ]]
     then
         echo "Usage: mount_smb <srv_ip> <srv_dir> <usr> <pw> <loc_dir> <loc_prefix> <loc_uid> <loc_gid>"
-        return -1
+        return 1
     fi
     rmt_addr="//${rmt_ip}/${rmt_dir}"
     loc_mtp="${loc_dir}/${loc_pfx}_${rmt_dir}"
@@ -36,6 +42,53 @@ function mount_smb()
     cmd="sudo mount -t cifs ${rmt_addr} ${loc_mtp} -o username=${usr},password=${pw},uid=${loc_uid},gid=${loc_gid},file_mode=0664,dir_mode=0775"
     echo "cur cmd: ${cmd}"
     eval ${cmd}
+}
+
+
+function mount_smb_mac()
+{
+    if [ "$(uname)" != "Darwin" ]
+    then
+        echo "Unsupported system"
+        return 1
+    fi
+
+    # macOS内置SMB客户端，无需安装额外包
+
+    # 接收参数
+    rmt_ip=${1}
+    rmt_dir=${2}
+    usr=${3}
+    pw=${4}
+    loc_dir=${5}
+    loc_pfx=${6}
+    # macOS不支持uid/gid直接映射，可忽略或替换为macOS的用户/组名
+    loc_user=${7:-$(whoami)}  # 默认当前用户
+    loc_group=${8:-staff}     # macOS默认用户组为staff
+
+    # 参数校验
+    if [[ -z "${rmt_ip}" || -z "${rmt_dir}" || -z "${usr}" || -z "${pw}" ]]; then
+        echo "Usage: mount_smb <srv_ip> <srv_dir> <usr> <pw> <loc_dir> <loc_prefix> [loc_user] [loc_group]"
+        return 1  # macOS中return -1会被视为255，建议用非0正数
+    fi
+
+    # 构造远程SMB地址和本地挂载点
+    rmt_addr="//${usr}:${pw}@${rmt_ip}/${rmt_dir}"
+    loc_mtp="${loc_dir}/${loc_pfx}_${rmt_dir}"
+
+    # 创建挂载点（若不存在）
+    if [ ! -d "${loc_mtp}" ]; then
+        mkdir -p "${loc_mtp}"
+        chmod 755 "${loc_mtp}"
+    fi
+
+    # macOS mount_smbfs命令（无需sudo，除非挂载到/Volumes外的系统目录）
+    cmd="mount_smbfs ${rmt_addr} ${loc_mtp}"
+    echo "cur cmd: ${cmd}"
+    eval ${cmd}
+
+    # 可选：调整挂载点权限（macOS中挂载后的文件权限由SMB服务器决定）
+    # chown -R ${loc_user}:${loc_group} ${loc_mtp}
 }
 
 
