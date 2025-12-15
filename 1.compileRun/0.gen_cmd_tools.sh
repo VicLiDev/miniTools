@@ -6,8 +6,8 @@
 # Created Time: Sun 14 Dec 2025 10:18:23 AM CST
 #########################################################################
 
-
 # source ${HOME}/Projects/miniTools/1.compileRun/0.gen_cmd_tools.sh
+
 
 function mount_smb()
 {
@@ -38,3 +38,121 @@ function mount_smb()
     eval ${cmd}
 }
 
+
+function code_fmt_a()
+{
+    files="$@"
+    cfg_file=".astylerc"
+
+    echo "========================="
+    echo "==> Format via astyle <=="
+    echo "========================="
+
+    if [ -e ${cfg_file} ]
+    then
+        echo "==> Use ${cfg_file} in cur dir"
+    else
+        echo "==> Use newly created ${cfg_file} in cur dir"
+
+        echo "# directory setting"            >  ${cfg_file}
+        # --recursive 期望的是 目录或通配符，否则会报 “Recursive option with no wildcard”
+        # echo "--recursive"                    >> ${cfg_file}
+        # echo "--exclude=../build"             >> ${cfg_file}
+        # echo "--exclude=../prebuild"          >> ${cfg_file}
+        echo ""                               >> ${cfg_file}
+        echo "# bracket style setting"        >> ${cfg_file}
+        echo "--style=linux"                  >> ${cfg_file}
+        echo ""                               >> ${cfg_file}
+        echo "# indent setting"               >> ${cfg_file}
+        echo "--indent=spaces=4"              >> ${cfg_file}
+        echo "#--indent-switches"             >> ${cfg_file}
+        echo "#--indent-preprocessor"         >> ${cfg_file}
+        echo "--min-conditional-indent=0"     >> ${cfg_file}
+        echo "--max-instatement-indent=120"   >> ${cfg_file}
+        echo "--max-code-length=160"          >> ${cfg_file}
+        echo ""                               >> ${cfg_file}
+        echo "# padding setting"              >> ${cfg_file}
+        echo "#--break-blocks"                >> ${cfg_file}
+        echo "#--pad-oper"                    >> ${cfg_file}
+        echo "#--pad-first-paren-out"         >> ${cfg_file}
+        echo "--pad-header"                   >> ${cfg_file}
+        echo "#--unpad-paren"                 >> ${cfg_file}
+        echo "#--align-pointer=name"          >> ${cfg_file}
+        echo ""                               >> ${cfg_file}
+        echo "# formatting setting"           >> ${cfg_file}
+        echo "--keep-one-line-blocks"         >> ${cfg_file}
+        echo "--keep-one-line-statements"     >> ${cfg_file}
+        echo "--convert-tabs"                 >> ${cfg_file}
+        echo ""                               >> ${cfg_file}
+        echo "# other setting"                >> ${cfg_file}
+        echo "#--quiet"                       >> ${cfg_file}
+        echo "--suffix=none"                  >> ${cfg_file}
+        echo "--lineend=linux"                >> ${cfg_file}
+    fi
+
+    echo "==> Format files: ${files}"
+    cmd="astyle --quiet --options=${cfg_file} ${files}"
+    echo "==> cmd: ${cmd}"
+    eval ${cmd}
+
+    if [ "$?" = "0" ]
+    then
+        echo "==> Format finished"
+    else
+        echo "==> Format failed"
+    fi
+}
+
+
+function code_fmt_c()
+{
+    files="$@"
+    cfg_file=".clang-format"
+
+    echo "==============================="
+    echo "==> Format via clang-format <=="
+    echo "==============================="
+
+    if [ -e ${cfg_file} ]
+    then
+        echo "==> Use ${cfg_file} in cur dir"
+    else
+        echo "==> Use newly created ${cfg_file} in cur dir"
+
+        # Google 风格空格规则
+        echo "BasedOnStyle: Google"               >  ${cfg_file}
+        # 缩紧为4
+        echo "IndentWidth: 4"                     >> ${cfg_file}
+        echo ""                                   >> ${cfg_file}
+        # 自己来定义花括号规则
+        echo "BreakBeforeBraces: Custom"          >> ${cfg_file}
+        echo "BraceWrapping:"                     >> ${cfg_file}
+        # 函数左花括号换行
+        echo "    AfterFunction: true         "   >> ${cfg_file}
+        # if/for/while 左花括号在同一行
+        echo "    AfterControlStatement: false"   >> ${cfg_file}
+        echo ""                                   >> ${cfg_file}
+        # 访问控制关键字顶格
+        echo "AccessModifierOffset: -4"           >> ${cfg_file}
+        echo ""                                   >> ${cfg_file}
+        # 不打散表达式
+        # echo "BreakBinaryOperations: Never"       >> ${cfg_file}
+        # echo "BreakBeforeBinaryOperators: None"   >> ${cfg_file}
+        # echo ""                                   >> ${cfg_file}
+        # 参数换行对齐方式
+        # echo "AlignAfterOpenBracket: Align"       >> ${cfg_file}
+
+    fi
+
+    echo "==> Format files: ${files}"
+    cmd="clang-format -i ${files}"
+    echo "==> cmd: ${cmd}"
+    eval $cmd
+
+    if [ "$?" = "0" ]
+    then
+        echo "==> Format finished"
+    else
+        echo "==> Format failed"
+    fi
+}
