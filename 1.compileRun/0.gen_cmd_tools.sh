@@ -200,3 +200,45 @@ function code_fmt_c()
         echo "==> Format failed"
     fi
 }
+
+function ck_ssh_safe()
+{
+    echo "======> log failed"
+    echo "如果看到："
+    echo "Failed password for invalid user admin from 185.xxx.xxx.xxx"
+    echo "Failed password for root from 45.xxx.xxx.xxx"
+    echo "说明有人在尝试登录你的服务器"
+    echo "------> current status <------"
+    grep "Failed password" /var/log/auth.log
+    echo ""
+
+    echo "======> log Accepted"
+    echo "应该只看到："
+    echo "自己的用户名"
+    echo "自己的 IP"
+    echo "如果有陌生 IP，说明已经被登录过"
+    echo "------> current status <------"
+    grep "Accepted" /var/log/auth.log
+    echo ""
+
+    echo "======> log Accepted"
+    echo "看哪些 IP 在反复试密码，即 “扫端口 / 爆破”"
+    echo "输出示例："
+    echo "120  103.88.xx.xx"
+    echo "87   45.142.xx.xx"
+    echo "同一 IP 尝试几十、上百次 = 自动化攻击"
+    echo "------> current status <------"
+    grep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head
+    echo ""
+
+    # 实时监控 SSH 尝试
+    # sudo tail -f /var/log/auth.log
+    # 什么都不做，只要看到类似：
+    # Failed password for invalid user test from 91.xx.xx.xx
+    # 就是公网在扫你。
+
+    # 看 SSH 服务有没有被频繁访问
+    # journalctl -u ssh --since "1 hour ago"
+    # 或
+    # journalctl -u sshd
+}
