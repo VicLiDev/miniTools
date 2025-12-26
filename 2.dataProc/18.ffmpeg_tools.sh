@@ -515,3 +515,14 @@ gseqs()
         for cur_fmt in ${fmt_list[@]}; do gseq -s 640x360 -f ${cur_fmt} -sp jpg  --out_prefix 10bit; done
     fi
 }
+
+get_frm_cnt()
+{
+    src="$1"
+
+    [ -z "${src}" ] && { echo "No input strm!"; return 1; }
+    [ ! -e "${src}" ] && { echo "Strm path invalid!"; return 1; }
+
+    ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "${src}"
+}
+
