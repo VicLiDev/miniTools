@@ -320,7 +320,7 @@ dbgGdb_x86()
     ${HostGdb} --command=${debugCmdFile} --args ${MppCmd}
 }
 
-adbCmd=$(adbs -s)
+adbCmd=$(adbs)
 if [ -z "${adbCmd}" ]; then exit 0; fi
 prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
 source ${prjRootDir}/0.general_tools/0.select_node.sh
