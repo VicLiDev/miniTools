@@ -17,10 +17,10 @@ ln -s ${prjDir}/${subDir}/rkDebugMpp.sh ${HOME}/bin/rkDebugMpp.sh
 
 # kernel
 rm ${HOME}/bin/rkBuildKer.sh
-rm ${HOME}/bin/rkdebugKer.sh
+rm ${HOME}/bin/rkDebugKer.sh
 rm ${HOME}/bin/rkUT.sh
 ln -s ${prjDir}/${subDir}/rkBuildKer.sh ${HOME}/bin/rkBuildKer.sh
-ln -s ${prjDir}/${subDir}/rkDebugKer.sh ${HOME}/bin/rkdebugKer.sh
+ln -s ${prjDir}/${subDir}/rkDebugKer.sh ${HOME}/bin/rkDebugKer.sh
 ln -s ${prjDir}/${subDir}/rkUT.sh       ${HOME}/bin/rkUT.sh
 
 # tools
