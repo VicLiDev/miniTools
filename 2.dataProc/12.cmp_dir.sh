@@ -16,11 +16,14 @@ if [ $# -lt 2 ]; then
 fi
 dataDir1=$1
 dataDir2=$2
-diffQuit=$3
+diffQuit="${3:-}"
 cmpRet=0
 
-if [ ${dataDir1:0:1} != "/" ]; then echo "Please input abs path"; exit 1; fi
-if [ ${dataDir2:0:1} != "/" ]; then echo "Please input abs path"; exit 1; fi
+# if [ ${dataDir1:0:1} != "/" ]; then echo "Please input abs path"; exit 1; fi
+# if [ ${dataDir2:0:1} != "/" ]; then echo "Please input abs path"; exit 1; fi
+
+[ ! -e "$dataDir1" ] && { echo "dir1 not exist: $dataDir1"; exit 1; }
+[ ! -e "$dataDir2" ] && { echo "dir2 not exist: $dataDir2"; exit 1; }
 
 if [ `find ${dataDir1} | wc -l` -ne `find ${dataDir2} | wc -l` ]; then
     echo "dir1 file cnt: `find ${dataDir1} | wc -l`"
@@ -34,23 +37,19 @@ do
     file2="${dataDir2}${file##*${dataDir1}}"
 
     if [ ! -f ${file1} ] && [ ! -f ${file2} ]; then continue; fi
-    if [ ! -e ${file1} ]; then
-        cmpRet=1
-        echo "--> [res]: ${file1} not exist"
-        if [ "$diffQuit" == "q" ];then exit 1; else continue; fi
-    fi
     if [ ! -e ${file2} ]; then
         cmpRet=1
         echo "--> [res]: ${file2} not exist"
         if [ "$diffQuit" == "q" ];then exit 1; else continue; fi
     fi
 
-    frmIdx="${file1##*Frame}"
-    frmIdx="${frmIdx##*frame}"
-    frmIdx="${frmIdx##*frm}"
-    frmIdx="${frmIdx%%/*}"
-    if [ "${frmIdx}" = "${file1}" ]; then frmIdx=""; fi
-    if [ -n "${frmIdx}" ]; then frmIdx="Frame${frmIdx}"; fi
+    # 正则表达式用法可以参考 shell 文档
+    frmIdx=""
+    if [[ "$file1" =~ ([Ff]rame|frm)([0-9]+) ]]; then
+        frmIdx="Frame${BASH_REMATCH[2]}"
+    fi
+
+
     fileNmae="${file1##*/}"
 
     md5Val1=`md5sum ${file1} | awk '{print $1}'`
