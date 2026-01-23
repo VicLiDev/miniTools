@@ -1,14 +1,93 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 0.gen_cmd_tools.sh
+# File Name: 0.gen_cmd_cfg.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Sun 14 Dec 2025 10:18:23 AM CST
 #########################################################################
 
-# source ${HOME}/Projects/miniTools/1.compileRun/0.gen_cmd_tools.sh
+# source ${HOME}/Projects/miniTools/1.compileRun/0.gen_cmd_cfg.sh
 
+# =============================================================================
+# ============================ def config =====================================
+# =============================================================================
+# ------------------------
+# ------> path env <------
+# ------------------------
+export PATH=${HOME}/bin:${PATH}
+export PATH="$HOME/.local/bin:$PATH"
+# ------------------------------
+# ------> default editor <------
+# ------------------------------
+export EDITOR=vim
+# ---------------------
+# ------> proxy <------
+# ---------------------
+# set proxyIP and proxyPort
+if [[ -n "${proxyIP}" && -n "${proxyPort}" ]]
+then
+    export http_proxy=http://${proxyIP}:${proxyPort}
+    export https_proxy=http://${proxyIP}:${proxyPort}
+    export all_proxy=socks5://${proxyIP}:${proxyPort}
+fi
+# -------------------------
+# ------> sys tools <------
+# -------------------------
+# -a（all）显示 所有文件，包括隐藏文件
+# -l（long）长格式显示
+# -h（human-readable） 人类可读的大小
+# -F（文件类型标记）
+#   效果示例：bin/      script*     link@     pipe|
+#   含义：
+#   符号 意义
+#   /    目录
+#   *    可执行文件
+#   @    符号链接
+#   =    socket
+# -A（Almost all） 显示隐藏文件，但不显示 . 和 .. ，比 -a 更“干净”
+# -C 按列输出（默认行为）
+# --color=auto 根据文件类型显示颜色，Linux 专属
+# -G（macOS / BSD）启用彩色输出（等价于 Linux 的 --color）
+if [ "$(uname -s)" = "Linux" ]
+then
+    # echo "Linux"
+    alias ls='ls --color=auto'
+    alias ll='ls -alh'
+    alias la='ls -A'
+elif [ "$(uname -s)" = "Darwin" ]
+then
+    # echo "macOS"
+    alias ls='ls -G'
+    alias ll='ls -alh'
+    alias la='ls -A'
+    alias l='ls -CF'
+else
+    echo "unknow system"
+fi
+alias grep='grep --color=auto --exclude-dir={.bzr,CVS,.git,.hg,.svn,.idea,.tox,.venv,venv}'
+# --------------------------
+# ------> priv tools <------
+# --------------------------
+# fzf
+if [ -n "$BASH_VERSION" ]; then
+    # echo "bash"
+    [ -f ~/.fzf.bash ] && source ~/.fzf.bash
+elif [ -n "$ZSH_VERSION" ]; then
+    # echo "zsh"
+    [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+else
+    echo "unknow shell"
+fi
+# opencode
+export PATH=${HOME}/.opencode/bin:${PATH}
+# ======> miniforge3
+if [ -f "${HOME}/miniforge3/etc/profile.d/mamba.sh" ]; then
+    . "${HOME}/miniforge3/etc/profile.d/mamba.sh"
+fi
 
+# =============================================================================
+# =============================== tools =======================================
+# =============================================================================
 function mount_smb()
 {
     # Linux
