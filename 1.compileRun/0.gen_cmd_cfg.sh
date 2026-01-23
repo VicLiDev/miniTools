@@ -85,7 +85,12 @@ conda_root=""
 [ -e "${HOME}/miniforge3" ] && conda_root="${HOME}/miniforge3"
 [ -e "${HOME}/anaconda3" ] && conda_root="${HOME}/anaconda3"
 if [ -n "${conda_root}" ]; then
-    __conda_setup="$("${conda_root}/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
+    __conda_setup=""
+    if [ -n "$BASH_VERSION" ]; then
+        __conda_setup="$("${conda_root}/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
+    elif [ -n "$ZSH_VERSION" ]; then
+        __conda_setup="$("${conda_root}/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
+    fi
     if [ $? -eq 0 ]; then
         eval "$__conda_setup"
     else
