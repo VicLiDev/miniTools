@@ -1139,7 +1139,13 @@ compile_distributor()
 compile_ffmpeg()
 {
     #-- ffmpeg
-    wk_dir="${FFMPEG_EX_LIBS_DIR}/build_ffmpeg_${m_sel_arch}"
+    prj_dir="${FFMPEG_ROOT}/ffmpeg"
+    if [ ! -d "${prj_dir}" ]; then
+        cd ${FFMPEG_ROOT}
+        git clone https://git.ffmpeg.org/ffmpeg.git
+    fi
+
+    wk_dir="${prj_dir}/build_ffmpeg_${m_sel_arch}"
     [ -e ${wk_dir} ] && rm -rf ${wk_dir}
     create_dir ${wk_dir} && cd ${wk_dir}
 
@@ -1162,6 +1168,8 @@ compile_ffmpeg()
     # 但在链接 x264 的时候 使用config文件的方式又不能奏效，所以这种处理方式
     # 也需要保留
     # x86不设置 PKG_CONFIG_SYSROOT_DIR，不然会有问题
+    # PKG_CONFIG_SYSROOT_DIR 只指向 目标 sysroot，不要把“自己编译的库路径”塞进 sysroot
+    # 自己编译的库用 PKG_CONFIG_PATH 管
     if [ "${m_sel_arch}" != "linux_x86" ]; then
         export PKG_CONFIG_SYSROOT_DIR=${FFMPEG_PREFIX}
     fi
@@ -1187,14 +1195,14 @@ compile_ffmpeg()
     # 的所有环境变量（尤其是跨 Shell 调用时）。
     # 通过 --pkg-config=自定义脚本，你强制 FFmpeg 使用你的脚本调用 pkg-config，
     # 从而 确保环境变量（如 PKG_CONFIG_LIBDIR）被正确传递。
+    # 也就是告诉 FFmpeg：，“以后所有库检测，请用我指定的这个 pkg-config 程序”
+    # 也就是说，FFmpeg 默认用的 /usr/bin/pkg-config 被你替换掉了。
     #
     #
     # 找不到 x265 库的问题：
     # 直接执行 ${pkg_config_exe} --debug --modversion x265 发现无法正常找到编译
-    # 得到的 x265 库，需要加上export才可以，但对x264做同样的测试，也找不到x264的
-    # 库，但是x264可以正常链接，因此这里的export不是关键原因，但加上export，命令
-    # 行可以直接执行${pkg_config_exe} --debug --modversion x265 这样的命令，便于
-    # 调试，因此还是加上比较好
+    # 得到的 x265 库，需要加上export才可以，加上export，命令行可以直接执行
+    # ${pkg_config_exe} --debug --modversion x265 这样的命令，便于调试
     #
     # 在 ${pkg_config_exe} 中添加调试相关打印，可以看到ffmpeg的相关行为，如果
     # 出现找不到 x265 的问题，可以直接执行 ${pkg_config_exe} <args> 进行测试
@@ -1234,6 +1242,38 @@ compile_ffmpeg()
     echo "exec pkg-config \"\$@\"" >> ${pkg_config_exe}
     chmod +x ${pkg_config_exe}
 
+    # 遇到问题： ERROR: gnutls not found using pkg-config
+    # 执行：pkg-config --modversion gnutls --debug
+    # 出现：Unknown keyword 'Libs.private' in '/usr/lib/x86_64-linux-gnu/pkgconfig/gnutls.pc'
+    # 原因：pkg-config 版本太老，不认识 Libs.private 这个字段
+    # 解决方法：pkg-config --version 如果 < 0.29（尤其 0.26 / 0.27）就该升级了
+    #           Ubuntu / Debian：sudo apt install -y pkg-config
+    #           或：
+    #           sudo apt install -y pkgconf
+    #           sudo ln -sf /usr/bin/pkgconf /usr/bin/pkg-config
+    #           然后验证：pkg-config --modversion gnutls --debug
+    #           但是这只能解决 Libs.private 的问题，不能解决 gnutls的问题
+    # 发现与 --pkg-config-flags="--static" 有关，注释掉就可以消除掉 gnutls 的问题
+    # 这条参数含义：告诉 pkg-config：我要“静态链接”视角下的依赖信息
+    # 不加的情况：只返回「直接依赖」
+    # 加上的情况：返回「直接依赖 + 私有依赖（Libs.private / Requires.private）」
+    # 最终通过安装如下内容解决：
+    # sudo apt install libgnutls28-dev nettle-dev libtasn1-dev libidn2-dev \
+    #                  libunistring-dev libp11-kit-dev libgmp-dev
+
+    # 遇到问题：x264 not found using pkg-config
+    # 查看：./ffmpeg/build_ffmpeg_linux_x86/ffbuild/config.log
+    # 有异常信息：
+    # /tmp/ffconf.O1MBi3ud/test.c:2:10: fatal error: x264.h: No such file or directory
+    #     2 | #include <x264.h>
+    #       |          ^~~~~~~~
+    # compilation terminated.
+    # ERROR: x264 not found using pkg-config
+    # 异常原因是找不到 x264.h 头文件，因此需要在ffmpeg的include和lib路径中，
+    # 加一下x264的路径，即：
+    # --extra-cflags="-I ${FFMPEG_PREFIX}/include -I ${FFMPEG_PREFIX}/usr/local/include"
+    # --extra-ldflags="-L ${FFMPEG_PREFIX}/lib -L ${FFMPEG_PREFIX}/usr/local/lib"
+
     # 如果希望静态编译，需要将aom 的动态库删掉
     [ -e "${FFMPEG_PREFIX}/lib/libaom.so" ] && rm ${FFMPEG_PREFIX}/lib/libaom.so
 
@@ -1270,7 +1310,7 @@ compile_ffmpeg()
         )
 
         # 为了避免参数被错误解析，${ffmpeg_config[@]} 需要加引号
-        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../../configure "${ffmpeg_config[@]}"
+        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../configure "${ffmpeg_config[@]}"
     elif [ "${m_sel_arch}" == "android_64" ]; then
         ffmpeg_config=(
             --prefix=${FFMPEG_PREFIX}
@@ -1304,7 +1344,7 @@ compile_ffmpeg()
         )
 
         # 为了避免参数被错误解析，${ffmpeg_config[@]} 需要加引号
-        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../../configure "${ffmpeg_config[@]}"
+        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../configure "${ffmpeg_config[@]}"
     elif [ "${m_sel_arch}" == "linux_32" ]; then
         ffmpeg_config=(
             --prefix=${FFMPEG_PREFIX}
@@ -1339,7 +1379,7 @@ compile_ffmpeg()
         )
 
         # 为了避免参数被错误解析，${ffmpeg_config[@]} 需要加引号
-        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../../configure "${ffmpeg_config[@]}"
+        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../configure "${ffmpeg_config[@]}"
     elif [ "${m_sel_arch}" == "linux_64" ]; then
         ffmpeg_config=(
             --prefix=${FFMPEG_PREFIX}
@@ -1374,14 +1414,17 @@ compile_ffmpeg()
         )
 
         # 为了避免参数被错误解析，${ffmpeg_config[@]} 需要加引号
-        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../../configure "${ffmpeg_config[@]}"
+        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../configure "${ffmpeg_config[@]}"
     elif [ "${m_sel_arch}" == "linux_x86" ]; then
         ffmpeg_config=(
             --prefix=${FFMPEG_PREFIX}
+            # 这个参数主要是在交叉编译的时候，指定相应系统的sysroot
+            # sysroot 中应当包含与指定平台等价的环境
+            # --sysroot=${FFMPEG_PREFIX}
             --pkg-config=${pkg_config_exe}
             --pkg-config-flags="--static"
-            --extra-cflags="-I ${FFMPEG_PREFIX}/include"
-            --extra-ldflags="-L ${FFMPEG_PREFIX}/lib"
+            --extra-cflags="-I ${FFMPEG_PREFIX}/include -I ${FFMPEG_PREFIX}/usr/local/include"
+            --extra-ldflags="-L ${FFMPEG_PREFIX}/lib -L ${FFMPEG_PREFIX}/usr/local/lib"
             --extra-libs="-lpthread -lm"
             --ld="g++"
             --enable-libvorbis
@@ -1413,7 +1456,7 @@ compile_ffmpeg()
             --enable-decoder=mjpeg # 启用 MJPEG 解码器
         )
         # 为了避免参数被错误解析，${ffmpeg_config[@]} 需要加引号
-        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../../configure "${ffmpeg_config[@]}"
+        PATH="${FFMPEG_PATH}" PKG_CONFIG_PATH="${FFMPEG_PKG_CFG_PATH}" ../configure "${ffmpeg_config[@]}"
     else
         echo "err: platform select error"
         return
