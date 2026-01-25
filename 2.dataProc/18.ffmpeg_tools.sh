@@ -9,9 +9,9 @@
 # add to bashrc:
 # source ${HOME}/Projects/miniTools/2.dataProc/18.ffmpeg_tools.sh
 
-alias mffmpeg=${HOME}/Projects/ffmpeg_source/ffmpeg_build/bin/ffmpeg
-alias mffplay=${HOME}/Projects/ffmpeg_source/ffmpeg_build/bin/ffplay
-alias mffprobe=${HOME}/Projects/ffmpeg_source/ffmpeg_build/bin/ffprobe
+alias mffmpeg=${HOME}/Projects/ffmpeg_ex/build_linux_x86/bin/ffmpeg
+alias mffplay=${HOME}/Projects/ffmpeg_ex/build_linux_x86/bin/ffplay
+alias mffprobe=${HOME}/Projects/ffmpeg_ex/build_linux_x86/bin/ffprobe
 
 format_time()
 {
