@@ -28,6 +28,7 @@ pltList=(
     "3588_android"
     "3562_android"
     "3576_android"
+    "3572_android"
     "3528_android"
     "3538_android"
     "1106_linux"
@@ -79,6 +80,7 @@ get_arch()
             |'3588_android'\
             |'3562_android'\
             |'3576_android'\
+            |'3572_android'\
             |'3528_android'\
             |'3538_android'\
             |'px30_linux'\
@@ -203,6 +205,10 @@ gen_cmd()
             '3576_android')
                 m_config="rockchip_defconfig ${cur_android_config} rk3576.config"
                 m_target="BOOT_IMG=../rk_kernel_boot/boot_3576.img rk3576-evb1-v10.img"
+                ;;
+            '3572_android')
+                m_config="rockchip_defconfig ${cur_android_config} rk3572.config"
+                m_target="BOOT_IMG=../rk_kernel_boot/boot_3572.img rk3572-evb1-v10.img"
                 ;;
             '3528_android')
                 m_config="rockchip_defconfig ${cur_android_config} rk3528_box.config"
