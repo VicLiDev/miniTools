@@ -14,6 +14,30 @@
 # alias clog='clear && adbCmd=$(adbs) && ${adbCmd} logcat -c && ${adbCmd} logcat'
 # alias ldev='adbCmd=$(adbs) && ${adbCmd} root && ${adbCmd} remount && ${adbCmd} shell'
 
+# use platform-tools ≥ 30.x(Android 11) clould fix adb forward(transport) not work issue
+
+# adb 36.x 引入了更激进的连接管理和特性（libusb、并发探测、IPv6、auth 机制变化等），
+# 对某些 Linux 开发板的 USB Gadget / 内核驱动兼容性不好，导致反复断连，直到某个
+# transport 被“侥幸”稳定下来。
+#
+# 强制 adb 不走 libusb 后端
+# adb 连接 USB 设备有两套路径：
+# 路径                  说明
+# libusb                新 adb 默认，跨平台、并发能力强
+# usbfs (/dev/bus/usb)  老 adb 用的，宽容但老
+# ADB_LIBUSB=0 即 禁用新路径，退回老的 USB 实现
+# 这是以为使用新的 libusb，会出现linux系统链接不稳定的问题
+# 如果想长期生效，也可以写在shell启动脚本里：
+# echo 'export ADB_LIBUSB=0' >> ~/.bashrc
+# echo 'export ADB_TRACE=' >> ~/.bashrc
+
+# ADB_TRACE 是 adb 的 调试日志开关
+# ADB_TRACE=usb,transport
+# 会打印巨量调试日志
+# ADB_TRACE= 即明确关闭 adb 调试日志
+# 用途只有一个：防止之前设置过 ADB_TRACE，结果 adb 巨慢 / 看起来不稳定
+# ADB_TRACE=
+
 sel_tag_adbs="adb_s:"
 
 cmd_orgAdbOpt=""
