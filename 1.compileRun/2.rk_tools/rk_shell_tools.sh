@@ -75,3 +75,39 @@ adb_kill_media()
     eval ${adbCmd} shell killall rockchip.hardware.rockit.hw@1.0-service
     eval ${adbCmd} shell killall android.hardware.media.c2@1.1-service
 }
+
+adb_en_l_fbc()
+{
+    en_fbc=$1
+    [ -z "${en_fbc}" ] && { echo "usage: <exe> 0/1    disable/enable fbc"; return 1; }
+
+    adbCmd=$(adbs)
+    if [ "${en_fbc}" = "1" ]; then
+        eval "${adbCmd} shell \"export GST_MPP_VIDEODEC_DEFAULT_ARM_AFBC=1\""
+        [ "$?" = "0" ] && { echo "enable afbc success!"; } || {echo "enable afbc failed!"; return 1; }
+    elif [ "${en_fbc}" = "0" ]; then
+        eval "${adbCmd} shell \"export GST_MPP_VIDEODEC_DEFAULT_ARM_AFBC=0\""
+        [ "$?" = "0" ] && { echo "disable afbc success!"; } || {echo "disable afbc failed!"; return 1; }
+    else
+        echo "unknow opt of en_fbc: ${en_fbc}"
+    fi
+}
+
+adb_en_a_fbc()
+{
+    en_fbc=$1
+    [ -z "${en_fbc}" ] && { echo "usage: <exe> 0/1    disable/enable fbc"; return 1; }
+
+    adbCmd=$(adbs)
+    if [ "${en_fbc}" = "1" ]; then
+        eval "${adbCmd} shell \"setenforce 0 && setprop rt_vdec_fbc_disable 0\""
+        eval "${adbCmd} shell \"setenforce 0 && setprop codec2_fbc_disable 0\""
+        [ "$?" = "0" ] && { echo "enable afbc success!"; } || {echo "enable afbc failed!"; return 1; }
+    elif [ "${en_fbc}" = "0" ]; then
+        eval "${adbCmd} shell \"setenforce 0 && setprop rt_vdec_fbc_disable 1\""
+        eval "${adbCmd} shell \"setenforce 0 && setprop codec2_fbc_disable 1\""
+        [ "$?" = "0" ] && { echo "disable afbc success!"; } || {echo "disable afbc failed!"; return 1; }
+    else
+        echo "unknow opt of en_fbc: ${en_fbc}"
+    fi
+}
