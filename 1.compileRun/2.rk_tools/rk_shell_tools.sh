@@ -52,3 +52,15 @@ opdev()
     echo "dev No: ${devSelNo}"
     scrcpy --serial=${devSelNo}
 }
+
+vimdiff_strm()
+{
+    file1=${1}
+    file2=${2}
+
+    conv_exe="${HOME}/Projects/miniTools/2.dataProc/19.hex_txt_splitter.py"
+    ${conv_exe} ${file1} ${file1}_tmp -r
+    ${conv_exe} ${file2} ${file2}_tmp -r
+
+    vimdiff ${file1}_tmp ${file2}_tmp
+}
