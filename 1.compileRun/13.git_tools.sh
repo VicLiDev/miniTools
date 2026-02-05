@@ -24,18 +24,18 @@ alias golcurb="gonel --first-parent"
 # ====== commit forward/backword ======
 get_commit_info()
 {
-    cnt=1
-    opt_loc=""
+    cmd_cnt=1
+    cmd_opt_loc=""
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -n) cnt="$2"; if [ -z "$cnt" ]; then return 1; fi; shift; ;;
-            -l) opt_loc="$2"; if [ -z "$opt_loc" ]; then return 1; fi; shift; ;;
+            -n) cmd_cnt="$2"; if [ -z "$cmd_cnt" ]; then return 1; fi; shift; ;;
+            -l) cmd_opt_loc="$2"; if [ -z "$cmd_opt_loc" ]; then return 1; fi; shift; ;;
             -h) echo "get_commit_info [-n <node_cnt>,def 1] [-l <base file/dir>,def NULL]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
-    echo "loc: $opt_loc"
+    echo "loc: $cmd_opt_loc"
 
     # rev-list 的用法：
     # git rev-list = “给机器用的提交遍历引擎”
@@ -88,17 +88,29 @@ get_commit_info()
     # 和其他命令配合
     # 1. 和 git show: git show $(git rev-list -n 1 HEAD -- arch/arm64)
     # 2. 和 git describe: git describe --contains $(git rev-list -n 1 -- drivers/media)
-    #    把“裸 commit”翻译成人能理解的 tag。
+    #    把"裸 commit"翻译成人能理解的 tag。
+    #
+    # --abbrev-commit
+    # 缩写 commit hash
+    #   默认完整：40 位
+    #   加这个后：7～12 位（足够唯一）
 
 
     # cur
-    # cur_commit=$(git log --oneline ${opt_loc} | grep $(git rev-parse --short HEAD))
-    # cur_commit=$(git log --oneline -n 1 ${opt_loc})
-    # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
-    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${opt_loc})
+    # 同时显示所有分支和主线的结果
+    echo "===== [all branches] ====="
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${cmd_opt_loc})
     cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     echo "cur commit:        ${cur_commit}"
     echo "cur com_id:        ${cur_com_id}"
+    echo
+
+    # 仅显示主线的结果
+    echo "===== [first-parent only] ====="
+    cur_com_id_fp=$(git rev-list --max-count=1 --abbrev-commit --first-parent HEAD -- ${cmd_opt_loc})
+    cur_commit_fp=$(git log --oneline -n 1 ${cur_com_id_fp})
+    echo "cur commit:        ${cur_commit_fp}"
+    echo "cur com_id:        ${cur_com_id_fp}"
     echo
 
     # forward
@@ -106,48 +118,86 @@ get_commit_info()
     remote_repo=$(git config "branch.${cur_remote_br}.remote" || echo "")
     echo "remote repo:       ${remote_repo}"
     echo "cur remote branch: ${cur_remote_br}"
+    echo
 
+    # [all branches] forward
+    echo "===== [all branches] ====="
     # forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
-    #                --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    #                --oneline ${cmd_opt_loc} | grep -B ${cmd_cnt} ${cur_com_id} | head -1)
     # forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
     forward_com_id=$(git rev-list --abbrev-commit ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
-                     -- ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
-    forward_commit=$(git log --oneline -n 1 ${forward_com_id})
-    echo "forward commit:    ${forward_commit}"
-    echo "forward com_id:    ${forward_com_id}"
+                     -- ${cmd_opt_loc} | grep -B ${cmd_cnt} ${cur_com_id} | head -1)
+    # 检查 forward_com_id 是否为空，避免后续命令在无 forward commits 时报错
+    if [ -z "$forward_com_id" ]; then
+        echo "forward commit:    None (no newer commits on remote)"
+        echo "forward com_id:    N/A"
+    else
+        forward_commit=$(git log --oneline -n 1 ${forward_com_id})
+        echo "forward commit:    ${forward_commit}"
+        echo "forward com_id:    ${forward_com_id}"
+    fi
+    echo
+
+    # [first-parent only] forward
+    echo "===== [first-parent only] ====="
+    forward_com_id_fp=$(git rev-list --abbrev-commit --first-parent ${cur_com_id_fp}^..${remote_repo}/${cur_remote_br} \
+                        -- ${cmd_opt_loc} | grep -B ${cmd_cnt} ${cur_com_id_fp} | head -1)
+    if [ -z "$forward_com_id_fp" ]; then
+        echo "forward commit:    None (no newer commits on remote)"
+        echo "forward com_id:    N/A"
+    else
+        forward_commit_fp=$(git log --oneline -n 1 ${forward_com_id_fp})
+        echo "forward commit:    ${forward_commit_fp}"
+        echo "forward com_id:    ${forward_com_id_fp}"
+    fi
     echo
 
     # backward
-    # backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} \
-    #                   | grep -A ${cnt} ${cur_com_id} | tail -1)
+    # [all branches] backward
+    echo "===== [all branches] ====="
+    # 旧方式：使用 expr 进行算术运算，效率较低且已过时
+    # backward_commit=$(git log --oneline -n `expr ${cmd_cnt} \* 2` ${cmd_opt_loc} \
+    #                   | grep -A ${cmd_cnt} ${cur_com_id} | tail -1)
     # backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
-    backward_com_id=$(git rev-list --max-count=`expr ${cnt} \* 2` \
-                      --abbrev-commit HEAD -- ${opt_loc} \
-                      | grep -A ${cnt} ${cur_com_id} | tail -1)
+    # backward_com_id=$(git rev-list --max-count=`expr ${cmd_cnt} \* 2` \
+    # 新方式：使用 $(( )) 进行算术运算，更高效且现代
+    backward_com_id=$(git rev-list --max-count=$((${cmd_cnt} * 2)) \
+                      --abbrev-commit HEAD -- ${cmd_opt_loc} \
+                      | grep -A ${cmd_cnt} ${cur_com_id} | tail -1)
     backward_commit=$(git log --oneline -n 1 ${backward_com_id})
     echo "backward commit:   ${backward_commit}"
     echo "backward com_id:   ${backward_com_id}"
+    echo
+
+    # [first-parent only] backward
+    echo "===== [first-parent only] ====="
+    backward_com_id_fp=$(git rev-list --max-count=$((${cmd_cnt} * 2)) \
+                          --abbrev-commit --first-parent HEAD -- ${cmd_opt_loc} \
+                          | grep -A ${cmd_cnt} ${cur_com_id_fp} | tail -1)
+    backward_commit_fp=$(git log --oneline -n 1 ${backward_com_id_fp})
+    echo "backward commit:   ${backward_commit_fp}"
+    echo "backward com_id:   ${backward_com_id_fp}"
 }
 
 gmf()
 {
-    cnt=1
-    opt_loc=""
+    cmd_cnt=1
+    cmd_opt_loc=""
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -n) cnt="$2"; if [ -z "$cnt" ]; then return 1; fi; shift; ;;
-            -l) opt_loc="$2"; if [ -z "$opt_loc" ]; then return 1; fi; shift; ;;
+            -n) cmd_cnt="$2"; if [ -z "$cmd_cnt" ]; then return 1; fi; shift; ;;
+            -l) cmd_opt_loc="$2"; if [ -z "$cmd_opt_loc" ]; then return 1; fi; shift; ;;
             -h) echo "gmf [-n <node_cnt>,def 1] [-l <base file/dir>,def NULL]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
 
     # cur
-    # cur_commit=$(git log --oneline ${opt_loc} | grep $(git rev-parse --short HEAD))
-    # cur_commit=$(git log --oneline -n 1 ${opt_loc})
+    # cur_commit=$(git log --oneline ${cmd_opt_loc} | grep $(git rev-parse --short HEAD))
+    # cur_commit=$(git log --oneline -n 1 ${cmd_opt_loc})
     # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
-    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${opt_loc})
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${cmd_opt_loc})
     cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     # echo "cur commit:        ${cur_commit}"
     # echo "cur com_id:        ${cur_com_id}"
@@ -160,10 +210,10 @@ gmf()
     # echo "cur remote branch: ${cur_remote_br}"
 
     # forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
-    #                --oneline ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    #                --oneline ${cmd_opt_loc} | grep -B ${cmd_cnt} ${cur_com_id} | head -1)
     # forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
     forward_com_id=$(git rev-list --abbrev-commit ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
-                     -- ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+                     -- ${cmd_opt_loc} | grep -B ${cmd_cnt} ${cur_com_id} | head -1)
     # 检查 forward_com_id 是否为空，避免 git reset 失败
     if [ -z "${forward_com_id}" ]; then
         echo "Error: No forward commits found or remote branch does not exist"
@@ -179,35 +229,38 @@ gmf()
 
 gmb()
 {
-    cnt=1
-    opt_loc=""
+    cmd_cnt=1
+    cmd_opt_loc=""
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -n) cnt="$2"; if [ -z "$cnt" ]; then return 1; fi; shift; ;;
-            -l) opt_loc="$2"; if [ -z "$opt_loc" ]; then return 1; fi; shift; ;;
+            -n) cmd_cnt="$2"; if [ -z "$cmd_cnt" ]; then return 1; fi; shift; ;;
+            -l) cmd_opt_loc="$2"; if [ -z "$cmd_opt_loc" ]; then return 1; fi; shift; ;;
             -h) echo "gmb [-n <node_cnt>,def 1] [-l <base file/dir>,def NULL]"; return 0; ;;
             *) echo "unknow para: ${key}"; return 1; ;;
         esac; shift
     done
 
     # cur
-    # cur_commit=$(git log --oneline ${opt_loc} | grep $(git rev-parse --short HEAD))
-    # cur_commit=$(git log --oneline -n 1 ${opt_loc})
+    # cur_commit=$(git log --oneline ${cmd_opt_loc} | grep $(git rev-parse --short HEAD))
+    # cur_commit=$(git log --oneline -n 1 ${cmd_opt_loc})
     # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
-    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${opt_loc})
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${cmd_opt_loc})
     cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     # echo "cur commit:        ${cur_commit}"
     # echo "cur com_id:        ${cur_com_id}"
     # echo
 
     # backward
-    # backward_commit=$(git log --oneline -n `expr ${cnt} \* 2` ${opt_loc} \
-    #                   | grep -A ${cnt} ${cur_com_id} | tail -1)
+    # 旧方式：使用 expr 进行算术运算，效率较低且已过时
+    # backward_commit=$(git log --oneline -n `expr ${cmd_cnt} \* 2` ${cmd_opt_loc} \
+    #                   | grep -A ${cmd_cnt} ${cur_com_id} | tail -1)
     # backward_com_id=$(echo ${backward_commit} | awk '{print $1}')
-    backward_com_id=$(git rev-list --max-count=`expr ${cnt} \* 2` \
-                      --abbrev-commit HEAD -- ${opt_loc} \
-                      | grep -A ${cnt} ${cur_com_id} | tail -1)
+    # backward_com_id=$(git rev-list --max-count=`expr ${cmd_cnt} \* 2` \
+    # 新方式：使用 $(( )) 进行算术运算，更高效且现代
+    backward_com_id=$(git rev-list --max-count=$((${cmd_cnt} * 2)) \
+                      --abbrev-commit HEAD -- ${cmd_opt_loc} \
+                      | grep -A ${cmd_cnt} ${cur_com_id} | tail -1)
     backward_commit=$(git log --oneline -n 1 ${backward_com_id})
     # echo "backward commit:   ${backward_commit}"
     # echo "backward com_id:   ${backward_com_id}"
