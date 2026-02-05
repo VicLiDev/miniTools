@@ -197,7 +197,7 @@ gmf()
     # cur_commit=$(git log --oneline ${cmd_opt_loc} | grep $(git rev-parse --short HEAD))
     # cur_commit=$(git log --oneline -n 1 ${cmd_opt_loc})
     # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
-    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${cmd_opt_loc})
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit --first-parent HEAD -- ${cmd_opt_loc})
     cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     # echo "cur commit:        ${cur_commit}"
     # echo "cur com_id:        ${cur_com_id}"
@@ -212,7 +212,8 @@ gmf()
     # forward_commit=$(git log ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
     #                --oneline ${cmd_opt_loc} | grep -B ${cmd_cnt} ${cur_com_id} | head -1)
     # forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
-    forward_com_id=$(git rev-list --abbrev-commit ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
+    forward_com_id=$(git rev-list --abbrev-commit --first-parent \
+                     ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
                      -- ${cmd_opt_loc} | grep -B ${cmd_cnt} ${cur_com_id} | head -1)
     # 检查 forward_com_id 是否为空，避免 git reset 失败
     if [ -z "${forward_com_id}" ]; then
@@ -245,7 +246,7 @@ gmb()
     # cur_commit=$(git log --oneline ${cmd_opt_loc} | grep $(git rev-parse --short HEAD))
     # cur_commit=$(git log --oneline -n 1 ${cmd_opt_loc})
     # cur_com_id=$(echo ${cur_commit} | awk '{print $1}')
-    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit HEAD -- ${cmd_opt_loc})
+    cur_com_id=$(git rev-list --max-count=1 --abbrev-commit --first-parent HEAD -- ${cmd_opt_loc})
     cur_commit=$(git log --oneline -n 1 ${cur_com_id})
     # echo "cur commit:        ${cur_commit}"
     # echo "cur com_id:        ${cur_com_id}"
@@ -259,7 +260,7 @@ gmb()
     # backward_com_id=$(git rev-list --max-count=`expr ${cmd_cnt} \* 2` \
     # 新方式：使用 $(( )) 进行算术运算，更高效且现代
     backward_com_id=$(git rev-list --max-count=$((${cmd_cnt} * 2)) \
-                      --abbrev-commit HEAD -- ${cmd_opt_loc} \
+                      --abbrev-commit --first-parent HEAD -- ${cmd_opt_loc} \
                       | grep -A ${cmd_cnt} ${cur_com_id} | tail -1)
     backward_commit=$(git log --oneline -n 1 ${backward_com_id})
     # echo "backward commit:   ${backward_commit}"
