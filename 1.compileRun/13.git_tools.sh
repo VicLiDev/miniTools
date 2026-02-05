@@ -12,6 +12,15 @@
 # zsh 在git仓库显示的距离最新节点的距离是用如下方法计算：
 # git rev-list --count HEAD..origin/branch_name
 
+# git one line
+alias gonel="git log --graph --pretty=format:'%C(yellow)%h %C(blue)author: %<|(40)%an %C(cyan)%ci %C(auto) %s %d'"
+# 只显示当前分支“真正走过的主线”，把所有被 merge 进来的子分支历史全部折叠掉
+# 正常git log 会显示merge进来的其他分支的节点
+# git one line current branch
+alias golcurb="gonel --first-parent"
+# 只看merge，不看其他
+# git log --merges --oneline
+
 # ====== commit forward/backword ======
 get_commit_info()
 {
@@ -28,6 +37,60 @@ get_commit_info()
     done
     echo "loc: $opt_loc"
 
+    # rev-list 的用法：
+    # git rev-list = “给机器用的提交遍历引擎”
+    #
+    # 它做三件事：
+    # 1. 从一个或多个起点（commit / branch / tag）开始
+    # 2. 按拓扑或时间顺序遍历历史
+    # 3. 只输出 commit id（不带 message）
+    #
+    # 和 git log 的关系：
+    # | 命令           | 给谁用     | 输出       |
+    # | -------------- | ---------- | ---------- |
+    # | `git log`      | 人         | 漂亮信息   |
+    # | `git rev-list` | 脚本 / CI  | 纯 commit  |
+    #
+    # 最基础用法
+    # 1. 从 HEAD 往回列出所有提交: git rev-list HEAD # 输出（从新到旧），HEAD 能到达的所有 commit
+    # 2. 限制数量（最常用）: git rev-list -n 5 HEAD # 最近 5 个提交（不管是不是 merge）
+    #
+    # 指定范围
+    # 1. 两点语法A..B:  git rev-list A..B   # B 有，但 A 没有的提交，这个 merge 带进来了什么？两个版本差了哪些提交？
+    # 2. 三点语法A...B: git rev-list A...B  # A 和 B 的“对称差集”，A 独有 + B 独有，对比两个分支“各自多了啥”。
+    #    A 和 B 是 commit 的名字，也就是说：
+    #      可以是分支名
+    #      可以是 tag
+    #      可以是 commit hash
+    #      甚至可以是 HEAD~3、origin/main 这种表达式
+    #    Git 在看到 A..B / A...B 时，第一步永远是：把 A 和 B 解析成两个 commit。
+    #
+    # 控制“怎么走这条历史线”
+    # 1. --first-parent（内核必备）: git rev-list --first-parent HEAD  # 只沿主线走，不钻进子分支
+    # 2. 排除 merge commit: git rev-list --no-merges HEAD  # 只看“真正改代码的提交”。
+    # 3. 只要 merge commit: git rev-list --merges HEAD    # 和 git log --merges 类似，但给脚本用。
+    #
+    # 路径限定
+    # 1. git rev-list HEAD -- drivers/media # 只列出改动过 drivers/media 的提交，注意：-- 是必须的。
+    #
+    # 排序与顺序
+    # 1. 默认顺序：拓扑顺序 + 时间，从新到旧
+    # 2. 按时间排序： git rev-list --date-order HEAD
+    # 3. 严格拓扑顺序（很少用）：git rev-list --topo-order HEAD
+    #
+    # rev-list 的“判断型用法”
+    # 1. 判断某个 commit 是否在主线：git rev-list --first-parent HEAD | grep <commit>
+    #    在：主线 commit    不在：子分支历史
+    # 2. 找最近一个“满足条件”的提交
+    #    git rev-list -n 1 --no-merges HEAD -- drivers/media
+    #    最近一次改动 media 的 非 merge 提交。
+    #
+    # 和其他命令配合
+    # 1. 和 git show: git show $(git rev-list -n 1 HEAD -- arch/arm64)
+    # 2. 和 git describe: git describe --contains $(git rev-list -n 1 -- drivers/media)
+    #    把“裸 commit”翻译成人能理解的 tag。
+
+
     # cur
     # cur_commit=$(git log --oneline ${opt_loc} | grep $(git rev-parse --short HEAD))
     # cur_commit=$(git log --oneline -n 1 ${opt_loc})
@@ -40,7 +103,7 @@ get_commit_info()
 
     # forward
     cur_remote_br=`git branch --show-current`
-    remote_repo=$(git config --list | grep "branch.${cur_remote_br}.remote" | sed "s/.*=//g")
+    remote_repo=$(git config "branch.${cur_remote_br}.remote" || echo "")
     echo "remote repo:       ${remote_repo}"
     echo "cur remote branch: ${cur_remote_br}"
 
@@ -92,7 +155,7 @@ gmf()
 
     # forward
     cur_remote_br=`git branch --show-current`
-    remote_repo=$(git config --list | grep "branch.${cur_remote_br}.remote" | sed "s/.*=//g")
+    remote_repo=$(git config "branch.${cur_remote_br}.remote" || echo "")
     # echo "remote repo:       ${remote_repo}"
     # echo "cur remote branch: ${cur_remote_br}"
 
@@ -101,6 +164,11 @@ gmf()
     # forward_com_id=$(echo ${forward_commit} | awk '{print $1}')
     forward_com_id=$(git rev-list --abbrev-commit ${cur_com_id}^..${remote_repo}/${cur_remote_br} \
                      -- ${opt_loc} | grep -B ${cnt} ${cur_com_id} | head -1)
+    # 检查 forward_com_id 是否为空，避免 git reset 失败
+    if [ -z "${forward_com_id}" ]; then
+        echo "Error: No forward commits found or remote branch does not exist"
+        return 1
+    fi
     forward_commit=$(git log --oneline -n 1 ${forward_com_id})
     # echo "forward commit:    ${forward_commit}"
     # echo "forward com_id:    ${forward_com_id}"
@@ -256,5 +324,3 @@ gcroot()
 {
     cd `git rev-parse --show-toplevel`
 }
-
-alias gonel="git log --pretty=format:'%C(yellow)%h %C(blue)author: %<|(40)%an %C(cyan)%ci %C(auto) %s %d'"
