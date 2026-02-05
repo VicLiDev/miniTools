@@ -25,11 +25,9 @@ ln -s ${prjDir}/${subDir}/rkUT.sh       ${HOME}/bin/rkUT.sh
 
 # tools
 rm ${HOME}/bin/adbDebug.sh
-rm ${HOME}/bin/adbKill.sh
 rm ${HOME}/bin/adbs
 rm ${HOME}/bin/tarMpp.sh
 ln -s ${prjDir}/${subDir}/adbDebug.sh   ${HOME}/bin/adbDebug.sh
-ln -s ${prjDir}/${subDir}/adbKill.sh    ${HOME}/bin/adbKill.sh
 ln -s ${prjDir}/${subDir}/adbSelCmd.sh  ${HOME}/bin/adbs
 ln -s ${prjDir}/${subDir}/tarMpp.sh     ${HOME}/bin/tarMpp.sh
 

@@ -64,3 +64,14 @@ vimdiff_strm()
 
     vimdiff ${file1}_tmp ${file2}_tmp
 }
+
+adb_kill_media()
+{
+    adbCmd=$(adbs)
+    eval ${adbCmd} shell pkill mediaserver
+    eval ${adbCmd} shell pkill cameraserver
+    eval ${adbCmd} shell killall media.codec
+
+    eval ${adbCmd} shell killall rockchip.hardware.rockit.hw@1.0-service
+    eval ${adbCmd} shell killall android.hardware.media.c2@1.1-service
+}
