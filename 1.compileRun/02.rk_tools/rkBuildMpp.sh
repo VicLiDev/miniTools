@@ -596,8 +596,7 @@ function proc_paras()
 
 cur_br=`git branch --show-current`
 echo "cur branch: $cur_br"
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.select_node.sh
+source ${HOME}/bin/_select_node.sh
 
 proc_paras $@
 

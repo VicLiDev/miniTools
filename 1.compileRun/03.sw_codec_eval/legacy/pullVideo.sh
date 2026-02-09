@@ -50,8 +50,7 @@ videoList=(
 )
 
 
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
+source ${HOME}/bin/_dir_file_opt.sh
 
 create_dir ${videoDir}
 videoCnt=${#videoList[*]}

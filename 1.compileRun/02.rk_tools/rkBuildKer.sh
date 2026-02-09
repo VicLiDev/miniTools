@@ -388,8 +388,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.select_node.sh
+source ${HOME}/bin/_select_node.sh
 
 if [ -n "${cmd_wk_dir}" ]; then
     cd ${cmd_wk_dir}

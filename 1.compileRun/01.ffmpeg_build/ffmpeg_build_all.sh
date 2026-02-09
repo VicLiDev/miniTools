@@ -1478,10 +1478,8 @@ compile_ffmpeg()
 
 # ====== main ======
 
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.select_node.sh
+source ${HOME}/bin/_dir_file_opt.sh
+source ${HOME}/bin/_select_node.sh
 
 main()
 {

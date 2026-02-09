@@ -321,10 +321,9 @@ dbgGdb_x86()
 }
 
 adbCmd=$(adbs)
-if [ -z "${adbCmd}" ]; then exit 0; fi
-prjRootDir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prjRootDir}/0.general_tools/0.select_node.sh
-source ${prjRootDir}/0.general_tools/0.dir_file_opt.sh
+[ -z "${adbCmd}" ] && exit 0
+source ${HOME}/bin/_dir_file_opt.sh
+source ${HOME}/bin/_select_node.sh
 select_node "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
 select_node "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
 echo "tool:$dbgToolName pltName:$dbgPltName"

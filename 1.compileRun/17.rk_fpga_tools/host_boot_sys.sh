@@ -113,10 +113,8 @@ boot_sys()
 }
 
 # ====== main ======
-prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prj_root_dir}/0.general_tools/0.select_node.sh
-prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prj_root_dir}/0.general_tools/0.dir_file_opt.sh
+source ${HOME}/bin/_dir_file_opt.sh
+source ${HOME}/bin/_select_node.sh
 
 while true; do
     cur_time="`date +"%Y_%m_%d %H:%M:%S"`"

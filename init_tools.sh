@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: tools_init.sh
+# File Name: init_tools.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Mon 09 Feb 2026 06:30:07 PM CST

@@ -11,6 +11,8 @@
 # or
 # prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
 # source ${prj_root_dir}/0.general_tools/0.dir_file_opt.sh
+# or after run init_tools.sh
+# source ${HOME}/bin/_select_node.sh
 
 create_dir()
 {

@@ -14,6 +14,8 @@
 #        or
 #        ln -s ${HOME}/Projects/miniTools/0.general_tools/0.select_node.sh ${HOME}/bin/select_node.sh
 #        source ${HOME}/bin/select_node.sh
+#        or after run init_tools.sh
+#        source ${HOME}/bin/_select_node.sh
 #     2. select_node "<cache tag>" "<select list>" "<select result>" "<select tip>"
 #
 # basename命令用于从文件名中剥离路径信息，只留下基本名称。

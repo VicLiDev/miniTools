@@ -160,8 +160,7 @@ function main()
 
 
 # ====== main ======
-prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-source ${prj_root_dir}/0.general_tools/0.select_node.sh
+source ${HOME}/bin/_select_node.sh
 
 if [ $# -eq 0 ]; then
     while true; do
