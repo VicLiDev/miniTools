@@ -30,7 +30,7 @@ function create_link_to_bin()
     [ ! -e "${HOME}/bin" ] && mkdir ${HOME}/bin
 
     [ ! -f "${src_tool}" ] && { echo "tool: ${src_tool} not exist!"; return 1; }
-    [ -e ${target_t} ] && rm ${target_t}
+    [ -L ${target_t} ] && { rm ${target_t}; }
     ln -s ${src_tool} ${target_t}
 }
 
@@ -41,9 +41,9 @@ function create_link_to_bin()
 
 function init_source_tools()
 {
-    echo "source ${repo_root}/1.compileRun/0.gen_cmd_cfg.sh" > ${source_file}
+    echo "source ${repo_root}/1.compileRun/00.gen_cmd_cfg.sh" > ${source_file}
     echo "source ${repo_root}/1.compileRun/13.git_tools.sh" >> ${source_file}
-    echo "source ${repo_root}/1.compileRun/2.rk_tools/rk_shell_tools.sh" >> ${source_file}
+    echo "source ${repo_root}/1.compileRun/02.rk_tools/rk_shell_tools.sh" >> ${source_file}
     echo "source ${repo_root}/2.dataProc/18.ffmpeg_tools.sh" >> ${source_file}
 }
 
@@ -69,8 +69,8 @@ function init_data_proc_tools()
 {
     tools_dir="${repo_root}/2.dataProc"
 
-    create_link_to_bin ${tools_dir}/1.data_proc_with_plot/data_process_gen.py plt.py
-    create_link_to_bin ${tools_dir}/3.reg_opt/main.py reg_ut.py
+    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py plt.py
+    create_link_to_bin ${tools_dir}/03.reg_opt/main.py reg_ut.py
 }
 
 # =============================================================================
@@ -79,7 +79,7 @@ function init_data_proc_tools()
 
 function init_rk_tools()
 {
-    rk_tools_dir="${repo_root}/1.compileRun/2.rk_tools"
+    rk_tools_dir="${repo_root}/1.compileRun/02.rk_tools"
     
     # mpp
     create_link_to_bin ${rk_tools_dir}/rkBuildMpp.sh rkBuildMpp.sh
