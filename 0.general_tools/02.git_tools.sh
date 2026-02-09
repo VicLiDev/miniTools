@@ -14,13 +14,9 @@
 # =============================================================================
 if [[ -n "${proxyIP}" && -n "${proxyPort}" ]]
 then
-    export http_proxy=http://${proxyIP}:${proxyPort}
-    export https_proxy=http://${proxyIP}:${proxyPort}
-    export all_proxy=socks5://${proxyIP}:${proxyPort}
-
     git config --global http.proxy http://${proxyIP}:${proxyPort}
     git config --global https.proxy https://${proxyIP}:${proxyPort}
-    git config --global https.proxy socks5://${proxyIP}:${proxyPort}
+    # git config --global https.proxy socks5://${proxyIP}:${proxyPort}
 fi
 
 # =============================================================================
