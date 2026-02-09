@@ -16,8 +16,7 @@ source_file="${HOME}/bin/source_cmd_tools.sh"
 function get_repo_root()
 {
     init_tool_dir=$(dirname $(readlink -f "$0"))
-    cd ${init_tool_dir}
-    repo_root=$(git rev-parse --show-toplevel)
+    repo_root=$(git -C ${init_tool_dir} rev-parse --show-toplevel)
     echo "git repo root: ${repo_root}"
 }
 
@@ -41,10 +40,10 @@ function create_link_to_bin()
 
 function init_source_tools()
 {
-    echo "source ${repo_root}/1.compileRun/00.gen_cmd_cfg.sh" > ${source_file}
-    echo "source ${repo_root}/1.compileRun/13.git_tools.sh" >> ${source_file}
+    echo "source ${repo_root}/0.general_tools/01.gen_cmd_cfg.sh" > ${source_file}
+    echo "source ${repo_root}/0.general_tools/02.git_tools.sh" >> ${source_file}
     echo "source ${repo_root}/1.compileRun/02.rk_tools/rk_shell_tools.sh" >> ${source_file}
-    echo "source ${repo_root}/2.dataProc/18.ffmpeg_tools.sh" >> ${source_file}
+    echo "source ${repo_root}/2.dataProc/02.ffmpeg_tools.sh" >> ${source_file}
 }
 
 # =============================================================================
