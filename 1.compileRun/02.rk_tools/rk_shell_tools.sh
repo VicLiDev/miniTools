@@ -58,7 +58,7 @@ vimdiff_strm()
     file1=${1}
     file2=${2}
 
-    conv_exe="${HOME}/Projects/miniTools/2.dataProc/19.hex_txt_splitter.py"
+    conv_exe="${HOME}/splitterHexTxt.py"
     ${conv_exe} ${file1} ${file1}_tmp -r
     ${conv_exe} ${file2} ${file2}_tmp -r
 

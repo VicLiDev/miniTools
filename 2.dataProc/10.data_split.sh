@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 16.data_split.sh
+# File Name: 10.data_split.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Tue 11 Jun 2024 09:50:04 AM CST
@@ -94,11 +94,7 @@ function yuv_split()
 function main()
 {
     procParas $@
-    if [ -z ${in_file} ]
-    then
-        usage
-        exit 0
-    fi
+    [ -z ${in_file} ] && { usage; exit 0; }
     echo "cmd line paras:"
     echo "in_file           : ${in_file}"
     echo "fragment_cfg_file : ${fragment_cfg_file}"

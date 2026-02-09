@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 12.cmp_dir.sh
+# File Name: cmp_dir.sh
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri Oct 20 16:32:21 2023

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #########################################################################
-# File Name: 19.hex_txt_splitter.py
+# File Name: 06.splitterHexTxt.py
 # Author: LiHongjin
 # mail: 872648180@qq.com
 # Created Time: Fri 26 Sep 2025 03:29:07 PM CST

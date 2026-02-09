@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 '''
-cat log.txt | python 15.splitHexStr.py
-echo "abc" | python 5.splitHexStr.py
+cat log.txt | python splitHexStr.py
+echo "abc" | python splitHexStr.py
 '''
 
 import os
