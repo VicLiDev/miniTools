@@ -65,7 +65,7 @@ vimdiff_strm()
     vimdiff ${file1}_tmp ${file2}_tmp
 }
 
-adb_kill_media()
+akill_media()
 {
     adbCmd=$(adbs)
     eval ${adbCmd} shell pkill mediaserver
@@ -76,7 +76,7 @@ adb_kill_media()
     eval ${adbCmd} shell killall android.hardware.media.c2@1.1-service
 }
 
-adb_en_l_fbc()
+aen_fbc_l()
 {
     en_fbc=$1
     [ -z "${en_fbc}" ] && { echo "usage: <exe> 0/1    disable/enable fbc"; return 1; }
@@ -93,7 +93,7 @@ adb_en_l_fbc()
     fi
 }
 
-adb_en_a_fbc()
+aen_fbc_a()
 {
     en_fbc=$1
     [ -z "${en_fbc}" ] && { echo "usage: <exe> 0/1    disable/enable fbc"; return 1; }
