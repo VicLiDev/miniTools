@@ -8,7 +8,25 @@
 
 # add to bashrc:
 # source ${HOME}/Projects/miniTools/1.compileRun/13.git_tools.sh
-#
+
+# =============================================================================
+# ============================ def config =====================================
+# =============================================================================
+if [[ -n "${proxyIP}" && -n "${proxyPort}" ]]
+then
+    export http_proxy=http://${proxyIP}:${proxyPort}
+    export https_proxy=http://${proxyIP}:${proxyPort}
+    export all_proxy=socks5://${proxyIP}:${proxyPort}
+
+    git config --global http.proxy http://${proxyIP}:${proxyPort}
+    git config --global https.proxy https://${proxyIP}:${proxyPort}
+    git config --global https.proxy socks5://${proxyIP}:${proxyPort}
+fi
+
+# =============================================================================
+# =============================== tools =======================================
+# =============================================================================
+
 # zsh 在git仓库显示的距离最新节点的距离是用如下方法计算：
 # git rev-list --count HEAD..origin/branch_name
 

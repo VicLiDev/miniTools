@@ -24,11 +24,17 @@ export EDITOR=vim
 # ------> proxy <------
 # ---------------------
 # set proxyIP and proxyPort
+# 配置文件可以从其他系统的clash里copy
+# nohup clash-linux-386-v1.16.0 -f ~/.config/clash/agentNeo.yaml &
 if [[ -n "${proxyIP}" && -n "${proxyPort}" ]]
 then
     export http_proxy=http://${proxyIP}:${proxyPort}
     export https_proxy=http://${proxyIP}:${proxyPort}
     export all_proxy=socks5://${proxyIP}:${proxyPort}
+
+    git config --global http.proxy http://${proxyIP}:${proxyPort}
+    git config --global https.proxy https://${proxyIP}:${proxyPort}
+    git config --global https.proxy socks5://${proxyIP}:${proxyPort}
 fi
 # -------------------------
 # ------> sys tools <------
