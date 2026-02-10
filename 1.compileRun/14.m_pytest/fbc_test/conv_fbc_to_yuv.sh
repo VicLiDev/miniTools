@@ -14,7 +14,7 @@ fbcPayload="filterd_pp_out_afbc_payload_data.dat"
 mergedata="afbc.dat"
 convBinTool="${HOME}/Projects/miniTools/2.dataProc/15.conv_str_bin"
 convBinFile="afbc.bin"
-convYuvTool="wine ${HOME}/test/format_trans.exe"
+convYuvTool="wine ${HOME}/bin/format_trans.exe"
 convYuvFile="afbc.yuv"
 mergeYuv="afbc_conv.yuv"
 

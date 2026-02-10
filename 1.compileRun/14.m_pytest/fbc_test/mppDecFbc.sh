@@ -49,7 +49,7 @@ conv_fbc2yuv()
     do
         inFile="${fbcDir}/output_3576_${i}.yuv"
         outFile="${yuvDir}/yuv_${i}.yuv"
-        cmd="wine ./format_trans.exe -i $inFile -D ${size}_yuv4208b_0_${size}_yuv4208b_2_0_0 -o ${outFile} -n 1"
+        cmd="wine ${HOME}/bin/format_trans.exe -i $inFile -D ${size}_yuv4208b_0_${size}_yuv4208b_2_0_0 -o ${outFile} -n 1"
         echo cmd:$cmd
         $cmd
         if [ $? -ne 0 ]; then echo "convert error!!!"; exit 1; fi
