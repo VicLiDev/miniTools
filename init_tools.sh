@@ -69,6 +69,7 @@ function init_data_proc_tools()
     tools_dir="${repo_root}/2.dataProc"
 
     create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py plt.py
+    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/time_conv.py time_conv.py
     create_link_to_bin ${tools_dir}/03.reg_opt/main.py reg_ut.py
     create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh cmp_dir.sh
     create_link_to_bin ${tools_dir}/05.splitHexStr.py splitHexStr.py
