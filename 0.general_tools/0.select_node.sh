@@ -40,7 +40,7 @@ display_color=36
 # stdout bakfd 1001
 # stderr bakfd 1002
 
-display()
+function display()
 {
     declare -n list_ref="$1"
     local tip="$2"
@@ -51,7 +51,7 @@ display()
     done
 }
 
-rd_sel_cache()
+function rd_sel_cache()
 {
     sel_tag="$1"
     def=$2
@@ -67,7 +67,7 @@ rd_sel_cache()
     fi
 }
 
-wr_sel_cache()
+function wr_sel_cache()
 {
     sel_tag="$1"
     def=$2
@@ -83,7 +83,7 @@ wr_sel_cache()
     fi
 }
 
-select_node()
+function select_node()
 {
     def_sel_idx=0
     sel_tag="$1"

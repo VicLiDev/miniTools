@@ -14,17 +14,17 @@
 # or after run init_tools.sh
 # source ${HOME}/bin/_dir_file_opt.sh
 
-create_dir()
+function create_dir()
 {
     if [ ! -d $1 ]; then echo "create dir $1" >&2; mkdir -p $1; fi
 }
 
-remove_dir()
+function remove_dir()
 {
     if [ -e $1 ]; then echo "remove dir $1" >&2; rm -rf $1; fi
 }
 
-update_file()
+function update_file()
 {
     src="$1"
     dst="$2"
@@ -35,7 +35,7 @@ update_file()
     cp -r $src $dst
 }
 
-update_bins()
+function update_bins()
 {
     # copy src dir/bin/soft_link to dst dir
     # usage: update_bins <src_dir/bin/soft_link> <dst_dir>
@@ -57,7 +57,7 @@ update_bins()
     done
 }
 
-check_exist()
+function check_exist()
 {
     if [ -e "$1" ]; then
         echo -e "\033[0m\033[1;32m $1 exist \033[0m" >&2
@@ -75,7 +75,7 @@ check_exist()
 #   existing=$(find_existing_paths paths)
 #   count=$?
 #   echo "$existing"
-find_existing_paths()
+function find_existing_paths()
 {
     local -n arr=$1
     local count=0

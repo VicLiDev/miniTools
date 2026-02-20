@@ -36,7 +36,7 @@ alias golcurb="gonel --first-parent"
 # git log --merges --oneline
 
 # ====== commit forward/backword ======
-get_commit_info()
+function get_commit_info()
 {
     cmd_cnt=1
     cmd_opt_loc=""
@@ -193,7 +193,7 @@ get_commit_info()
     echo "backward com_id:   ${backward_com_id_fp}"
 }
 
-gmf()
+function gmf()
 {
     cmd_cnt=1
     cmd_opt_loc=""
@@ -242,7 +242,7 @@ gmf()
     git reset --hard ${forward_com_id}
 }
 
-gmb()
+function gmb()
 {
     cmd_cnt=1
     cmd_opt_loc=""
@@ -283,7 +283,7 @@ gmb()
     git reset --hard ${backward_com_id}
 }
 
-gfind_node()
+function gfind_node()
 {
     git_dir=""
     obj_dir=""
@@ -332,7 +332,7 @@ gfind_node()
     done
 }
 
-gapply()
+function gapply()
 {
     patch_dir=$1
     beg_idx="1"
@@ -388,7 +388,7 @@ gapply()
     done
 }
 
-gcroot()
+function gcroot()
 {
     cd `git rev-parse --show-toplevel`
 }
