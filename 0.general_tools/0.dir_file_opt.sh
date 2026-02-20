@@ -12,7 +12,7 @@
 # prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
 # source ${prj_root_dir}/0.general_tools/0.dir_file_opt.sh
 # or after run init_tools.sh
-# source ${HOME}/bin/_select_node.sh
+# source ${HOME}/bin/_dir_file_opt.sh
 
 create_dir()
 {
@@ -56,6 +56,7 @@ update_bins()
         cp -r ${cur_bin} ${dst}
     done
 }
+
 check_exist()
 {
     if [ -e "$1" ]; then
@@ -64,3 +65,23 @@ check_exist()
         echo -e "\033[0m\033[1;31m $1 not exist \033[0m" >&2
     fi
 }
+
+# 查找存在的路径
+# 输入：路径数组名
+# 输出：所有实际存在的路径（每行一个）
+# 返回码：存在的路径数量
+# 用法：
+#   paths=("/path1" "/path2" "/path3")
+#   existing=$(find_existing_paths paths)
+#   count=$?
+#   echo "$existing"
+find_existing_paths()
+{
+    local -n arr=$1
+    local count=0
+    for path in "${arr[@]}"; do
+        [ -e "$path" ] && { echo "$path"; ((count++)); }
+    done
+    return $count
+}
+
