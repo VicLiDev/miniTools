@@ -64,7 +64,7 @@ build_cmd=""
 build_mod_cmd=""
 adbCmd=""
 
-get_arch()
+function get_arch()
 {
     if [ -n "${curPlt}" ]; then
         case ${curPlt} in
@@ -99,7 +99,7 @@ get_arch()
     fi
 }
 
-init_tools_env()
+function init_tools_env()
 {
     tools_dir="${HOME}/Projects/prebuilts"
 
@@ -145,7 +145,7 @@ init_tools_env()
     echo "m_make: ${m_make}"
 }
 
-gen_cmd()
+function gen_cmd()
 {
     # select android config
     if [ -n "`echo ${curPlt} | grep android`" ]; then
@@ -297,7 +297,7 @@ gen_cmd()
     fi
 }
 
-build_kernel_mod()
+function build_kernel_mod()
 {
     if [ "${build_mod}" == "build_kernel" ]; then
         echo "======> compile kernel begin <======"
@@ -343,7 +343,7 @@ build_kernel_mod()
     fi
 }
 
-download()
+function download()
 {
     if [ "${build_mod}" == "build_kernel" ]; then
         echo ""
@@ -374,42 +374,43 @@ download()
     fi
 }
 
-# ====== main ======
+function main()
+{
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            --env) cmd_init_env="true"; ;;
+            --dir) cmd_wk_dir="$2"; shift; ;;
+            -h|--help) echo "rkBuildKer.sh [--env] [--dir <kernel_path>]"; exit 0; ;;
+            *) echo "unknow para: ${key}"; exit 1; ;;
+        esac
+        shift # move to next para
+    done
 
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case ${key} in
-        --env) cmd_init_env="true"; ;;
-        --dir) cmd_wk_dir="$2"; shift; ;;
-        -h|--help) echo "rkBuildKer.sh [--env] [--dir <kernel_path>]"; exit 0; ;;
-        *) echo "unknow para: ${key}"; exit 1; ;;
-    esac
-    shift # move to next para
-done
 
+    source ${HOME}/bin/_select_node.sh
 
-source ${HOME}/bin/_select_node.sh
+    [ -n "${cmd_wk_dir}" ] && cd ${cmd_wk_dir}
 
-if [ -n "${cmd_wk_dir}" ]; then
-    cd ${cmd_wk_dir}
-fi
+    KERNEL_VER=`make kernelversion`
+    VERSION=`head -n 10 Makefile | grep "^VERSION" | awk '{print $3}'`
+    PATCHLEVEL=`head -n 10 Makefile | grep "^PATCHLEVEL" | awk '{print $3}'`
+    SUBLEVEL=`head -n 10 Makefile | grep "^SUBLEVEL" | awk '{print $3}'`
 
-KERNEL_VER=`make kernelversion`
-VERSION=`head -n 10 Makefile | grep "^VERSION" | awk '{print $3}'`
-PATCHLEVEL=`head -n 10 Makefile | grep "^PATCHLEVEL" | awk '{print $3}'`
-SUBLEVEL=`head -n 10 Makefile | grep "^SUBLEVEL" | awk '{print $3}'`
+    echo "KERNEL_VER = ${KERNEL_VER}"
+    echo "VERSION    = ${VERSION}"
+    echo "PATCHLEVEL = ${PATCHLEVEL}"
+    echo "SUBLEVEL   = ${SUBLEVEL}"
 
-echo "KERNEL_VER = ${KERNEL_VER}"
-echo "VERSION    = ${VERSION}"
-echo "PATCHLEVEL = ${PATCHLEVEL}"
-echo "SUBLEVEL   = ${SUBLEVEL}"
+    select_node "${sel_tag_ker}" "pltList" "curPlt" "platform"
+    get_arch
+    init_tools_env
+    gen_cmd
+    [ "${cmd_init_env}" == "true" ] &&  exit 0
+    build_kernel_mod
+    download
+}
 
-select_node "${sel_tag_ker}" "pltList" "curPlt" "platform"
-get_arch
-init_tools_env
-gen_cmd
-if [ "${cmd_init_env}" == "true" ]; then exit 0; fi
-build_kernel_mod
-download
+main "$@"
 
 set +e

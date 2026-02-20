@@ -31,7 +31,7 @@ toolList=(
     )
 
 
-dbgLldb()
+function dbgLldb()
 {
     # proc lldb tool
     NDKRoot="${HOME}/work/android/ndk/android-ndk-r23b"
@@ -71,7 +71,7 @@ dbgLldb()
     lldb -s ${debugCmdFile}
 }
 
-dbgGdbPrepareEnv()
+function dbgGdbPrepareEnv()
 {
     RemoteGdbSer=$1
     debugCmdFile=$2
@@ -186,7 +186,7 @@ dbgGdbPrepareEnv()
     fi
 }
 
-dbgGdbRun()
+function dbgGdbRun()
 {
     RemoteGdbSer=$1
     debugCmdFile=$2
@@ -276,7 +276,7 @@ dbgGdbRun()
     fi
 }
 
-dbgGdb()
+function dbgGdb()
 {
     debugCmdFile="${prjRoot}/debug.gdb"
 
@@ -290,7 +290,7 @@ dbgGdb()
     dbgGdbRun ${RemoteGdbSer} ${debugCmdFile}
 }
 
-dbgGdb_x86()
+function dbgGdb_x86()
 {
     debugCmdFile="debug_x86.gdb"
 
@@ -320,24 +320,29 @@ dbgGdb_x86()
     ${HostGdb} --command=${debugCmdFile} --args ${MppCmd}
 }
 
-adbCmd=$(adbs)
-[ -z "${adbCmd}" ] && exit 0
-source ${HOME}/bin/_dir_file_opt.sh
-source ${HOME}/bin/_select_node.sh
-select_node "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
-select_node "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
-echo "tool:$dbgToolName pltName:$dbgPltName"
+function main()
+{
+    adbCmd=$(adbs)
+    [ -z "${adbCmd}" ] && exit 0
+    source ${HOME}/bin/_dir_file_opt.sh
+    source ${HOME}/bin/_select_node.sh
+    select_node "${sel_tag_tool}" "toolList" "dbgToolName" "debug tool"
+    select_node "${sel_tag_plt}" "pltList" "dbgPltName" "debug plt"
+    echo "tool:$dbgToolName pltName:$dbgPltName"
 
-cd ${prjRoot}
+    cd ${prjRoot}
 
-if [ -n "`echo $dbgToolName | grep gdb`" ]; then
-    if [ ${dbgPltName} != "linux_x86_64" ]; then
-        dbgGdb
-    else
-        dbgGdb_x86
+    if [ -n "`echo $dbgToolName | grep gdb`" ]; then
+        if [ ${dbgPltName} != "linux_x86_64" ]; then
+            dbgGdb
+        else
+            dbgGdb_x86
+        fi
+    elif [ "$dbgToolName" = "lldb" ]; then
+        dbgLldb
     fi
-elif [ "$dbgToolName" = "lldb" ]; then
-    dbgLldb
-fi
+}
+
+main "$@"
 
 # set +e
