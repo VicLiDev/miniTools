@@ -82,18 +82,18 @@ function init_data_proc_tools()
 {
     tools_dir="${repo_root}/2.dataProc"
 
-    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py  plt.py
-    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/time_conv.py         time_conv.py
-    create_link_to_bin ${tools_dir}/03.reg_opt/main.py                          reg_ut.py
-    create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh                  cmp_dir.sh
-    create_link_to_bin ${tools_dir}/05.splitHexStr.py                           splitHexStr.py
-    create_link_to_bin ${tools_dir}/06.splitterHexTxt.py                        splitter_hex_txt.py
-    create_link_to_bin ${tools_dir}/07.convertBitToVal.py                       convertBitToVal.py
-    create_link_to_bin ${tools_dir}/08.convertAscii.py                          convertAscii.py
-    create_link_to_bin ${tools_dir}/11.pip_display.py                           pip_display.py
+    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py  m_plt.py
+    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/time_conv.py         m_time_conv.py
+    create_link_to_bin ${tools_dir}/03.reg_opt/main.py                          m_reg_ut.py
+    create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh                  m_cmp_dir.sh
+    create_link_to_bin ${tools_dir}/05.split_hex_str.py                         m_split_hex_str.py
+    create_link_to_bin ${tools_dir}/06.split_hex_txt.py                         m_split_hex_txt.py
+    create_link_to_bin ${tools_dir}/07.conv_bit2val.py                          m_convbit2val.py
+    create_link_to_bin ${tools_dir}/08.conv_ascii.py                            m_conv_ascii.py
+    create_link_to_bin ${tools_dir}/11.pip_display.py                           m_pip_display.py
 
-    compile_tool_to_bin gcc ${tools_dir}/09.conv_str_bin.c     conv_str_bin
-    compile_tool_to_bin gcc ${tools_dir}/12.mapRasterZorder.c  mapRasterZorder
+    compile_tool_to_bin gcc ${tools_dir}/09.conv_str_bin.c       m_conv_str_bin
+    compile_tool_to_bin gcc ${tools_dir}/12.map_raster_zorder.c  m_map_raster_zorder
 }
 
 # =============================================================================
@@ -114,14 +114,14 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/rkUT.sh       rkUT.sh
     
     # tools
-    create_link_to_bin ${rk_tools_dir}/adbDebug.sh  adbDebug.sh
-    create_link_to_bin ${rk_tools_dir}/adbSelCmd.sh adbs
-    create_link_to_bin ${rk_tools_dir}/tarMpp.sh    tarMpp.sh
+    create_link_to_bin ${rk_tools_dir}/adbDebug.sh   adbDebug.sh
+    create_link_to_bin ${rk_tools_dir}/adbSelCmd.sh  adbs
+    create_link_to_bin ${rk_tools_dir}/rk_tar_mpp.sh rk_tar_mpp.sh
     
     # batch test tools
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTCore.sh         rkBtC
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTTolkit.sh       rkBt
-    create_link_to_bin ${rk_tools_dir}/batch_test/veri_regression/main.py r_ver
+    create_link_to_bin ${rk_tools_dir}/batch_test/veri_regression/main.py rk_r_ver
     
     echo "==> rk tools: for prj"
     echo 'ln -s ${HOME}/bin/rkBuildMpp.sh .prjBuild.sh'

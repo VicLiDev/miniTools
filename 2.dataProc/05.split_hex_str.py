@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+#########################################################################
+# File Name: 05.split_hex_str.py
+# Author: LiHongjin
+# mail: 872648180@qq.com
+# Created Time: Fri 26 Sep 2025 03:29:07 PM CST
+#########################################################################
 
 '''
 cat log.txt | python splitHexStr.py
