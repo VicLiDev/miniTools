@@ -45,6 +45,11 @@ function compile_tool_to_bin()
     [ ! -f "${src_tool}" ] && { echo "tool: ${src_tool} not exist!"; return 1; }
     [ -e ${target_t} ] && { rm ${target_t}; }
     ${cmp_tool} ${src_tool} -o ${target_t}
+    if [ "$?" = "0" ]; then
+        echo "tool: ${target_t} compile success"
+    else
+        echo "tool: ${target_t} compile faile"
+    fi
 }
 
 
@@ -123,6 +128,7 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTTolkit.sh       rkBt
     create_link_to_bin ${rk_tools_dir}/batch_test/veri_regression/main.py rk_r_ver
     
+    echo
     echo "==> rk tools: for prj"
     echo 'ln -s ${HOME}/bin/rkBuildMpp.sh .prjBuild.sh'
     echo 'ln -s ${HOME}/bin/rkDebugMpp.sh .prjDebug.sh'
@@ -136,6 +142,7 @@ function init_shell()
     rc_file=${HOME}/.bashrc
     if [ -z "$(cat ${rc_file} | grep 'Personal configuration')" ];
     then
+        echo
         echo "# ======================================================" >> ${rc_file}
         echo "# =========== Personal configuration ===================" >> ${rc_file}
         echo "# ======================================================" >> ${rc_file}
@@ -145,12 +152,14 @@ function init_shell()
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else
+        echo
         echo "${rc_file} has configed!"
     fi
     # zshrc
     rc_file=${HOME}/.zshrc
     if [ -z "$(cat ${rc_file} | grep 'Personal configuration')" ];
     then
+        echo
         echo "# ======================================================" >> ${rc_file}
         echo "# =========== Personal configuration ===================" >> ${rc_file}
         echo "# ======================================================" >> ${rc_file}
@@ -160,6 +169,7 @@ function init_shell()
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else
+        echo
         echo "${rc_file} has configed!"
     fi
 }
