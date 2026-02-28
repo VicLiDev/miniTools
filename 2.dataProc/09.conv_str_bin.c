@@ -6,6 +6,31 @@
  ************************************************************************/
 
 /*
+ * 这是一个字符串与二进制数据相互转换的命令行工具，核心功能：
+ *   1. 字符串 → 二进制 (str2bin)
+ *     - 将十六进制字符串转换为二进制数据
+ *     - 例如：字符串 "1234" → 二进制 0x34, 0x12
+ *     - 关键函数：convert_hexstr_to_bin() (第105-130行)
+ *     - 处理时会先翻转字符串，然后每2个字符合并为1个字节
+ *   2. 二进制 → 字符串 (bin2str)
+ *     - 将二进制数据转换为十六进制字符串
+ *     - 例如：二进制 0x34, 0x12 → 字符串 "1234"
+ *     - 关键函数：convert_bin_to_hexstr() (第132-149行)
+ *
+ * 【字节序说明】
+ *   本工具采用小端模式 (Little Endian) 进行转换：
+ *   - 字符串 "12345678" 转换为二进制后的字节序为：0x78, 0x56, 0x34, 0x12
+ *   - 即：字符串的低地址字符 → 二进制的低地址字节（低字节在前）
+ *   - 这符合x86/ARM等常见处理器的小端存储方式
+ *
+ * 使用方法
+ * # 字符串转二进制
+ * ./exe -i input.txt -o output.bin -b
+ * # 二进制转字符串
+ * ./exe -i input.bin -o output.txt -s -a <align_bit>
+ */
+
+/*
  * long int strtol (const char* str, char** endptr, int base);
  * 参数说明：str 为要转换的字符串，endstr 为第一个不能转换的字符的指针，base 为字符串 str 所采用的进制。
  * 返回值：返回转换后的长整型数；
@@ -35,7 +60,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#define DEBUG_EN 1
+#define ALIGN_BITS (8)
+#define DEBUG_EN   (1)
 
 #define DUMP_INFO(...) \
     do { \
@@ -82,14 +108,14 @@ static int flip_string(char *str)
     return 0;
 }
 
-static int convert_str_to_hex(char *instr, char *outbuf)
+static int convert_hexstr_to_bin(char *instr, char *outbuf)
 {
     int i, loop_cnt;
     char str[64] = {0};
     char *endptr, c_tmp;
 
     loop_cnt = strlen(instr);
-    DUMP_INFO("convert str to hex\n");
+    DUMP_INFO("convert hexstr to bin\n");
     memcpy(str, instr, strlen(instr));
     flip_string(str);
     loop_cnt = strlen(str);
@@ -109,11 +135,11 @@ static int convert_str_to_hex(char *instr, char *outbuf)
     return 0;
 }
 
-static int convert_hex_to_str(char *inbuf, char *outstr, int cnt)
+static int convert_bin_to_hexstr(char *inbuf, char *outstr, int cnt)
 {
     int i;
 
-    DUMP_INFO("convert hex to str\n");
+    DUMP_INFO("convert bin to hexstr\n");
     DUMP_INFO("in  buf: ");
     DUMP_BUF(inbuf, cnt);
     DUMP_INFO("\n");
@@ -126,6 +152,13 @@ static int convert_hex_to_str(char *inbuf, char *outstr, int cnt)
     DUMP_INFO("out str: %s\n\n", outstr);
 
     return 0;
+}
+
+void usage()
+{
+    printf("usage: ./exe -i <input> -o <output> -b/s(str2bin/bin2str) -a(align bit of bin2str)\n");
+
+    return;
 }
 
 int proc_cmd_paras(int argc, char* argv[], cmd_paras *paras)
@@ -150,27 +183,31 @@ int proc_cmd_paras(int argc, char* argv[], cmd_paras *paras)
                 break;
             case 'a':
                 paras->align_bit = atoi(optarg);
+                paras->align_bit = (paras->align_bit + ALIGN_BITS - 1) / ALIGN_BITS * ALIGN_BITS;
                 break;
             default:
-                printf("usage: ./exe -i <input> -o <output> -b/s(str2bin/bin2str) -a(align bit of bin2str)\n");
+                usage();
                 exit(1);
                 break;
         }
     }  
 
     if (!paras->fn_in || ! paras->fn_out || paras->conv_mode == 0) {
-        printf("usage: ./exe -i <input> -o <output> -b/s(str2bin/bin2str) -a(align bit of bin2str)\n");
+        usage();
         exit(1);
     }
     if ((paras->conv_mode == 2) && (paras->align_bit == 0)) {
-        printf("usage: ./exe -i <input> -o <output> -b/s(str2bin/bin2str) -a(align bit of bin2str)\n");
+        usage();
+        printf("-a (align bit of bin2str) is necessary\n");
         exit(1);
     }
 
     printf("input  file: %s\n", paras->fn_in);
     printf("output file: %s\n", paras->fn_out);
-    if (paras->conv_mode == 2)
+    if (paras->conv_mode == 2) {
+        printf("align to %d\n", paras->align_bit);
         printf("mode: convert str to bin");
+    }
     if (paras->conv_mode == 3)
         printf("mode: convert bin to str");
 
@@ -178,7 +215,7 @@ int proc_cmd_paras(int argc, char* argv[], cmd_paras *paras)
 }
 
 
-static int conv_str2hex_file(cmd_paras *cmd_p)
+static int conv_str2bin_file(cmd_paras *cmd_p)
 {
     char instr[64];
     char outbuf[64];
@@ -188,7 +225,7 @@ static int conv_str2hex_file(cmd_paras *cmd_p)
 
     while (fgets(instr, sizeof(instr), cmd_p->fp_in)) {
         instr[strcspn(instr, "\n")] = '\0';
-        convert_str_to_hex(instr, outbuf);
+        convert_hexstr_to_bin(instr, outbuf);
         fwrite(outbuf, 1, BYTE_IN_STR(instr), cmd_p->fp_out);
     }
 
@@ -198,12 +235,12 @@ static int conv_str2hex_file(cmd_paras *cmd_p)
     return 0;
 }
 
-static int conv_hex2str_file(cmd_paras *cmd_p)
+static int conv_bin2str_file(cmd_paras *cmd_p)
 {
     char inbuf[64];
     char outstr[64];
     int rd_cnt;
-    int align = cmd_p->align_bit / 8;
+    int align = cmd_p->align_bit / ALIGN_BITS;
 
     memset(outstr, 0, sizeof(outstr));
 
@@ -214,7 +251,7 @@ static int conv_hex2str_file(cmd_paras *cmd_p)
         rd_cnt = fread(inbuf, sizeof(char), align, cmd_p->fp_in);
         if (!rd_cnt)
             break;
-        convert_hex_to_str(inbuf, outstr, rd_cnt);
+        convert_bin_to_hexstr(inbuf, outstr, rd_cnt);
         fprintf(cmd_p->fp_out, "%s\n", outstr);
     }
 
@@ -232,9 +269,9 @@ int main(int argc, char* argv[])
     proc_cmd_paras(argc, argv, &cmd_p);
 
     if (cmd_p.conv_mode == 1)
-        conv_str2hex_file(&cmd_p);
+        conv_str2bin_file(&cmd_p);
     if (cmd_p.conv_mode == 2)
-        conv_hex2str_file(&cmd_p);
+        conv_bin2str_file(&cmd_p);
 
     return 0;
 }

@@ -33,6 +33,20 @@ function create_link_to_bin()
     ln -s ${src_tool} ${target_t}
 }
 
+function compile_tool_to_bin()
+{
+    cmp_tool="$1"
+    src_tool="$2"
+    target_bin="$3"
+    target_t="${HOME}/bin/${target_bin}"
+
+    [ ! -e "${HOME}/bin" ] && mkdir ${HOME}/bin
+
+    [ ! -f "${src_tool}" ] && { echo "tool: ${src_tool} not exist!"; return 1; }
+    [ -e ${target_t} ] && { rm ${target_t}; }
+    ${cmp_tool} ${src_tool} -o ${target_t}
+}
+
 
 # =============================================================================
 #  source tools
@@ -68,15 +82,18 @@ function init_data_proc_tools()
 {
     tools_dir="${repo_root}/2.dataProc"
 
-    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py plt.py
-    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/time_conv.py time_conv.py
-    create_link_to_bin ${tools_dir}/03.reg_opt/main.py reg_ut.py
-    create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh cmp_dir.sh
-    create_link_to_bin ${tools_dir}/05.splitHexStr.py splitHexStr.py
-    create_link_to_bin ${tools_dir}/06.splitterHexTxt.py splitter_hex_txt.py
-    create_link_to_bin ${tools_dir}/07.convertBitToVal.py convertBitToVal.py
-    create_link_to_bin ${tools_dir}/08.convertAscii.py convertAscii.py
-    create_link_to_bin ${tools_dir}/11.pip_display.py pip_display.py
+    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py  plt.py
+    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/time_conv.py         time_conv.py
+    create_link_to_bin ${tools_dir}/03.reg_opt/main.py                          reg_ut.py
+    create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh                  cmp_dir.sh
+    create_link_to_bin ${tools_dir}/05.splitHexStr.py                           splitHexStr.py
+    create_link_to_bin ${tools_dir}/06.splitterHexTxt.py                        splitter_hex_txt.py
+    create_link_to_bin ${tools_dir}/07.convertBitToVal.py                       convertBitToVal.py
+    create_link_to_bin ${tools_dir}/08.convertAscii.py                          convertAscii.py
+    create_link_to_bin ${tools_dir}/11.pip_display.py                           pip_display.py
+
+    compile_tool_to_bin gcc ${tools_dir}/09.conv_str_bin.c     conv_str_bin
+    compile_tool_to_bin gcc ${tools_dir}/12.mapRasterZorder.c  mapRasterZorder
 }
 
 # =============================================================================
