@@ -593,19 +593,23 @@ function proc_paras()
 }
 
 
+function main()
+{
+    cur_br=`git branch --show-current`
+    echo "cur branch: $cur_br"
+    source ${HOME}/bin/_select_node.sh
 
-cur_br=`git branch --show-current`
-echo "cur branch: $cur_br"
-source ${HOME}/bin/_select_node.sh
+    proc_paras $@
 
-proc_paras $@
+    if [ -z "${cmd_sel_plt}" ]; then
+        select_node "${sel_tag_mpp}" "plt_lst" "m_sel" "platform"
+    else
+        m_sel="${plt_lst[${cmd_sel_plt}]}"
+    fi
+    build_${m_sel}
+}
 
-if [ -z "${cmd_sel_plt}" ]; then
-    select_node "${sel_tag_mpp}" "plt_lst" "m_sel" "platform"
-else
-    m_sel="${plt_lst[${cmd_sel_plt}]}"
-fi
-build_${m_sel}
 
+main $@
 
 # set +e
