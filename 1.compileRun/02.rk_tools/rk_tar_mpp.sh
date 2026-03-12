@@ -10,8 +10,16 @@
 # -a: tar android lib
 # -l: tar linux lib
 
+sel_tag_tar_mpp="rk_tar_mpp: "
+
+mpp_dir_lst=(
+    ${HOME}/Projects/mpp
+    ${HOME}/Projects/mpp2
+    ${HOME}/Projects/mpp3
+    )
+
 wk_dir="`pwd`"
-mpp_root="${HOME}/Projects/mpp"
+mpp_root=""
 tar_pkt_name="mpplib.tar.gz"
 mpp_lib_dir="mpplib"
 push_tool="push.sh"
@@ -176,36 +184,42 @@ function add_log()
 }
 
 
-# ====== main ======
+function main()
+{
+    source ${HOME}/bin/_select_node.sh
+    source ${HOME}/bin/_dir_file_opt.sh
 
-source ${HOME}/bin/_dir_file_opt.sh
+    select_node "${sel_tag_tar_mpp}" "mpp_dir_lst" "mpp_root" "select project dir"
 
-proc_paras $@
+    proc_paras $@
 
-[ -e ${mpp_lib_dir} ] && rm -rf ${mpp_lib_dir}
-[ -e ${tar_pkt_name} ] && rm -rf ${tar_pkt_name}
+    [ -e ${mpp_lib_dir} ] && rm -rf ${mpp_lib_dir}
+    [ -e ${tar_pkt_name} ] && rm -rf ${tar_pkt_name}
 
-if [ ${cmd_sel_plt} == "android" ]; then
-    if [ "${cmd_build}" == "true" ]; then
-        cd ${mpp_root}
-        rm -rf build && git checkout build/
-        bash .prjBuild.sh -p 0 -i "false"
-        bash .prjBuild.sh -p 1 -i "false"
-        cd ${wk_dir}
+    if [ ${cmd_sel_plt} == "android" ]; then
+        if [ "${cmd_build}" == "true" ]; then
+            cd ${mpp_root}
+            rm -rf build && git checkout build/
+            bash .prjBuild.sh -p 0 -i "false"
+            bash .prjBuild.sh -p 1 -i "false"
+            cd ${wk_dir}
+        fi
+        update_android
+    elif [ ${cmd_sel_plt} == "linux" ]; then
+        if [ "${cmd_build}" == "true" ]; then
+            cd ${mpp_root}
+            rm -rf build && git checkout build/
+            bash .prjBuild.sh -p 2 -i "false"
+            bash .prjBuild.sh -p 3 -i "false"
+            cd ${wk_dir}
+        fi
+        update_linux
     fi
-    update_android
-elif [ ${cmd_sel_plt} == "linux" ]; then
-    if [ "${cmd_build}" == "true" ]; then
-        cd ${mpp_root}
-        rm -rf build && git checkout build/
-        bash .prjBuild.sh -p 2 -i "false"
-        bash .prjBuild.sh -p 3 -i "false"
-        cd ${wk_dir}
-    fi
-    update_linux
-fi
 
-add_log
+    add_log
 
-echo tarcmd: "tar -czvf ${tar_pkt_name} ${mpp_lib_dir}"
-tar -czvf ${tar_pkt_name} ${mpp_lib_dir}
+    echo tarcmd: "tar -czvf ${tar_pkt_name} ${mpp_lib_dir}"
+    tar -czvf ${tar_pkt_name} ${mpp_lib_dir}
+}
+
+main $@

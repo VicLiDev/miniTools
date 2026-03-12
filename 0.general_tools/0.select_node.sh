@@ -59,10 +59,10 @@ function rd_sel_cache()
     if [ -z "${sel_tag}" ]; then return; fi
 
     if [[ ! -e ${cache_file} ]] \
-        || [[ -z `cat ${cache_file} | grep ${sel_tag}` ]]; then
+        || [[ -z `cat ${cache_file} | grep "^${sel_tag}"` ]]; then
         echo ${def}
     else
-        def=`cat ${cache_file} | grep ${sel_tag} | sed "s/${sel_tag}//g"`
+        def=`cat ${cache_file} | grep "^${sel_tag}" | sed "s/${sel_tag}//g"`
         echo ${def}
     fi
 }
@@ -76,7 +76,7 @@ function wr_sel_cache()
 
     if [ ! -e ${cache_file} ]; then
         echo "${sel_tag}${def}" > ${cache_file}
-    elif [ -z "`cat ${cache_file} | grep ${sel_tag}`" ]; then
+    elif [ -z "`cat ${cache_file} | grep "^${sel_tag}"`" ]; then
         echo "${sel_tag}${def}" >> ${cache_file}
     else
         sed -i.bak "s/${sel_tag}.*/${sel_tag}${def}/" ${cache_file}
