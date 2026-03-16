@@ -34,90 +34,91 @@
 # * -v: 如果指定，将会打印有关读取链接的详细信息。
 
 
-cache_file=${HOME}/bin/select.cache
-sel_tag=""
-display_color=36
+# 使用 _sn_ 前缀避免变量名冲突，并用 readonly 保护常量
+readonly _sn_cache_file="${HOME}/bin/select.cache"
+readonly _sn_display_color=36
 # stdout bakfd 1001
 # stderr bakfd 1002
 
-function display()
+function _sn_display()
 {
-    declare -n list_ref="$1"
-    local tip="$2"
-    echo "Please select ${tip}:" >&2
-    for ((i = 0; i < ${#list_ref[@]}; i++))
+    local _list_name="$1"
+    local _tip="$2"
+    local -n _list_ref="${_list_name}"
+    local _i
+    echo "Please select ${_tip}:" >&2
+    for ((_i = 0; _i < ${#_list_ref[@]}; _i++))
     do
-        echo "  ${i}. ${list_ref[${i}]}" >&2
+        echo "  ${_i}. ${_list_ref[${_i}]}" >&2
     done
 }
 
-function rd_sel_cache()
+function _sn_rd_sel_cache()
 {
-    sel_tag="$1"
-    def=$2
+    local _tag="$1"
+    local _def="$2"
+    local _cached
 
-    if [ -z "${sel_tag}" ]; then return; fi
+    [ -z "${_tag}" ] && return
+    [ ! -e ${_sn_cache_file} ] && { echo "${_def}"; return; }
 
-    if [[ ! -e ${cache_file} ]] \
-        || [[ -z `cat ${cache_file} | grep "^${sel_tag}"` ]]; then
-        echo ${def}
-    else
-        def=`cat ${cache_file} | grep "^${sel_tag}" | sed "s/${sel_tag}//g"`
-        echo ${def}
-    fi
+    _cached=$(grep "^${_tag}" "${_sn_cache_file}" 2>/dev/null)
+
+    [ -z "${_cached}" ] && { echo "${_def}"; } || { echo "${_cached#${_tag}}"; }
 }
 
-function wr_sel_cache()
+function _sn_wr_sel_cache()
 {
-    sel_tag="$1"
-    def=$2
+    local _tag="$1"
+    local _def="$2"
 
-    if [ -z "${sel_tag}" ]; then return; fi
+    [ -z "${_tag}" ] && { return; }
 
-    if [ ! -e ${cache_file} ]; then
-        echo "${sel_tag}${def}" > ${cache_file}
-    elif [ -z "`cat ${cache_file} | grep "^${sel_tag}"`" ]; then
-        echo "${sel_tag}${def}" >> ${cache_file}
+    if [ ! -e ${_sn_cache_file} ]; then
+        echo "${_tag}${_def}" > ${_sn_cache_file}
+    elif [ -z "$(grep "^${_tag}" ${_sn_cache_file})" ]; then
+        echo "${_tag}${_def}" >> ${_sn_cache_file}
     else
-        sed -i.bak "s/${sel_tag}.*/${sel_tag}${def}/" ${cache_file}
+        sed -i.bak "s/${_tag}.*/${_tag}${_def}/" ${_sn_cache_file}
     fi
 }
 
 function select_node()
 {
-    def_sel_idx=0
-    sel_tag="$1"
-    def_sel_idx=`rd_sel_cache ${sel_tag} ${def_sel_idx}`
-    local list_name="$2"
-    declare -n list_ref="$2"
-    declare -n sel_res="$3"
-    sel_tip="$4"
+    local _tag="$1"
+    local _lst_name="$2"
+    local _res_name="$3"
+    local _tip="$4"
+    local -n _lst_ref="${_lst_name}"
+    local -n _sel_res="${_res_name}"
+    local _def_idx _sel_idx
 
-    echo -e "\033[0m\033[1;${display_color}m" >&2
-    display $list_name "$sel_tip"
+    _def_idx=$(_sn_rd_sel_cache "${_tag}" 0)
 
-    echo "cur dir: `pwd`" >&2
-    while [ True ]
+    echo -e "\033[0m\033[1;${_sn_display_color}m" >&2
+    _sn_display "${_lst_name}" "${_tip}"
+
+    echo "cur dir: $(pwd)" >&2
+    while true
     do
-        read -p "Please select ${sel_tip} or quit(q), def[${def_sel_idx}]:" sel_idx >&2
-        sel_idx=${sel_idx:-${def_sel_idx}}
+        read -p "Please select ${_tip} or quit(q), def[${_def_idx}]:" _sel_idx >&2
+        _sel_idx=${_sel_idx:-${_def_idx}}
 
-        if [ "${sel_idx}" == "q" ]; then
+        if [ "${_sel_idx}" == "q" ]; then
             echo "======> quit <======" >&2
             exit 1
-        elif [[ -n ${sel_idx} ]] \
-            && [[ -z `echo ${sel_idx} | sed 's/[0-9]//g'` ]] \
-            && [[ "${sel_idx}" -lt "${#list_ref[@]}" ]]; then
-            sel_res=${list_ref[${sel_idx}]}
-            echo "--> selected index:${sel_idx}, ${sel_tip}:${sel_res}" >&2
+        elif [[ -n ${_sel_idx} ]] \
+            && [[ -z "${_sel_idx//[0-9]/}" ]] \
+            && [[ "${_sel_idx}" -lt "${#_lst_ref[@]}" ]]; then
+            _sel_res=${_lst_ref[${_sel_idx}]}
+            echo "--> selected index:${_sel_idx}, ${_tip}:${_sel_res}" >&2
             break
         else
-            sel_res=""
-            echo "--> please input num in scope 0-`expr ${#list_ref[@]} - 1`" >&2
-            continue
+            _sel_res=""
+            echo "--> please input num in scope 0-$((${#_lst_ref[@]} - 1))" >&2
         fi
     done
 
-    wr_sel_cache ${sel_tag} ${sel_idx}
+    _sn_wr_sel_cache "${_tag}" "${_sel_idx}"
     echo -e "\033[0m" >&2
 }
