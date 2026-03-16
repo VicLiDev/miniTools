@@ -16,12 +16,12 @@
 
 function create_dir()
 {
-    if [ ! -d $1 ]; then echo "create dir $1" >&2; mkdir -p $1; fi
+    [ ! -d $1 ] && { echo "create dir $1" >&2; mkdir -p $1; }
 }
 
 function remove_dir()
 {
-    if [ -e $1 ]; then echo "remove dir $1" >&2; rm -rf $1; fi
+    [ -e $1 ] && { echo "remove dir $1" >&2; rm -rf $1; }
 }
 
 function update_file()

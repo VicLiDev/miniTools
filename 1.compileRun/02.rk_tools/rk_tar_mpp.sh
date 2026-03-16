@@ -102,7 +102,7 @@ function update_android()
     update_file ${mpp_root}/build/android/aarch64/test/mpi_enc_test        ${android_64_dir}
     update_file ${mpp_root}/build/android/aarch64/test/mpi_enc_mt_test     ${android_64_dir}
 
-    echo "adbCmd=adb"                                                    >> ${mpp_lib_dir}/${push_tool}
+    echo "adbCmd=adb"                                                  >> ${mpp_lib_dir}/${push_tool}
     echo "\${adbCmd} push android_32/libmpp.so          /vendor/lib"   >> ${mpp_lib_dir}/${push_tool}
     echo "\${adbCmd} push android_32/libvpu.so          /vendor/lib"   >> ${mpp_lib_dir}/${push_tool}
     echo "\${adbCmd} push android_32/libmpp.so          /system/lib"   >> ${mpp_lib_dir}/${push_tool}
@@ -145,7 +145,7 @@ function update_linux()
     update_file ${mpp_root}/build/linux/aarch64/test/mpi_enc_test               ${linux_64_dir}
     update_file ${mpp_root}/build/linux/aarch64/test/mpi_enc_mt_test            ${linux_64_dir}
 
-    echo "adbCmd=adb"                                                       >> ${mpp_lib_dir}/${push_tool}
+    echo "adbCmd=adb"                                                     >> ${mpp_lib_dir}/${push_tool}
     echo "\${adbCmd} push linux_32/librockchip_mpp.so.0   /usr/lib"       >> ${mpp_lib_dir}/${push_tool}
     echo "\${adbCmd} push linux_32/librockchip_vpu.so.0   /usr/lib"       >> ${mpp_lib_dir}/${push_tool}
     echo "\${adbCmd} push linux_32/mpi_dec_test           /usr/bin"       >> ${mpp_lib_dir}/${push_tool}

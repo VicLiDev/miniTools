@@ -127,6 +127,9 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTCore.sh         rkBtC
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTTolkit.sh       rkBt
     create_link_to_bin ${rk_tools_dir}/batch_test/veri_regression/main.py rk_r_ver
+
+    # rga
+    create_link_to_bin ${rk_tools_dir}/rkBuildRga.sh rkBuildRga.sh
     
     echo
     echo "==> rk tools: for prj"
@@ -134,6 +137,7 @@ function init_rk_tools()
     echo 'ln -s ${HOME}/bin/rkDebugMpp.sh .prjDebug.sh'
     echo 'ln -s ${HOME}/bin/rkBuildKer.sh .prjBuild.sh'
     echo 'ln -s ${HOME}/bin/rkDebugKer.sh .prjDebug.sh'
+    echo 'ln -s ${HOME}/bin/rkBuildRga.sh .prjBuild.sh'
 
 
     rk_tools_dir="${repo_root}/1.compileRun/04.cmodel_tools"

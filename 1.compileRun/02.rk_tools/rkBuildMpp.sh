@@ -99,7 +99,7 @@ function build_lib_android_32()
         push_bins_to_device "${adbCmd}" test /system/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /system/bin
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -131,7 +131,7 @@ function build_lib_android_64()
         push_bins_to_device "${adbCmd}" test /system/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /system/bin
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -173,7 +173,7 @@ function build_lib_linux_32()
         push_bins_to_device "${adbCmd}" test /oem/usr/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /oem/usr/bin
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -214,7 +214,7 @@ function build_lib_linux_64()
         push_bins_to_device "${adbCmd}" test /oem/usr/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /oem/usr/bin
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -229,7 +229,7 @@ function build_lib_linux_x86_64()
     if [ $? -eq 0 ]; then
         echo "======> build mpp sucess! <======"
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -401,7 +401,7 @@ function build_ko_kmpp_develop_mkf()
         # install
         push_ko_to_device "mkf" "${mod_build_type}" "${m_arch}"
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -461,7 +461,7 @@ function build_ko_kmpp_develop_cmk()
         # install
         push_ko_to_device "cmk" "${mod_build_type}" "${m_arch}"
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -509,7 +509,7 @@ function build_ko_kmpp()
     if [ $? -eq 0 ]; then
         echo "======> build mpp sucess! <======"
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
@@ -535,7 +535,7 @@ function build_ko_develop2()
     if [ $? -eq 0 ]; then
         echo "======> build mpp sucess! <======"
     else
-        echo "======> build mpp error! <======"
+        echo "======> build mpp failed! <======"
         return 1
     fi
 }
