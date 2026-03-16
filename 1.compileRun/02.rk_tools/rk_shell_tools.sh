@@ -84,10 +84,10 @@ aen_fbc_l()
     adbCmd=$(adbs)
     if [ "${en_fbc}" = "1" ]; then
         eval "${adbCmd} shell \"export GST_MPP_VIDEODEC_DEFAULT_ARM_AFBC=1\""
-        [ "$?" = "0" ] && { echo "enable afbc success!"; } || {echo "enable afbc failed!"; return 1; }
+        [ "$?" = "0" ] && { echo "enable afbc success!"; } || { echo "enable afbc failed!"; return 1; }
     elif [ "${en_fbc}" = "0" ]; then
         eval "${adbCmd} shell \"export GST_MPP_VIDEODEC_DEFAULT_ARM_AFBC=0\""
-        [ "$?" = "0" ] && { echo "disable afbc success!"; } || {echo "disable afbc failed!"; return 1; }
+        [ "$?" = "0" ] && { echo "disable afbc success!"; } || { echo "disable afbc failed!"; return 1; }
     else
         echo "unknow opt of en_fbc: ${en_fbc}"
     fi
@@ -102,11 +102,11 @@ aen_fbc_a()
     if [ "${en_fbc}" = "1" ]; then
         eval "${adbCmd} shell \"setenforce 0 && setprop rt_vdec_fbc_disable 0\""
         eval "${adbCmd} shell \"setenforce 0 && setprop codec2_fbc_disable 0\""
-        [ "$?" = "0" ] && { echo "enable afbc success!"; } || {echo "enable afbc failed!"; return 1; }
+        [ "$?" = "0" ] && { echo "enable afbc success!"; } || { echo "enable afbc failed!"; return 1; }
     elif [ "${en_fbc}" = "0" ]; then
         eval "${adbCmd} shell \"setenforce 0 && setprop rt_vdec_fbc_disable 1\""
         eval "${adbCmd} shell \"setenforce 0 && setprop codec2_fbc_disable 1\""
-        [ "$?" = "0" ] && { echo "disable afbc success!"; } || {echo "disable afbc failed!"; return 1; }
+        [ "$?" = "0" ] && { echo "disable afbc success!"; } || { echo "disable afbc failed!"; return 1; }
     else
         echo "unknow opt of en_fbc: ${en_fbc}"
     fi
