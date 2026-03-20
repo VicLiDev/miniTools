@@ -134,6 +134,19 @@ function init_rk_tools()
     echo 'ln -s ${HOME}/bin/rkDebugMpp.sh .prjDebug.sh'
     echo 'ln -s ${HOME}/bin/rkBuildKer.sh .prjBuild.sh'
     echo 'ln -s ${HOME}/bin/rkDebugKer.sh .prjDebug.sh'
+
+
+    rk_tools_dir="${repo_root}/1.compileRun/04.cmodel_tools"
+
+    # cmodel tools
+    create_link_to_bin ${rk_tools_dir}/cmodel_reg_proc.py   rk_cmod_reg_proc.py
+
+
+    rk_tools_dir="${repo_root}/1.compileRun/13.rk_fpga_tools"
+
+    # fpga tools
+    create_link_to_bin ${rk_tools_dir}/link.sh   rk_fpga_tools_init.sh
+
 }
 
 function init_shell()
