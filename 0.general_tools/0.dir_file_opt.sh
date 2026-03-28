@@ -17,11 +17,15 @@
 function create_dir()
 {
     [ ! -d $1 ] && { echo "create dir $1" >&2; mkdir -p $1; }
+
+    return 0;
 }
 
 function remove_dir()
 {
     [ -e $1 ] && { echo "remove dir $1" >&2; rm -rf $1; }
+
+    return 0;
 }
 
 function update_file()
