@@ -80,6 +80,22 @@ function init_general_tools()
 }
 
 # =============================================================================
+#  build/run tools
+# =============================================================================
+
+function init_build_run_tools()
+{
+    tools_dir="${repo_root}/1.compileRun"
+
+    create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build_all.sh  m_ffmpeg_bd.sh
+    create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build.sh      m_ffmpeg_bd_smp.sh
+
+    echo
+    echo "==> build/run tools: for prj"
+    echo 'ln -s ${HOME}/bin/m_ffmpeg_bd_smp.sh .prjBuild.sh'
+}
+
+# =============================================================================
 #  data proc tools
 # =============================================================================
 
@@ -194,6 +210,7 @@ function init_shell()
 get_repo_root
 init_source_tools
 init_general_tools
+init_build_run_tools
 init_data_proc_tools
 init_rk_tools
 init_shell
