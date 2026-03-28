@@ -91,6 +91,7 @@ function init_build_run_tools()
 
     echo
     echo "==> build/run tools: for prj"
+    echo
 }
 
 # =============================================================================
@@ -152,6 +153,7 @@ function init_rk_tools()
     echo 'ln -s ${HOME}/bin/rkBuildKer.sh .prjBuild.sh'
     echo 'ln -s ${HOME}/bin/rkDebugKer.sh .prjDebug.sh'
     echo 'ln -s ${HOME}/bin/rkBuildRga.sh .prjBuild.sh'
+    echo
 
 
     rk_tools_dir="${repo_root}/1.compileRun/04.cmodel_tools"
