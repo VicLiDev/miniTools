@@ -8,7 +8,7 @@
 
 sel_tag_ffmpeg_b="ffmpeg_b:"
 
-pltList=(
+plt_lst=(
     "android_32"
     "android_64"
     "linux_32"
@@ -1483,7 +1483,7 @@ source ${HOME}/bin/_select_node.sh
 
 main()
 {
-    select_node "${sel_tag_ffmpeg_b}" "pltList" "m_sel_arch" "platform"
+    select_node "${sel_tag_ffmpeg_b}" "plt_lst" "m_sel_arch" "platform"
     
     setup_env
 
