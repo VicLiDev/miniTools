@@ -92,7 +92,7 @@ function init_build_run_tools()
 
     echo
     echo "==> build/run tools: for prj"
-    echo 'ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjDebug.sh'
+    echo 'ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
     echo
 }
 
