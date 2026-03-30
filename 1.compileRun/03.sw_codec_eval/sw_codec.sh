@@ -18,11 +18,11 @@ test_grp_id=0
 dev_wk_dir="/sdcard"
 
 data_bakup_dir="eval_data_bakup"
-in_eval_info="in_eval_info.txt"
-out_eval_info="${data_bakup_dir}/out_eval_info_`date +%Y_%m%d_%H%M%S`.txt"
-out_eval_data="out_eval_data.txt"
+in_eval_info="eval_in_info.txt"
+out_eval_info="${data_bakup_dir}/out_eval_info_$(date +%Y_%m%d_%H%M%S).txt"
+out_eval_data="eval_out_data.txt"
 
-select_cpu_core()
+function select_cpu_core()
 {
     adb_shell=""
     [ "${use_dev}" == "true" ] && adb_shell="${adb_cmd} shell"
@@ -30,11 +30,11 @@ select_cpu_core()
     echo
     echo "======> select cpu core <======"
 
-    # cpu_cnt=`${adb_cmd} shell cat /proc/cpuinfo | grep "^processor" | wc -l`
+    # cpu_cnt=$(${adb_cmd} shell cat /proc/cpuinfo | grep "^processor" | wc -l)
     if [ ${use_dev} == "true" ]; then
-        cpu_cnt=`${adb_cmd} shell "ls /sys/devices/system/cpu/ | grep -E '^cpu[0-9]+$' | wc -l"`
+        cpu_cnt=$(${adb_cmd} shell "ls /sys/devices/system/cpu/ | grep -E '^cpu[0-9]+$' | wc -l")
     else
-        cpu_cnt=`ls /sys/devices/system/cpu/ | grep -E '^cpu[0-9]+$' | wc -l`
+        cpu_cnt=$(ls /sys/devices/system/cpu/ | grep -E '^cpu[0-9]+$' | wc -l)
     fi
 
     [ ${use_dev} == "true" ] && echo "adb cmd: ${adb_cmd}"
@@ -43,9 +43,9 @@ select_cpu_core()
     def_core_en_val=$(printf '1%.0s' $(seq 1 ${cpu_cnt}))
 
     read -p "enable cpu core? [ex: 1010, def:${def_core_en_val}] or quit(q):" ret
-    [ "${ret}" == "q" ] && exit 0;
+    [ "${ret}" == "q" ] && return 1;
     # 去掉空格
-    ret="`echo ${ret} | tr -d ' '`"
+    ret="$(echo ${ret} | tr -d ' ')"
     [ -z ${ret} ] && ret="${def_core_en_val}"
     [ "${#ret}" -ne "${cpu_cnt}" ] && { echo "err: input cnt ${#ret} != cpu core count"; return -1; }
     for i in $(seq 0 $((${cpu_cnt} - 1)))
@@ -72,7 +72,7 @@ select_cpu_core()
         else
             cur_cmd="cat /sys/devices/system/cpu/cpu${i}/online"
         fi
-        cur_online=`eval ${cur_cmd}`
+        cur_online=$(eval ${cur_cmd})
         echo "cur core id ${i}, online: ${cur_online}"
     done
 
@@ -81,6 +81,8 @@ select_cpu_core()
         echo "======> select cpu freq <======"
         for i in $(seq 0 $((${cpu_cnt} - 1)))
         do
+            [ "${cpu_en[${i}]}" == "0" ] && { echo "--> core id ${i}: disabled, skip"; continue; }
+
             # get support freq
             echo "--> cur core id ${i}:"
             echo "support core freq:"
@@ -89,7 +91,7 @@ select_cpu_core()
 
             # get cur core freq
             cur_cmd="${adb_shell} \"cat /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_cur_freq\""
-            cur_freq=`eval ${cur_cmd}`
+            cur_freq=$(eval ${cur_cmd})
             echo "cur freq: ${cur_freq}"
 
             # get user set freq
@@ -100,9 +102,9 @@ select_cpu_core()
 
             # set core freq
             cur_cmd="${adb_shell} \"echo userspace > /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor\""
-            cur_cpu_freq_mode=`eval ${cur_cmd}`
+            cur_cpu_freq_mode=$(eval ${cur_cmd})
             # cur_cmd="${adb_shell} \"cat /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor\""
-            # cur_cpu_freq_mode=`eval ${cur_cmd}`
+            # cur_cpu_freq_mode=$(eval ${cur_cmd})
             # echo "cur_core id ${i}, core freq mode: ${cur_cpu_freq_mode}"
             cur_cmd="${adb_shell} \"echo ${set_freq} > /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_setspeed\""
             eval ${cur_cmd}
@@ -111,19 +113,21 @@ select_cpu_core()
     echo "==> cpu core freq setup result:"
     for i in $(seq 0 $((${cpu_cnt} - 1)))
     do
+        [ "${cpu_en[${i}]}" == "0" ] && { echo "cur core id ${i}: disabled"; cpu_freq[${i}]="N/A"; continue; }
+
         # get user set freq
         if [ "${use_dev}" == "true" ]; then
             cur_cmd="${adb_shell} \"cat /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_cur_freq\""
         else
             cur_cmd="cat /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_cur_freq"
         fi
-        cur_freq=`eval ${cur_cmd}`
+        cur_freq=$(eval ${cur_cmd})
         cpu_freq[${i}]=${cur_freq}
         echo "cur core id ${i}, freq: ${cur_freq}"
     done
 }
 
-analyze_info()
+function analyze_info()
 {
     ffmpeg_log="$1"
     codec_type="$2"
@@ -145,7 +149,7 @@ analyze_info()
     # -o 只输出匹配的部分
     # -E 使用扩展正则表达式
     in_color=$(grep -oEm1 '(yuv|yuvj|nv)[0-9]+[a-z]?' <<< "${input_blk}")
-    in_fps=`echo ${input_blk%fps,*} | awk '{print $NF}'`
+    in_fps=$(echo ${input_blk%fps,*} | awk '{print $NF}')
     # -m1表示只取第一个匹配
     in_size=$(grep -oEm1 '[1-9][0-9]*x[1-9][0-9]*' <<< "${input_blk}")
 
@@ -157,25 +161,25 @@ analyze_info()
     # head -1 确保只获取第一个匹配结果
     out_size=$(grep -oEm1 '[1-9][0-9]*x[1-9][0-9]*' <<< "${output_blk}" | head -1)
 
-    frames=`eval echo ${frame_line} | grep -oP 'frame=\s*\K\d+' | tail -n 1`
-    rtime=`echo ${bench_lines#*rtime=} | awk -F"s" '{print $1}'`
-    [ "${codec_type}" == "enc" ] && bitrate=`eval echo ${frame_line#*bitrate=} | awk '{print $1}'`
-    [ "${codec_type}" == "dec" ] && bitrate=`eval echo ${input_blk#*bitrate:} | awk '{print $1}'`
+    frames=$(eval echo ${frame_line} | grep -oP 'frame=\s*\K\d+' | tail -n 1)
+    rtime=$(echo ${bench_lines#*rtime=} | awk -F"s" '{print $1}')
+    [ "${codec_type}" == "enc" ] && bitrate=$(eval echo ${frame_line#*bitrate=} | awk '{print $1}')
+    [ "${codec_type}" == "dec" ] && bitrate=$(eval echo ${input_blk#*bitrate:} | awk '{print $1}')
 
     # check
-    if [[ "`echo ${codec_type} | wc -w`" != 1 ]] ||
-        [[ "`echo ${in_spec} | wc -w`" != 1 ]] ||
-        [[ "`echo ${in_color} | wc -w`" != 1 ]] ||
-        [[ "`echo ${in_fps} | wc -w`" != 1 ]] ||
-        [[ "`echo ${in_size} | wc -w`" != 1 ]] ||
-        [[ "`echo ${out_spec} | wc -w`" != 1 ]] ||
-        [[ "`echo ${out_color} | wc -w`" != 1 ]] ||
-        [[ "`echo ${out_fps} | wc -w`" != 1 ]] ||
-        [[ "`echo ${out_size} | wc -w`" != 1 ]] ||
-        [[ "`echo ${frames} | wc -w`" != 1 ]] ||
-        [[ "`echo ${bitrate} | wc -w`" != 1 ]] ||
-        [[ "`echo ${rtime} | wc -w`" != 1 ]] ||
-        [[ "`echo ${in_file} | wc -w`" != 1 ]]; then
+    if [[ "$(echo ${codec_type} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${in_spec} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${in_color} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${in_fps} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${in_size} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${out_spec} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${out_color} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${out_fps} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${out_size} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${frames} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${bitrate} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${rtime} | wc -w)" != 1 ]] ||
+        [[ "$(echo ${in_file} | wc -w)" != 1 ]]; then
         echo "-- ffmpeg log"; echo "${ffmpeg_log}"
         echo "-- intput";     echo ${input_blk}
         echo "-- map";        echo ${map_blk}
@@ -186,19 +190,19 @@ analyze_info()
         echo "==> out  <out_spec>:${out_spec}  <color>:${out_color}  <fps>:${out_fps}  <size>:${out_size}"
         echo "==> gen  <bitrate>:${bitrate}  <frame>:${frames}  <rtime>:${rtime}s  <frame/s>:${frames}/${rtime}"
     fi
-    [ "`echo ${codec_type} | wc -w`" != 1 ] && { echo "val: $codec_type} --> set to None"; codec_type="None"; }
-    [ "`echo ${in_spec} | wc -w`"    != 1 ] && { echo "val: $in_spec} --> set to None";    in_spec="None"   ; }
-    [ "`echo ${in_color} | wc -w`"   != 1 ] && { echo "val: $in_color} --> set to None";   in_color="None"  ; }
-    [ "`echo ${in_fps} | wc -w`"     != 1 ] && { echo "val: $in_fps} --> set to None";     in_fps="None"    ; }
-    [ "`echo ${in_size} | wc -w`"    != 1 ] && { echo "val: $in_size} --> set to None";    in_size="None"   ; }
-    [ "`echo ${out_spec} | wc -w`"   != 1 ] && { echo "val: $out_spec} --> set to None";   out_spec="None"  ; }
-    [ "`echo ${out_color} | wc -w`"  != 1 ] && { echo "val: $out_color} --> set to None";  out_color="None" ; }
-    [ "`echo ${out_fps} | wc -w`"    != 1 ] && { echo "val: $out_fps} --> set to None";    out_fps="None"   ; }
-    [ "`echo ${out_size} | wc -w`"   != 1 ] && { echo "val: $out_size} --> set to None";   out_size="None"  ; }
-    [ "`echo ${frames} | wc -w`"     != 1 ] && { echo "val: $frames} --> set to None";     frames="None"    ; }
-    [ "`echo ${bitrate} | wc -w`"    != 1 ] && { echo "val: $bitrate} --> set to None";    bitrate="None"   ; }
-    [ "`echo ${rtime} | wc -w`"      != 1 ] && { echo "val: $rtime} --> set to None";      rtime="None"     ; }
-    [ "`echo ${in_file} | wc -w`"    != 1 ] && { echo "val: $in_file} --> set to None";    in_file="None"   ; }
+    [ "$(echo ${codec_type} | wc -w)" != 1 ] && { echo "val: ${codec_type} --> set to None"; codec_type="None"; }
+    [ "$(echo ${in_spec} | wc -w)"    != 1 ] && { echo "val: ${in_spec} --> set to None";    in_spec="None"   ; }
+    [ "$(echo ${in_color} | wc -w)"   != 1 ] && { echo "val: ${in_color} --> set to None";   in_color="None"  ; }
+    [ "$(echo ${in_fps} | wc -w)"     != 1 ] && { echo "val: ${in_fps} --> set to None";     in_fps="None"    ; }
+    [ "$(echo ${in_size} | wc -w)"    != 1 ] && { echo "val: ${in_size} --> set to None";    in_size="None"   ; }
+    [ "$(echo ${out_spec} | wc -w)"   != 1 ] && { echo "val: ${out_spec} --> set to None";   out_spec="None"  ; }
+    [ "$(echo ${out_color} | wc -w)"  != 1 ] && { echo "val: ${out_color} --> set to None";  out_color="None" ; }
+    [ "$(echo ${out_fps} | wc -w)"    != 1 ] && { echo "val: ${out_fps} --> set to None";    out_fps="None"   ; }
+    [ "$(echo ${out_size} | wc -w)"   != 1 ] && { echo "val: ${out_size} --> set to None";   out_size="None"  ; }
+    [ "$(echo ${frames} | wc -w)"     != 1 ] && { echo "val: ${frames} --> set to None";     frames="None"    ; }
+    [ "$(echo ${bitrate} | wc -w)"    != 1 ] && { echo "val: ${bitrate} --> set to None";    bitrate="None"   ; }
+    [ "$(echo ${rtime} | wc -w)"      != 1 ] && { echo "val: ${rtime} --> set to None";      rtime="None"     ; }
+    [ "$(echo ${in_file} | wc -w)"    != 1 ] && { echo "val: ${in_file} --> set to None";    in_file="None"   ; }
 
     if [[ "${codec_type}" == "dec" ]] && [[ ${dec_test_cnt} -eq 0 ]] || \
         [[ "${codec_type}" == "enc" ]] && [[ ${enc_test_cnt} -eq 0 ]]; then
@@ -216,7 +220,7 @@ analyze_info()
 
 }
 
-dec_test()
+function dec_test()
 {
     test_info="$1"
 
@@ -229,7 +233,7 @@ dec_test()
 
     #指定输出格式的话时间会稍长一点，不指定稍短一点，这里按照长的时间测试
     if [ "${use_dev}" == "true" ]; then
-        dec_cmd="${adb_cmd} shell ffmpeg -benchmark -i ${dev_wk_dir}/`basename ${strm_file}` \
+        dec_cmd="${adb_cmd} shell ffmpeg -benchmark -i ${dev_wk_dir}/$(basename ${strm_file}) \
             -threads 0 -an -f null -"
     else
         dec_cmd="ffmpeg -benchmark -i ${strm_file} -threads 0 -an -f null -"
@@ -241,12 +245,12 @@ dec_test()
 
     analyze_info "${ffmpegLog}" "${test_type}" "${strm_file}"
 
-    [ ${use_dev} == "true" ] && ${adb_cmd} shell "rm ${dev_wk_dir}/`basename ${strm_file}`"
+    [ ${use_dev} == "true" ] && ${adb_cmd} shell "rm ${dev_wk_dir}/$(basename ${strm_file})"
 
-    dec_test_cnt=`expr ${dec_test_cnt} + 1`
+    dec_test_cnt=$(expr ${dec_test_cnt} + 1)
 }
 
-enc_test()
+function enc_test()
 {
     test_info="$1"
 
@@ -330,7 +334,7 @@ enc_test()
 
     if [ "${use_dev}" == "true" ]; then
         enc_cmd="${adb_cmd} shell ffmpeg -benchmark -f rawvideo -pix_fmt ${pix_fmt} \
-            -s:v ${yuv_size} -r 25 -i ${dev_wk_dir}/`basename ${yuv_file}` \
+            -s:v ${yuv_size} -r 25 -i ${dev_wk_dir}/$(basename ${yuv_file}) \
             -c:v ${ff_encoder} -threads 0 ${quality} -f null -"
     else
         enc_cmd="ffmpeg -benchmark -f rawvideo -pix_fmt ${pix_fmt} \
@@ -344,12 +348,12 @@ enc_test()
 
     analyze_info "${ffmpegLog}" "${test_type}" "${yuv_file}"
 
-    [ ${use_dev} == "true" ] && ${adb_cmd} shell "rm ${dev_wk_dir}/`basename ${yuv_file}`"
+    [ ${use_dev} == "true" ] && ${adb_cmd} shell "rm ${dev_wk_dir}/$(basename ${yuv_file})"
 
-    enc_test_cnt=`expr ${enc_test_cnt} + 1`
+    enc_test_cnt=$(expr ${enc_test_cnt} + 1)
 }
 
-enc_dec_test()
+function enc_dec_test()
 {
     echo
 
@@ -364,7 +368,7 @@ enc_dec_test()
         [ "${line[0]:0:1}" == "#" ] && continue
 
         lines[${idx}]="${line}"
-        idx=`expr ${idx} + 1`
+        idx=$(expr ${idx} + 1)
     done < ${in_eval_info}
 
     for cur_line in "${lines[@]}"
@@ -380,15 +384,93 @@ enc_dec_test()
     done
 }
 
-main()
+function usage()
 {
-    # use_dev="false"
+    echo "Usage: $0 [--dev|--x86]"
+    echo ""
+    echo "Options:"
+    echo "  --dev    Run test on device via adb (default)"
+    echo "  --x86    Run test locally on x86 host"
+    echo ""
+    echo "Config file: ${in_eval_info}"
+    echo ""
+    echo "  Each line specifies one test case. Lines starting with '#' or blank lines are ignored."
+    echo "  Two test types are supported: 'enc' (encode) and 'dec' (decode)."
+    echo ""
+    echo "  1) Decode test format:"
+    echo "     dec <stream_file>"
+    echo ""
+    echo "     stream_file  Path to the encoded stream file (e.g. .h264, .webm, .mp4, .ts, .mpg)"
+    echo ""
+    echo "     Example:"
+    echo "       dec ./test_streams/output_vp8.webm"
+    echo "       dec /home/user/video/test.h264"
+    echo ""
+    echo "  2) Encode test format:"
+    echo "     enc <pix_fmt> <yuv_size> <ff_encoder> <speed> <yuv_file>"
+    echo ""
+    echo "     pix_fmt      Pixel format of the raw yuv input. Common values:"
+    echo "                    yuv420p  yuv422p  yuv444p  nv12"
+    echo "     yuv_size     Resolution in WxH format (must match the yuv file)."
+    echo "                    e.g. 1920x1080  3840x2160  1280x720"
+    echo "     ff_encoder   ffmpeg encoder name. Supported values:"
+    echo "                    libx264  libx265  libvpx  libvpx-vp9  libaom-av1  libxavs2"
+    echo "     speed        Encoding speed preset, controls quality vs speed tradeoff:"
+    echo "                    fast    Fastest speed, lowest quality (realtime preview)"
+    echo "                    medium  Balanced speed and quality (daily publishing)"
+    echo "                    slow    Slowest speed, highest quality (archival)"
+    echo "     yuv_file     Path to the raw yuv file to encode."
+    echo ""
+    echo "     Example:"
+    echo "       enc nv12 1920x1080 libx264 fast /path/to/input.yuv"
+    echo "       enc yuv420p 3840x2160 libaom-av1 slow /path/to/input.yuv"
+}
 
-    [ ${use_dev} == "true" ] && adb_cmd=`adbs`
-    cur_exe_dir=`dirname $(readlink -f $0)`
+function proc_paras()
+{
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            --dev)
+                use_dev="true"
+                ;;
+            --x86)
+                use_dev="false"
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "error: unknown option: ${key}"
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    # print result
+    echo "======> cmd paras <======"
+    echo "target: $([ ${use_dev} == "true" ] && echo "device" || echo "x86 host")"
+    echo
+}
+
+function main()
+{
+    proc_paras $@
+
+    [ ${use_dev} == "true" ] && { adb_cmd=$(adbs); [ -z "${adb_cmd}" ] && return 0; }
+    cur_exe_dir=$(dirname $(readlink -f $0))
     test_grp_id=0
 
     [ ! -d "${data_bakup_dir}" ] && mkdir ${data_bakup_dir}
+
+    if [ ! -f "${in_eval_info}" ]; then
+        echo "error: config file not found: ${in_eval_info}"
+        usage
+        return 1
+    fi
 
     while true
     do
@@ -396,14 +478,19 @@ main()
         enc_test_cnt=0
 
         select_cpu_core
+        [ "$?" = "1" ] && break;
 
         enc_dec_test
 
-        test_grp_id=`expr ${test_grp_id} + 1`
+        test_grp_id=$(expr ${test_grp_id} + 1)
 
         # update to data file, to gen excel doc
         cp ${out_eval_info} ${out_eval_data}
     done
+
+    echo
+    echo "======> generate doc <======"
+    python ${cur_exe_dir}/gen_doc.py
 }
 
 main $@

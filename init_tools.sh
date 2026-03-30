@@ -94,6 +94,9 @@ function init_build_run_tools()
     echo "==> build/run tools: for prj"
     echo 'ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
     echo
+
+
+    create_link_to_bin ${tools_dir}/03.sw_codec_eval/sw_codec.sh  m_sw_codec_eval.sh
 }
 
 # =============================================================================

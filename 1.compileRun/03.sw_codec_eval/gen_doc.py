@@ -15,8 +15,8 @@ except Exception as err:
     exit(0)
 
 
-eval_data = "out_eval_data.txt"
-excel_f  = "data.xlsx"
+eval_data = "eval_out_data.txt"
+excel_f  = "eval_data.xlsx"
 
 def read_file_to_list(filename):
     """逐行读取文件到列表中，不缓存整个文件"""
