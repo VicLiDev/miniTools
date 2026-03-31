@@ -16,12 +16,12 @@ AARCH64_TOOLCHAIN_NAME=aarch64-none-linux-gnu
 BUILD_TYPE=Release
 
 
-android_arm_build_dir="build_android_arm"
-android_aarch_build_dir="build_android_aarch64"
-linux_arm_build_dir="build_linux_arm"
-linux_aarch_build_dir="build_linux_aarch64"
-meson_arm_build_dir="build_meson_arm"
-meson_aarch_build_dir="build_meson_aarch64"
+and_arm_bld_dir="build_android_arm"
+and_aarch_bld_dir="build_android_aarch64"
+lnx_arm_bld_dir="build_linux_arm"
+lnx_aarch_bld_dir="build_linux_aarch64"
+meson_arm_bld_dir="build_meson_arm"
+meson_aarch_bld_dir="build_meson_aarch64"
 
 sel_tag_rga="rk_rga_b: "
 
@@ -48,6 +48,7 @@ function check_build_result()
 {
     if [ $? -eq 0 ]; then
         echo "======> build rga success! <======"
+        return 0
     else
         echo "======> build rga failed! <======"
         return 1
@@ -94,12 +95,40 @@ EOF
     echo "${cross_file}"
 }
 
+function push_bins_to_device()
+{
+    adbCmd="$1"
+    file_dir="$2"
+    device_dir="$3"
+
+    ${adbCmd} shell "ls -d ${device_dir} > /dev/null 2>&1"
+    [ "$?" -ne "0" ] && { echo "Error: device dir not exist: ${device_dir}"; return; }
+
+    if [ -d "${file_dir}" ]; then
+        for cur_bin_file in `find ${file_dir} -maxdepth 1 -type f -executable`
+        do
+            [ ! -e ${cur_bin_file} ] && continue
+
+            echo "==> push <${cur_bin_file}> to device <${device_dir}>"
+            ${adbCmd} push ${cur_bin_file} ${device_dir}
+        done
+    elif [ -f "${file_dir}" ]; then
+        [ ! -e ${file_dir} ] && continue
+
+        echo "==> push <${file_dir}> to device <${device_dir}>"
+        ${adbCmd} push ${file_dir} ${device_dir}
+    else
+        echo "Error: adbCmd:${adbCmd} file_dir:${file_dir} device_dir:${device_dir}"
+    fi
+}
+
+
 # ============== Android 32位 (armv7-a) ==============
 function build_lib_android32()
 {
     echo "======> selected ${m_sel} <======"
 
-    local build_dir="${android_arm_build_dir}"
+    local build_dir="${and_arm_bld_dir}"
     [ ! -d "${build_dir}" ] && mkdir -p "${build_dir}"
     clean_cmake_cache "${build_dir}"
     cd "${build_dir}"
@@ -117,6 +146,16 @@ function build_lib_android32()
 
     make -j$(nproc)
     check_build_result
+
+    if [ "$?" = "0" ]; then
+        adbCmd=$(adbs)
+        [ -z "${adbCmd}" ] && exit 1
+
+        push_bins_to_device "${adbCmd}" librga.so /vendor/lib
+        push_bins_to_device "${adbCmd}" librga.so /system/lib
+
+        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /vendor/bin
+    fi
 }
 
 # ============== Android 64位 (arm64-v8a) ==============
@@ -124,7 +163,7 @@ function build_lib_android64()
 {
     echo "======> selected ${m_sel} <======"
 
-    local build_dir="${android_aarch_build_dir}"
+    local build_dir="${and_aarch_bld_dir}"
     [ ! -d "${build_dir}" ] && mkdir -p "${build_dir}"
     clean_cmake_cache "${build_dir}"
     cd "${build_dir}"
@@ -142,6 +181,16 @@ function build_lib_android64()
 
     make -j$(nproc)
     check_build_result
+
+    if [ "$?" = "0" ]; then
+        adbCmd=$(adbs)
+        [ -z "${adbCmd}" ] && exit 1
+
+        push_bins_to_device "${adbCmd}" librga.so /vendor/lib64
+        push_bins_to_device "${adbCmd}" librga.so /system/lib64
+
+        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /vendor/bin
+    fi
 }
 
 # ============== Linux 32位 (arm) ==============
@@ -154,7 +203,7 @@ function build_lib_linux32()
         return 1
     fi
 
-    local build_dir="${linux_arm_build_dir}"
+    local build_dir="${lnx_arm_bld_dir}"
     [ ! -d "${build_dir}" ] && mkdir -p "${build_dir}"
     clean_cmake_cache "${build_dir}"
     cd "${build_dir}"
@@ -176,6 +225,17 @@ function build_lib_linux32()
 
     make -j$(nproc)
     check_build_result
+
+    if [ "$?" = "0" ]; then
+        adbCmd=$(adbs)
+        [ -z "${adbCmd}" ] && exit 1
+
+        push_bins_to_device "${adbCmd}" librga.so /usr/lib
+        push_bins_to_device "${adbCmd}" librga.so /oem/usr/lib
+
+        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /usr/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /oem/usr/bin
+    fi
 }
 
 # ============== Linux 64位 (aarch64) ==============
@@ -188,7 +248,7 @@ function build_lib_linux64()
         return 1
     fi
 
-    local build_dir="${linux_aarch_build_dir}"
+    local build_dir="${lnx_aarch_bld_dir}"
     [ ! -d "${build_dir}" ] && mkdir -p "${build_dir}"
     clean_cmake_cache "${build_dir}"
     cd "${build_dir}"
@@ -210,6 +270,17 @@ function build_lib_linux64()
 
     make -j$(nproc)
     check_build_result
+
+    if [ "$?" = "0" ]; then
+        adbCmd=$(adbs)
+        [ -z "${adbCmd}" ] && exit 1
+
+        push_bins_to_device "${adbCmd}" librga.so /usr/lib64
+        push_bins_to_device "${adbCmd}" librga.so /oem/usr/lib
+
+        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /usr/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /oem/usr/bin
+    fi
 }
 
 # ============== Meson Linux 32位 (arm) ==============
@@ -222,7 +293,7 @@ function build_meson_linux32()
         return 1
     fi
 
-    local build_dir="${meson_arm_build_dir}"
+    local build_dir="${meson_arm_bld_dir}"
     local cross_file=$(gen_cross_file "${ARM_TOOLCHAIN_ROOT}" "${ARM_TOOLCHAIN_NAME}" "arm" "armv7")
 
     rm -rf "${build_dir}"
@@ -241,18 +312,13 @@ function build_meson_linux64()
         return 1
     fi
 
-    local build_dir="${meson_aarch_build_dir}"
+    local build_dir="${meson_aarch_bld_dir}"
     local cross_file=$(gen_cross_file "${AARCH64_TOOLCHAIN_ROOT}" "${AARCH64_TOOLCHAIN_NAME}" "aarch64" "cortex-a53")
 
     rm -rf "${build_dir}"
     meson setup "${build_dir}" --cross-file "${cross_file}"
     meson compile -C "${build_dir}"
     check_build_result
-}
-
-function download()
-{
-    echo "need to finish"
 }
 
 # ============== 帮助信息 ==============
