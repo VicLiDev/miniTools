@@ -154,7 +154,7 @@ function build_lib_android32()
         push_bins_to_device "${adbCmd}" librga.so /vendor/lib
         push_bins_to_device "${adbCmd}" librga.so /system/lib
 
-        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /vendor/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv/src   /vendor/bin
     fi
 }
 
@@ -189,7 +189,7 @@ function build_lib_android64()
         push_bins_to_device "${adbCmd}" librga.so /vendor/lib64
         push_bins_to_device "${adbCmd}" librga.so /system/lib64
 
-        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /vendor/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv/src   /vendor/bin
     fi
 }
 
@@ -233,8 +233,8 @@ function build_lib_linux32()
         push_bins_to_device "${adbCmd}" librga.so /usr/lib
         push_bins_to_device "${adbCmd}" librga.so /oem/usr/lib
 
-        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /usr/bin
-        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /oem/usr/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv/src   /usr/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv/src   /oem/usr/bin
     fi
 }
 
@@ -278,8 +278,8 @@ function build_lib_linux64()
         push_bins_to_device "${adbCmd}" librga.so /usr/lib64
         push_bins_to_device "${adbCmd}" librga.so /oem/usr/lib
 
-        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /usr/bin
-        push_bins_to_device "${adbCmd}" samples/fmt_conv_demo/src   /oem/usr/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv/src   /usr/bin
+        push_bins_to_device "${adbCmd}" samples/fmt_conv/src   /oem/usr/bin
     fi
 }
 
