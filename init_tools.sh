@@ -116,6 +116,7 @@ function init_data_proc_tools()
     create_link_to_bin ${tools_dir}/07.conv_bit2val.py                          m_convbit2val.py
     create_link_to_bin ${tools_dir}/08.conv_ascii.py                            m_conv_ascii.py
     create_link_to_bin ${tools_dir}/11.pip_display.py                           m_pip_display.py
+    create_link_to_bin ${tools_dir}/21.hex_diff_off.py                          m_hex_diff_off.py
 
     compile_tool_to_bin gcc ${tools_dir}/09.conv_str_bin.c       m_conv_str_bin
     compile_tool_to_bin gcc ${tools_dir}/12.map_raster_zorder.c  m_map_raster_zorder
