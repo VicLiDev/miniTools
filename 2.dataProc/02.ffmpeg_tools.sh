@@ -48,7 +48,7 @@ format_time()
 # format_time "5:3"      # 输出 00:05:03
 # format_time "5:3:9"    # 输出 00:03:09
 
-vcut()
+f_vcut()
 {
     # init para, def val
     cmd_input=""
@@ -97,7 +97,7 @@ vcut()
     eval ${cmd}
 }
 
-extBstrms()
+f_extBstrms()
 {
     # init para, def val
     cmd_in="./" # file/dir
@@ -165,7 +165,7 @@ extBstrms()
     done
 }
 
-gseq()
+f_gseq()
 {
     cmd_size="640x360"
     cmd_fmt="nv12"
@@ -407,7 +407,7 @@ gseq()
     echo
 }
 
-gseqs()
+f_gseqs()
 {
     cmd_size="false"
     cmd_fmt="false"
@@ -520,7 +520,7 @@ gseqs()
     fi
 }
 
-get_frm_cnt()
+f_get_frm_cnt()
 {
     src="$1"
 
@@ -528,5 +528,102 @@ get_frm_cnt()
     [ ! -e "${src}" ] && { echo "Strm path invalid!"; return 1; }
 
     ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "${src}"
+}
+
+f_chk_frm_type()
+{
+    cmd_input=""
+    cmd_max="100"
+    cmd_summary="false"
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -h) echo "usage: <exe> -i <input_strm> [-n <max_frames>] [-s]"
+                echo "  -i  input video stream file"
+                echo "  -n  max frames to check, 0=all, default: 100"
+                echo "  -s  show summary (count of each frame type)"
+                return 0; ;;
+            -i) cmd_input="$2"; shift; ;;
+            -n) cmd_max="$2"; shift; ;;
+            -s) cmd_summary="true"; ;;
+            *)  echo "unknow para: ${key}"
+                echo "usage: <exe> -i <input_strm> [-n <max_frames>] [-s]"
+                return 1; ;;
+        esac; shift
+    done
+
+    [ -z "${cmd_input}" ] && { echo "No input strm!"; return 1; }
+    [ ! -e "${cmd_input}" ] && { echo "Strm path invalid!"; return 1; }
+
+    # 显示文件信息
+    local file_size
+    file_size=$(ls -lh "${cmd_input}" | awk '{print $5}')
+    echo "file: ${cmd_input} (${file_size})"
+
+    if [ "${cmd_max}" = "0" ]; then
+        echo "checking all frames... (use -n N to limit)"
+    else
+        echo "checking first ${cmd_max} frames..."
+    fi
+
+    # 构建 ffprobe 参数数组，通过管道流式读取，避免卡住无输出
+    local ffprobe_args=(-v error -select_streams v:0 -show_entries frame=pict_type -of csv=p=0)
+    if [ "${cmd_max}" != "0" ]; then
+        ffprobe_args+=(-read_intervals "%+#${cmd_max}")
+    fi
+
+    if [ "${cmd_summary}" = "true" ]; then
+        echo "====== Frame Type Summary ======"
+        local total=0
+        local cnt_i=0 cnt_p=0 cnt_b=0 cnt_sp=0 cnt_si=0 cnt_other=0
+        local progress_dot=0
+        while IFS= read -r type; do
+            case "${type}" in
+                I)  ((cnt_i++));  ;;
+                P)  ((cnt_p++));  ;;
+                B)  ((cnt_b++));  ;;
+                SP) ((cnt_sp++)); ;;
+                SI) ((cnt_si++)); ;;
+                *)  ((cnt_other++)); ;;
+            esac
+            ((total++))
+            # 每10帧打印一个进度点
+            ((progress_dot++))
+            if (( progress_dot % 10 == 0 )); then
+                printf "."
+            fi
+        done < <(ffprobe "${ffprobe_args[@]}" "${cmd_input}")
+        echo ""
+        echo "  Total : ${total}"
+        echo "  I     : ${cnt_i}"
+        echo "  P     : ${cnt_p}"
+        echo "  B     : ${cnt_b}"
+        echo "  SP    : ${cnt_sp}"
+        echo "  SI    : ${cnt_si}"
+        [ ${cnt_other} -gt 0 ] && echo "  Other : ${cnt_other}"
+        echo "================================"
+    else
+        echo "====== Frame Type List ======"
+        local idx=0
+        # < <(...) 是 bash 进程替换（process substitution）：
+        #   将 ffprobe 命令的 stdout 替换为一个临时文件描述符，
+        #   由 while 循环通过 < 逐行读取，实现流式处理。
+        #   对比 $(...) 命令替换会等待全部输出后再处理，
+        #   < <(...) 可以做到 ffprobe 每解析出一帧就立即打印，不会卡住。
+        # IFS=   禁止 read 对行首尾的空白做截断（虽然本场景不太需要）
+        # read -r 禁止反斜杠转义（防止帧类型中的特殊字符被误解析）
+        while IFS= read -r type; do
+            printf "  [%4d] %s\n" "${idx}" "${type}"
+            ((idx++))
+        done < <(ffprobe "${ffprobe_args[@]}" "${cmd_input}")
+        if [ ${idx} -eq 0 ]; then
+            echo "No video frames found!"
+            return 1
+        fi
+        echo "============================="
+        echo "  Total: ${idx} frames"
+        echo "============================="
+    fi
 }
 
