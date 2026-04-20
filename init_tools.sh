@@ -186,8 +186,8 @@ function init_shell()
         echo "# =========== Personal configuration ===================" >> ${rc_file}
         echo "# ======================================================" >> ${rc_file}
         echo "# ======> my tools and config"                            >> ${rc_file}
-        echo "proxyIP=<your_proxy_ip>"                                  >> ${rc_file}
-        echo "proxyPort=<your_proxy_port>"                              >> ${rc_file}
+        echo "# proxyIP=<your_proxy_ip>"                                  >> ${rc_file}
+        echo "# proxyPort=<your_proxy_port>"                              >> ${rc_file}
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else
@@ -203,8 +203,8 @@ function init_shell()
         echo "# =========== Personal configuration ===================" >> ${rc_file}
         echo "# ======================================================" >> ${rc_file}
         echo "# ======> my tools and config"                            >> ${rc_file}
-        echo "proxyIP=<your_proxy_ip>"                                  >> ${rc_file}
-        echo "proxyPort=<your_proxy_port>"                              >> ${rc_file}
+        echo "# proxyIP=<your_proxy_ip>"                                  >> ${rc_file}
+        echo "# proxyPort=<your_proxy_port>"                              >> ${rc_file}
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else
