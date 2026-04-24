@@ -137,10 +137,6 @@ if [ -n "${conda_root}" ]; then
         fi
         unset __mamba_setup
     fi
-
-    if [ -f "${conda_root}/etc/profile.d/mamba.sh" ]; then
-        . "${conda_root}/etc/profile.d/mamba.sh"
-    fi
 fi
 
 # =============================================================================
