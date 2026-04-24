@@ -11,11 +11,33 @@
 # =============================================================================
 # ============================ def config =====================================
 # =============================================================================
-# ------------------------
-# ------> path env <------
-# ------------------------
-export PATH=${HOME}/bin:${PATH}
-export PATH="$HOME/.local/bin:$PATH"
+# --------------------------------------
+# ------> User local environment <------
+# --------------------------------------
+# 可执行文件
+[ -d "${HOME}/bin" ] && export PATH="${HOME}/bin:${PATH}"
+[ -d "${HOME}/local/bin" ] && export PATH="${HOME}/local/bin:${PATH}"
+[ -d "${HOME}/.local/bin" ] && export PATH="${HOME}/.local/bin:${PATH}"
+# ------------------------------------
+# ------> libraries (optional) <------
+# ------------------------------------
+[ -d "${HOME}/local/lib" ] && export LD_LIBRARY_PATH="${HOME}/local/lib:${LD_LIBRARY_PATH}"
+[ -d "${HOME}/local/lib64" ] && export LD_LIBRARY_PATH="${HOME}/local/lib64:${LD_LIBRARY_PATH}"
+# -----------------------------
+# ------> compile tools <------
+# -----------------------------
+[ -d "${HOME}/local/lib/pkgconfig" ] && export PKG_CONFIG_PATH="${HOME}/local/lib/pkgconfig:${PKG_CONFIG_PATH}"
+[ -d "${HOME}/local/lib64/pkgconfig" ] && export PKG_CONFIG_PATH="${HOME}/local/lib64/pkgconfig:${PKG_CONFIG_PATH}"
+[ -d "${HOME}/local/include" ] && export CPATH="${HOME}/local/include:${CPATH}"
+# ------------------------------------
+# ------> cmake / build system <------
+# ------------------------------------
+[ -d "${HOME}/local" ] && export CMAKE_PREFIX_PATH="${HOME}/local:${CMAKE_PREFIX_PATH}"
+# --------------------------------------------------
+# ------> manual opt usage (do NOT auto-add) <------
+# --------------------------------------------------
+# example:
+# export PATH="$HOME/opt/node/bin:$PATH"
 # ------------------------------
 # ------> default editor <------
 # ------------------------------
