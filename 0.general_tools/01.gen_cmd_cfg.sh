@@ -126,6 +126,18 @@ if [ -n "${conda_root}" ]; then
     fi
     unset __conda_setup
 
+    if [ -e "${conda_root}/bin/mamba" ]; then
+        export MAMBA_EXE='/home/lhj/miniforge3/bin/mamba';
+        export MAMBA_ROOT_PREFIX='/home/lhj/miniforge3';
+        __mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+        if [ $? -eq 0 ]; then
+            eval "$__mamba_setup"
+        else
+            alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
+        fi
+        unset __mamba_setup
+    fi
+
     if [ -f "${conda_root}/etc/profile.d/mamba.sh" ]; then
         . "${conda_root}/etc/profile.d/mamba.sh"
     fi
