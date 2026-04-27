@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RK Issue Board</title>
+  <style>
+    :root {
+      --bg-primary: #f0f2f5;
+      --bg-card: #ffffff;
+      --text-primary: #1a1a2e;
+      --text-secondary: #6c757d;
+      --border-color: #e0e0e0;
+      --col-new: #4a90d9;
+      --col-in-progress: #f5a623;
+      --col-resolved: #7ed321;
+      --col-closed: #9b9b9b;
+      --priority-immediate: #e74c3c;
+      --priority-urgent: #e67e22;
+      --priority-high: #f1c40f;
+      --priority-normal: #3498db;
+      --priority-low: #95a5a6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      gap: 12px;
+    }
+    .hdr-left { display: flex; align-items: center; gap: 12px; }
+    .hdr-left h1 { font-size: 16px; font-weight: 700; }
+    .hdr-right { display: flex; align-items: center; gap: 8px; }
+    .badge {
+      background: var(--col-new); color: #fff;
+      padding: 2px 10px; border-radius: 12px; font-size: 12px;
+    }
+    .muted { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+
+    select, input[type="text"], button {
+      font-family: inherit; font-size: 12px;
+      border-radius: 4px; cursor: pointer;
+    }
+    select, input[type="text"] {
+      padding: 4px 6px; border: 1px solid var(--border-color); background: #fff;
+    }
+    button {
+      padding: 4px 12px; border: 1px solid var(--border-color);
+      background: #fff; color: var(--text-primary);
+    }
+    button:hover { background: #f5f5f5; }
+
+    /* ── Filter Bar ── */
+    #filter-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    #filter-bar label { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+    #filter-bar .f-group { display: flex; align-items: center; gap: 4px; }
+    #search-input { width: 160px; }
+
+    /* Status buttons bar */
+    #status-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    #status-buttons {
+      display: flex; gap: 4px; align-items: center;
+    }
+    .sbtn {
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      padding: 6px 14px; border-radius: 12px;
+      border: 1px solid var(--border-color); background: #fff;
+      color: var(--text-secondary); cursor: pointer;
+      white-space: nowrap; transition: all 0.15s;
+    }
+    .sbtn:hover { background: #f0f0f0; }
+    .sbtn.active { background: var(--col-new); color: #fff; border-color: var(--col-new); }
+    .sbtn.sbtn-all { color: #4a90d9; border-color: #4a90d9; }
+    .sbtn.sbtn-all.active { background: #4a90d9; border-color: #4a90d9; color: #fff; }
+    .sbtn.sbtn-assigned { color: #2980b9; border-color: #2980b9; }
+    .sbtn.sbtn-assigned.active { background: #2980b9; color: #fff; }
+    .sbtn.sbtn-watched { color: #d35400; border-color: #d35400; }
+    .sbtn.sbtn-watched.active { background: #d35400; color: #fff; }
+    .sbtn.s-new-s { color: #4a90d9; border-color: #4a90d9; }
+    .sbtn.s-new-s.active { background: #4a90d9; color: #fff; }
+    .sbtn.s-confirmed-s { color: #17a2b8; border-color: #17a2b8; }
+    .sbtn.s-confirmed-s.active { background: #17a2b8; color: #fff; }
+    .sbtn.s-feedback-s { color: #e67e22; border-color: #e67e22; }
+    .sbtn.s-feedback-s.active { background: #e67e22; color: #fff; }
+    .sbtn.s-progress-s { color: #f5a623; border-color: #f5a623; }
+    .sbtn.s-progress-s.active { background: #f5a623; color: #fff; }
+    .sbtn.s-resolved-s { color: #7ed321; border-color: #7ed321; }
+    .sbtn.s-resolved-s.active { background: #7ed321; color: #fff; }
+    .sbtn.s-closed-s { color: #9b9b9b; border-color: #9b9b9b; }
+    .sbtn.s-closed-s.active { background: #9b9b9b; color: #fff; }
+    .sbtn .scount {
+      display: inline-block; min-width: 16px; text-align: center;
+      background: rgba(0,0,0,0.12); border-radius: 8px; padding: 0 5px;
+      font-size: 11px; margin-left: 3px;
+    }
+    .sbtn.active .scount { background: rgba(255,255,255,0.3); }
+    .auto-refresh-label {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 11px; color: var(--text-secondary); cursor: pointer;
+    }
+
+    /* ── Issue List ── */
+    #issue-list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg-card);
+      margin: 0;
+    }
+    #issue-list-wrap::-webkit-scrollbar { width: 6px; }
+    #issue-list-wrap::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    #issue-list {
+      width: 100%;
+    }
+    .list-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: #f5f6f8;
+      border-bottom: 2px solid var(--border-color);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .sort-hdr {
+      cursor: pointer;
+      user-select: none;
+      border-radius: 3px;
+      padding: 0;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .sort-hdr:hover { background: #e4e6e9; }
+    .sort-hdr.active { color: var(--col-new); }
+    .sort-arrow {
+      font-size: 9px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .sort-hdr.active .sort-arrow { opacity: 1; }
+
+    /* ── Issue Row ── */
+    .issue-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.1s;
+      min-height: 36px;
+    }
+    .issue-row:hover { background: #f5f8fc; }
+    .issue-row:last-child { border-bottom: none; }
+
+    .row-id {
+      font-size: 11px; font-weight: 600; color: var(--col-new);
+      white-space: nowrap; width: 56px; flex-shrink: 0; cursor: pointer;
+      text-decoration: none;
+    }
+    .row-id:hover { text-decoration: underline; }
+    .row-source {
+      font-size: 10px; font-weight: 600; white-space: nowrap;
+      width: 56px; flex-shrink: 0; text-align: center;
+    }
+    .row-source.src-assigned { color: #2980b9; }
+    .row-source.src-watched { color: #d35400; }
+    .row-source.src-both { color: #8e44ad; }
+    .row-status {
+      font-size: 10px; padding: 1px 6px; border-radius: 3px;
+      font-weight: 500; white-space: nowrap; width: 72px; flex-shrink: 0; text-align: center;
+    }
+    .s-new { background: #dbeafe; color: var(--col-new); }
+    .s-in-progress { background: #fef3c7; color: var(--col-in-progress); }
+    .s-resolved { background: #dcfce7; color: var(--col-resolved); }
+    .s-closed { background: #f3f4f6; color: var(--col-closed); }
+    .s-other { background: #f3f4f6; color: #888; }
+    .row-priority {
+      font-size: 10px; padding: 1px 5px; border-radius: 3px;
+      font-weight: 500; white-space: nowrap; width: 68px; flex-shrink: 0; text-align: center;
+    }
+    .p-5 { background: #fde8e8; color: var(--priority-immediate); }
+    .p-4 { background: #fef0e0; color: var(--priority-urgent); }
+    .p-3 { background: #fef9e0; color: #b8860b; }
+    .p-2 { background: #e8f4fd; color: var(--priority-normal); }
+    .p-1 { background: #f0f0f0; color: var(--priority-low); }
+
+    .row-subject {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+      min-width: 0;
+      cursor: pointer;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+    .row-subject:hover { text-decoration: underline; color: var(--col-new); }
+    .row-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+    .row-updated {
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      width: 58px;
+      flex-shrink: 0;
+    }
+    .row-link {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      transition: color 0.15s, background 0.15s;
+    }
+    .row-link:hover { color: var(--col-new); background: #e8f4fd; }
+    .row-link svg { width: 14px; height: 14px; }
+
+    .tag-a, .tag-w {
+      font-size: 9px; padding: 0 4px; border-radius: 2px; margin-right: 2px;
+    }
+    .tag-a { background: #e8f4fd; color: #2980b9; }
+    .tag-w { background: #fdf2e8; color: #d35400; }
+
+    .empty-state {
+      text-align: center; color: var(--text-secondary);
+      padding: 24px 12px; font-size: 12px;
+    }
+
+    /* ── Overlay / Settings ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .overlay.hidden { display: none; }
+    .settings-panel {
+      background: #fff; border-radius: 12px; padding: 32px;
+      width: 440px; max-width: 90vw;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .settings-panel h2 { margin-bottom: 20px; font-size: 20px; }
+    .settings-panel label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 6px; color: var(--text-secondary); }
+    .settings-panel input[type="password"] {
+      width: 100%; padding: 8px 12px;
+      border: 1px solid var(--border-color); border-radius: 6px;
+      font-size: 14px; font-family: inherit;
+    }
+    .settings-panel input[type="password"]:focus { outline: none; border-color: var(--col-new); box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
+    .settings-actions { margin-top: 24px; display: flex; gap: 10px; }
+    .settings-actions button { flex: 1; padding: 10px; font-size: 14px; justify-content: center; }
+    .settings-actions .primary { background: var(--col-new); color: #fff; border-color: var(--col-new); }
+    .hint { margin-top: 16px; font-size: 12px; color: var(--text-secondary); }
+
+    /* ── Loading / Toast ── */
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #ddd; border-top-color: var(--col-new);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { text-align: center; color: var(--text-secondary); }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; padding: 10px 24px;
+      border-radius: 8px; font-size: 13px; z-index: 2000;
+    }
+    .toast.hidden { display: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      header { flex-direction: column; padding: 8px 12px; }
+      .row-meta, .row-updated { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Settings -->
+  <div id="settings-overlay" class="overlay">
+    <div class="settings-panel">
+      <h2>Redmine Kanban Settings</h2>
+      <label>API Key</label>
+      <input id="api-key" type="password" placeholder="Enter your Redmine API key" />
+      <div class="settings-actions">
+        <button class="primary" id="btn-save-settings">Save &amp; Connect</button>
+        <button id="btn-close-settings">Cancel</button>
+      </div>
+      <p class="hint">API Key: Redmine -> My Account -> API access key -> Show</p>
+      <p class="hint">Redmine: <span id="redmine-url-display"></span></p>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="hdr-left">
+      <h1>RK Issue Board</h1>
+      <span id="user-info" class="badge" style="display:none;"></span>
+      <span id="last-refresh" class="muted"></span>
+    </div>
+    <div class="hdr-right">
+      <label class="auto-refresh-label"><input id="auto-refresh" type="checkbox" /> Auto 60s</label>
+      <button id="btn-refresh">Refresh</button>
+      <button id="btn-settings">Settings</button>
+    </div>
+  </header>
+
+  <!-- Status Buttons -->
+  <div id="status-bar">
+    <div id="status-buttons">
+      <button class="sbtn active" data-status="">全部</button>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div id="filter-bar">
+    <div class="f-group">
+      <label>项目</label>
+      <select id="filter-project"><option value="">全部</option></select>
+    </div>
+    <div class="f-group">
+      <label>优先级</label>
+      <select id="filter-priority"><option value="">全部</option></select>
+    </div>
+    <div class="f-group">
+      <label>类型</label>
+      <select id="filter-tracker"><option value="">全部</option></select>
+    </div>
+    <div class="f-group">
+      <label>来源</label>
+      <select id="filter-source">
+        <option value="">全部</option>
+        <option value="assigned">指派</option>
+        <option value="watched">关注</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label>搜索</label>
+      <input id="search-input" type="text" placeholder="#id 或关键词..." />
+    </div>
+  </div>
+
+  <!-- Issue List -->
+  <div id="issue-list-wrap">
+    <div class="list-header" id="list-header"></div>
+    <div id="issue-list"></div>
+  </div>
+
+  <!-- Loading / Toast -->
+  <div id="loading-overlay" class="overlay hidden">
+    <div><div class="spinner"></div><p class="loading-text">Loading issues...</p></div>
+  </div>
+  <div id="error-toast" class="toast hidden"></div>
+
+  <script>
+    const CONFIG = {
+      REDMINE_URL: 'https://redmine.rock-chips.com',
+      STORAGE_KEY: 'rk_kanban_config',
+      AUTO_REFRESH_MS: 60000,
+      PER_PAGE: 100,
+    };
+
+    const STATE = {
+      apiKey: '', userId: null, userName: '',
+      issues: [], assignedIds: new Set(), watchedIds: new Set(),
+      projects: [], trackers: [], priorities: [], statusesList: [],
+      statusMap: {}, autoRefreshTimer: null, isLoading: false,
+      activeStatus: '',  // current status filter
+      sortKey: '',      // current sort column key
+      sortDir: 'desc',  // 'asc' | 'desc'
+    };
+
+    /* Sort column definitions */
+    const SORT_COLUMNS = [
+      { key: 'id',        label: 'ID',     style: 'width:56px' },
+      { key: 'status',    label: '状态',   style: 'width:72px' },
+      { key: 'priority',  label: '优先级', style: 'width:68px' },
+      { key: 'subject',   label: '标题',   style: 'flex:1;min-width:120px' },
+      { key: 'project',   label: '项目',   style: 'width:140px' },
+      { key: 'source',    label: '来源',   style: 'width:56px' },
+      { key: 'created',   label: '创建',   style: 'width:58px' },
+      { key: 'updated',   label: '更新',   style: 'width:58px' },
+    ];
+
+    /* ── Persistence ── */
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
+        if (raw) { const d = JSON.parse(raw); STATE.apiKey = d.apiKey || ''; }
+      } catch (e) {}
+    }
+    function saveSettings() {
+      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify({ apiKey: STATE.apiKey }));
+    }
+
+    /* ── API ── */
+    async function redmineFetch(endpoint, params = {}) {
+      const url = new URL(`/api${endpoint}`, window.location.origin);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      const resp = await fetch(url, {
+        headers: { 'X-API-Key': STATE.apiKey, 'Content-Type': 'application/json' },
+      });
+      if (!resp.ok) {
+        if (resp.status === 401) throw new Error('Invalid API key');
+        if (resp.status === 403) throw new Error('Access denied');
+        throw new Error(`API error: ${resp.status}`);
+      }
+      return resp.json();
+    }
+
+    async function fetchAllIssues(params) {
+      const base = { ...params, limit: CONFIG.PER_PAGE, offset: 0 };
+      let all = [];
+      const first = await redmineFetch('/issues.json', base);
+      all = all.concat(first.issues || []);
+      const total = first.total_count || 0;
+      let offset = CONFIG.PER_PAGE;
+      while (offset < total) {
+        const page = await redmineFetch('/issues.json', { ...base, offset });
+        all = all.concat(page.issues || []);
+        offset += CONFIG.PER_PAGE;
+        if (!page.issues || page.issues.length === 0) break;
+      }
+      return all;
+    }
+
+    /* ── Data Loading ── */
+    async function loadData() {
+      if (STATE.isLoading) return;
+      STATE.isLoading = true;
+      showLoading(true);
+      try {
+        const me = await redmineFetch('/users/current.json');
+        STATE.userId = me.user.id;
+        STATE.userName = `${me.user.firstname || ''} ${me.user.lastname || ''}`.trim();
+        document.getElementById('user-info').textContent = STATE.userName;
+        document.getElementById('user-info').style.display = '';
+
+        const statuses = await redmineFetch('/issue_statuses.json');
+        STATE.statusMap = {};
+        STATE.statusesList = [];
+        (statuses.issue_statuses || []).forEach(s => {
+          STATE.statusMap[s.id] = { name: s.name, is_closed: s.is_closed };
+          STATE.statusesList.push({ id: s.id, name: s.name, is_closed: s.is_closed });
+        });
+
+        const assigned = await fetchAllIssues({ assigned_to_id: 'me', status_id: '*' });
+        STATE.assignedIds = new Set(assigned.map(i => i.id));
+
+        const watched = await fetchAllIssues({ watcher_id: STATE.userId, status_id: '*' });
+        STATE.watchedIds = new Set(watched.map(i => i.id));
+
+        const issueMap = new Map();
+        [...assigned, ...watched].forEach(i => issueMap.set(i.id, i));
+        STATE.issues = Array.from(issueMap.values());
+
+        // Build filter options
+        const pSet = new Map(), tSet = new Map(), prSet = new Map();
+        STATE.issues.forEach(i => {
+          if (i.project) pSet.set(i.project.id, i.project.name);
+          if (i.tracker) tSet.set(i.tracker.id, i.tracker.name);
+          if (i.priority) prSet.set(i.priority.id, i.priority.name);
+        });
+        STATE.projects = Array.from(pSet.entries()).sort((a,b) => a[1].localeCompare(b[1]));
+        STATE.trackers = Array.from(tSet.entries()).sort((a,b) => a[1].localeCompare(b[1]));
+        STATE.priorities = Array.from(prSet.entries()).sort((a,b) => b[0] - a[0]);
+
+        renderFilters();
+        initSortHeaders();
+        renderBoard();
+        updateLastRefresh();
+      } catch (err) {
+        showError(err.message);
+        if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))
+          showError('Network error — is kanban-server.py running?');
+      } finally {
+        STATE.isLoading = false;
+        showLoading(false);
+      }
+    }
+
+    /* ── Filters ── */
+    const STATUS_CN = {
+      'New': '新建', 'Confirmed': '已确认', 'In Progress': '进行中',
+      'Resolved': '已解决', 'Closed': '已关闭', 'Feedback': '待反馈',
+      'Rejected': '已拒绝', 'Assigned': '已指派', 'Reopened': '已重新打开',
+      'Pending': '待处理', 'Won\'t Fix': '不修复', 'Duplicate': '重复',
+      'Locked': '已锁定', 'Ready': '待开始', 'Testing': '测试中',
+      'To Be Tested': '待测试', 'Verified': '已验证', 'Merged': '已合并',
+      'Blocked': '已阻塞', 'Cancelled': '已取消',
+    };
+    function statusCN(name) { return STATUS_CN[name] || name; }
+    const STATUS_BTN_CLASS = {
+      'New': 's-new-s', 'Confirmed': 's-confirmed-s', 'In Progress': 's-progress-s',
+      'Resolved': 's-resolved-s', 'Closed': 's-closed-s', 'Feedback': 's-feedback-s',
+    };
+    function statusBtnClass(name) { return STATUS_BTN_CLASS[name] || ''; }
+    function getFilteredIssues() {
+      const fp = document.getElementById('filter-project').value;
+      const fpr = document.getElementById('filter-priority').value;
+      const ft = document.getElementById('filter-tracker').value;
+      const fs = document.getElementById('filter-source').value;
+      const fq = document.getElementById('search-input').value.trim().toLowerCase();
+
+      return STATE.issues.filter(i => {
+        if (STATE.activeStatus && String(i.status.id) !== STATE.activeStatus) return false;
+        if (fp && String(i.project?.id) !== fp) return false;
+        if (fpr && String(i.priority?.id) !== fpr) return false;
+        if (ft && String(i.tracker?.id) !== ft) return false;
+        if (fs === 'assigned' && !STATE.assignedIds.has(i.id)) return false;
+        if (fs === 'watched' && (STATE.assignedIds.has(i.id) || !STATE.watchedIds.has(i.id))) return false;
+        if (fq) {
+          const text = `${i.id} ${i.subject} ${i.tracker?.name || ''} ${i.project?.name || ''} ${i.assigned_to?.name || ''}`.toLowerCase();
+          if (!text.includes(fq)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderFilters() {
+      const fill = (id, items, label) => {
+        const el = document.getElementById(id);
+        const v = el.value;
+        el.innerHTML = `<option value="">${label}</option>`;
+        items.forEach(([id, name]) => {
+          el.innerHTML += `<option value="${id}">${esc(name)}</option>`;
+        });
+        el.value = v;
+      };
+      fill('filter-project', STATE.projects, '全部');
+      fill('filter-priority', STATE.priorities, '全部');
+      fill('filter-tracker', STATE.trackers, '全部');
+
+      const btnWrap = document.getElementById('status-buttons');
+      btnWrap.innerHTML = '';
+      const total = STATE.issues.length;
+      const assigned = STATE.issues.filter(i => STATE.assignedIds.has(i.id)).length;
+      const watched = STATE.issues.filter(i => STATE.watchedIds.has(i.id) && !STATE.assignedIds.has(i.id)).length;
+      const currentSource = document.getElementById('filter-source').value;
+
+      // 全部 button
+      const allBtn = document.createElement('button');
+      allBtn.className = 'sbtn sbtn-all' + (STATE.activeStatus === '' && !currentSource ? ' active' : '');
+      allBtn.dataset.status = '';
+      allBtn.innerHTML = `全部<span class="scount">${total}</span>`;
+      allBtn.addEventListener('click', () => {
+        setActiveStatus('');
+        document.getElementById('filter-source').value = '';
+        renderFilters();
+        renderBoard();
+      });
+      btnWrap.appendChild(allBtn);
+
+      // 指派 button
+      const assignedBtn = document.createElement('button');
+      assignedBtn.className = 'sbtn sbtn-assigned' + (currentSource === 'assigned' && STATE.activeStatus === '' ? ' active' : '');
+      assignedBtn.innerHTML = `指派<span class="scount">${assigned}</span>`;
+      assignedBtn.addEventListener('click', () => {
+        const src = currentSource === 'assigned' ? '' : 'assigned';
+        document.getElementById('filter-source').value = src;
+        setActiveStatus('');
+        renderFilters();
+        renderBoard();
+      });
+      btnWrap.appendChild(assignedBtn);
+
+      // 关注 button
+      const watchedBtn = document.createElement('button');
+      watchedBtn.className = 'sbtn sbtn-watched' + (currentSource === 'watched' && STATE.activeStatus === '' ? ' active' : '');
+      watchedBtn.innerHTML = `关注<span class="scount">${watched}</span>`;
+      watchedBtn.addEventListener('click', () => {
+        const src = currentSource === 'watched' ? '' : 'watched';
+        document.getElementById('filter-source').value = src;
+        setActiveStatus('');
+        renderFilters();
+        renderBoard();
+      });
+      btnWrap.appendChild(watchedBtn);
+
+      // Separator
+      const sep = document.createElement('span');
+      sep.style.cssText = 'width:1px;height:18px;background:#ddd;margin:0 4px;flex-shrink:0;';
+      btnWrap.appendChild(sep);
+
+      // Status buttons
+      STATE.statusesList.forEach(s => {
+        const cnt = STATE.issues.filter(i => i.status.id === s.id).length;
+        if (cnt === 0) return;
+        const btn = document.createElement('button');
+        btn.className = 'sbtn ' + statusBtnClass(s.name) + (STATE.activeStatus === String(s.id) ? ' active' : '');
+        btn.dataset.status = s.id;
+        btn.innerHTML = `${esc(statusCN(s.name))}<span class="scount">${cnt}</span>`;
+        btn.addEventListener('click', () => {
+          document.getElementById('filter-source').value = '';
+          setActiveStatus(String(s.id));
+          renderFilters();
+        });
+        btnWrap.appendChild(btn);
+      });
+    }
+
+    function setActiveStatus(statusId) {
+      STATE.activeStatus = statusId;
+    }
+
+    /* ── Rendering ── */
+    const LINK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 10l4-4m0 0H7m3 0v3M3 13h10a1 1 0 001-1V4a1 1 0 00-1-1H3a1 1 0 00-1 1v8a1 1 0 001 1z"/></svg>`;
+
+    const STATUS_CLASS = { 1: 's-new', 2: 's-in-progress', 3: 's-resolved', 5: 's-closed' };
+
+    function renderBoard() {
+      const list = document.getElementById('issue-list');
+      list.innerHTML = '';
+      const filtered = getFilteredIssues();
+
+      // Default sort when no column selected: open first, priority desc, updated desc
+      if (!STATE.sortKey) {
+        filtered.sort((a, b) => {
+          const aClosed = a.status.is_closed ? 1 : 0;
+          const bClosed = b.status.is_closed ? 1 : 0;
+          if (aClosed !== bClosed) return aClosed - bClosed;
+          const pd = (b.priority?.id || 0) - (a.priority?.id || 0);
+          return pd !== 0 ? pd : new Date(b.updated_on) - new Date(a.updated_on);
+        });
+      } else {
+        const dir = STATE.sortDir === 'asc' ? 1 : -1;
+        const key = STATE.sortKey;
+        filtered.sort((a, b) => {
+          let cmp = 0;
+          if (key === 'id' || key === 'priority') {
+            const va = key === 'id' ? a.id : (a.priority?.id || 0);
+            const vb = key === 'id' ? b.id : (b.priority?.id || 0);
+            cmp = va - vb;
+          } else if (key === 'created' || key === 'updated') {
+            cmp = new Date(a[key + '_on'] || 0) - new Date(b[key + '_on'] || 0);
+          } else if (key === 'status') {
+            cmp = (a.status?.name || '').localeCompare(b.status?.name || '');
+          } else if (key === 'subject') {
+            cmp = (a.subject || '').localeCompare(b.subject || '');
+          } else if (key === 'project') {
+            cmp = (a.project?.name || '').localeCompare(b.project?.name || '');
+          } else if (key === 'source') {
+            const sa = (STATE.assignedIds.has(a.id) ? 0 : 2) - (STATE.watchedIds.has(a.id) ? 1 : 0);
+            const sb = (STATE.assignedIds.has(b.id) ? 0 : 2) - (STATE.watchedIds.has(b.id) ? 1 : 0);
+            cmp = sa - sb;
+          }
+          return cmp * dir;
+        });
+      }
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty-state">No issues found</div>';
+        return;
+      }
+      filtered.forEach(i => list.appendChild(createRow(i)));
+    }
+
+    function createRow(issue) {
+      const row = document.createElement('div');
+      row.className = 'issue-row';
+
+      const pid = issue.priority?.id || 2;
+      const pName = issue.priority?.name || 'Normal';
+      const sName = issue.status?.name || '';
+      const sClass = STATUS_CLASS[issue.status?.id] || 's-other';
+      const project = issue.project?.name || '';
+      const created = formatDate(issue.created_on);
+      const updated = formatDate(issue.updated_on);
+      const url = `${CONFIG.REDMINE_URL}/issues/${issue.id}`;
+
+      const isA = STATE.assignedIds.has(issue.id);
+      const isW = STATE.watchedIds.has(issue.id);
+      let srcText, srcClass;
+      if (isA && isW) { srcText = '指派/关注'; srcClass = 'src-both'; }
+      else if (isA) { srcText = '指派'; srcClass = 'src-assigned'; }
+      else { srcText = '关注'; srcClass = 'src-watched'; }
+
+      row.innerHTML = `
+        <a class="row-id" href="${url}" target="_blank" title="Open #${issue.id}">#${issue.id}</a>
+        <span class="row-status ${sClass}">${esc(sName)}</span>
+        <span class="row-priority p-${pid}">${esc(pName)}</span>
+        <a class="row-subject" href="${url}" target="_blank" title="${esc(issue.subject)}">${esc(issue.subject)}</a>
+        <span class="row-meta">${esc(project)}</span>
+        <span class="row-source ${srcClass}">${srcText}</span>
+        <span class="row-updated" title="${esc(issue.created_on)}">${created}</span>
+        <span class="row-updated" title="${esc(issue.updated_on)}">${updated}</span>
+      `;
+      return row;
+    }
+
+    function updateLastRefresh() {
+      const t = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('last-refresh').textContent = `Updated: ${t}`;
+    }
+
+    /* ── Helpers ── */
+    function showLoading(show) { document.getElementById('loading-overlay').classList.toggle('hidden', !show); }
+    function showError(msg) {
+      const t = document.getElementById('error-toast');
+      t.textContent = msg; t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 6000);
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function formatDate(s) {
+      if (!s) return '';
+      const d = new Date(s), n = Date.now() - d.getTime(), m = Math.floor(n/60000);
+      if (m < 1) return 'now'; if (m < 60) return m+'m'; const h = Math.floor(m/60);
+      if (h < 24) return h+'h'; const dd = Math.floor(h/24);
+      if (dd < 30) return dd+'d';
+      return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+    }
+
+    /* ── Sort ── */
+    function initSortHeaders() {
+      const hdr = document.getElementById('list-header');
+      hdr.innerHTML = '';
+      SORT_COLUMNS.forEach(col => {
+        const span = document.createElement('span');
+        span.className = 'sort-hdr' + (STATE.sortKey === col.key ? ' active' : '');
+        span.style.cssText = col.style;
+        span.dataset.sortKey = col.key;
+        const arrow = STATE.sortKey === col.key
+          ? (STATE.sortDir === 'asc' ? ' \u25B2' : ' \u25BC')
+          : '';
+        span.innerHTML = `${esc(col.label)}${arrow ? `<span class="sort-arrow">${arrow}</span>` : ''}`;
+        span.addEventListener('click', () => handleSort(col.key));
+        hdr.appendChild(span);
+      });
+      // Reset button (absolute positioned to not affect column widths)
+      const rst = document.createElement('span');
+      rst.style.cssText = 'position:absolute;right:4px;top:50%;transform:translateY(-50%);cursor:pointer;padding:1px 6px;border-radius:3px;font-size:10px;color:var(--text-secondary);transition:background 0.15s;';
+      rst.textContent = '\u21BA';
+      rst.title = 'Reset sort';
+      rst.addEventListener('click', resetSort);
+      rst.addEventListener('mouseenter', () => rst.style.background = '#e4e6e9');
+      rst.addEventListener('mouseleave', () => rst.style.background = '');
+      hdr.appendChild(rst);
+    }
+
+    function handleSort(key) {
+      if (STATE.sortKey === key) {
+        STATE.sortDir = STATE.sortDir === 'desc' ? 'asc' : 'desc';
+      } else {
+        STATE.sortKey = key;
+        STATE.sortDir = 'desc';
+      }
+      initSortHeaders();
+      renderBoard();
+    }
+
+    function resetSort() {
+      STATE.sortKey = '';
+      STATE.sortDir = 'desc';
+      initSortHeaders();
+      renderBoard();
+    }
+
+    /* ── Settings ── */
+    function initSettings() {
+      const overlay = document.getElementById('settings-overlay');
+      const keyInput = document.getElementById('api-key');
+      keyInput.value = STATE.apiKey;
+      document.getElementById('redmine-url-display').textContent = CONFIG.REDMINE_URL;
+
+      document.getElementById('btn-settings').addEventListener('click', () => {
+        keyInput.value = STATE.apiKey;
+        overlay.classList.remove('hidden');
+        keyInput.focus();
+      });
+      document.getElementById('btn-close-settings').addEventListener('click', () => {
+        if (STATE.apiKey) overlay.classList.add('hidden');
+      });
+      document.getElementById('btn-save-settings').addEventListener('click', async () => {
+        STATE.apiKey = keyInput.value.trim();
+        if (!STATE.apiKey) { showError('Please enter an API key'); return; }
+        saveSettings();
+        overlay.classList.add('hidden');
+        await loadData();
+      });
+      keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btn-save-settings').click(); });
+    }
+
+    /* ── Init ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      initSettings();
+      initSortHeaders();
+
+      document.getElementById('btn-refresh').addEventListener('click', loadData);
+
+      // All filter changes trigger re-render
+      ['filter-project', 'filter-priority', 'filter-tracker', 'filter-source'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => { renderFilters(); renderBoard(); });
+      });
+
+      // Search with debounce
+      let searchTimer;
+      document.getElementById('search-input').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { renderBoard(); }, 200);
+      });
+
+      document.getElementById('auto-refresh').addEventListener('change', e => {
+        if (e.target.checked) STATE.autoRefreshTimer = setInterval(loadData, CONFIG.AUTO_REFRESH_MS);
+        else { clearInterval(STATE.autoRefreshTimer); STATE.autoRefreshTimer = null; }
+      });
+
+      if (STATE.apiKey) {
+        document.getElementById('settings-overlay').classList.add('hidden');
+        loadData();
+      }
+    });
+  </script>
+</body>
+</html>
