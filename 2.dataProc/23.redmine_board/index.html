@@ -79,6 +79,30 @@
     #filter-bar .f-group { display: flex; align-items: center; gap: 4px; }
     #search-input { width: 160px; }
 
+    /* Date Filter Bar */
+    #date-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    #date-bar label { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+    .date-btn {
+      font-family: inherit; font-size: 12px;
+      padding: 3px 10px; border-radius: 12px;
+      border: 1px solid var(--border-color); background: #fff;
+      color: var(--text-secondary); cursor: pointer;
+      white-space: nowrap; transition: all 0.15s;
+    }
+    .date-btn:hover { background: #f0f0f0; }
+    .date-btn.active { background: var(--col-new); color: #fff; border-color: var(--col-new); }
+    .date-sep { color: #ccc; font-size: 12px; }
+    #date-from, #date-to { font-family: inherit; font-size: 12px; padding: 3px 6px; border: 1px solid var(--border-color); border-radius: 4px; width: 125px; }
+    #filter-count { margin-left: auto; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+    #filter-count b { color: var(--col-new); font-weight: 700; }
+
     /* Status buttons bar */
     #status-bar {
       display: flex; align-items: center; gap: 8px;
@@ -390,6 +414,14 @@
       <select id="filter-tracker"><option value="">全部</option></select>
     </div>
     <div class="f-group">
+      <label>状态</label>
+      <select id="filter-status">
+        <option value="">全部</option>
+        <option value="open">未关闭</option>
+        <option value="closed">已关闭</option>
+      </select>
+    </div>
+    <div class="f-group">
       <label>来源</label>
       <select id="filter-source">
         <option value="">全部</option>
@@ -401,6 +433,26 @@
       <label>搜索</label>
       <input id="search-input" type="text" placeholder="#id 或关键词..." />
     </div>
+  </div>
+
+  <!-- Date Filter Bar -->
+  <div id="date-bar">
+    <label>时间范围:</label>
+    <button class="date-btn active" data-range="all">全部</button>
+    <button class="date-btn" data-range="7d">最近一周</button>
+    <button class="date-btn" data-range="30d">最近一月</button>
+    <button class="date-btn" data-range="90d">最近三月</button>
+    <button class="date-btn" data-range="1y">最近一年</button>
+    <button class="date-btn" data-range="custom">自定义</button>
+    <input type="date" id="date-from" style="display:none;" />
+    <span class="date-sep" id="date-sep" style="display:none;">~</span>
+    <input type="date" id="date-to" style="display:none;" />
+    <label>按:</label>
+    <select id="date-field">
+      <option value="updated_on">更新日期</option>
+      <option value="created_on">创建日期</option>
+    </select>
+    <span id="filter-count"></span>
   </div>
 
   <!-- Issue List -->
@@ -431,6 +483,7 @@
       activeStatus: '',  // current status filter
       sortKey: '',      // current sort column key
       sortDir: 'desc',  // 'asc' | 'desc'
+      dateRange: 'all', // 'all' | '7d' | '30d' | '90d' | '1y' | 'custom'
     };
 
     /* Sort column definitions */
@@ -577,21 +630,57 @@
       const fpr = document.getElementById('filter-priority').value;
       const ft = document.getElementById('filter-tracker').value;
       const fs = document.getElementById('filter-source').value;
+      const fStatus = document.getElementById('filter-status').value;
       const fq = document.getElementById('search-input').value.trim().toLowerCase();
 
       return STATE.issues.filter(i => {
+        const isClosed = STATE.statusMap[i.status.id]?.is_closed;
+        if (fStatus === 'open' && isClosed) return false;
+        if (fStatus === 'closed' && !isClosed) return false;
         if (STATE.activeStatus && String(i.status.id) !== STATE.activeStatus) return false;
         if (fp && String(i.project?.id) !== fp) return false;
         if (fpr && String(i.priority?.id) !== fpr) return false;
         if (ft && String(i.tracker?.id) !== ft) return false;
         if (fs === 'assigned' && !STATE.assignedIds.has(i.id)) return false;
         if (fs === 'watched' && (STATE.assignedIds.has(i.id) || !STATE.watchedIds.has(i.id))) return false;
+        // Date range filter
+        if (STATE.dateRange && STATE.dateRange !== 'all') {
+          const dateField = document.getElementById('date-field').value;
+          const d = new Date(i[dateField]);
+          if (isNaN(d.getTime())) return false;
+          let dateFrom = null, dateTo = null;
+          const now = new Date();
+          if (STATE.dateRange === '7d') dateFrom = new Date(now.getTime() - 7 * 86400000);
+          else if (STATE.dateRange === '30d') dateFrom = new Date(now.getTime() - 30 * 86400000);
+          else if (STATE.dateRange === '90d') dateFrom = new Date(now.getTime() - 90 * 86400000);
+          else if (STATE.dateRange === '1y') dateFrom = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          else if (STATE.dateRange === 'custom') {
+            const fv = document.getElementById('date-from').value;
+            const tv = document.getElementById('date-to').value;
+            if (fv) dateFrom = new Date(fv);
+            if (tv) dateTo = new Date(tv + 'T23:59:59');
+          }
+          if (dateFrom && d < dateFrom) return false;
+          if (dateTo && d > dateTo) return false;
+        }
         if (fq) {
           const text = `${i.id} ${i.subject} ${i.tracker?.name || ''} ${i.project?.name || ''} ${i.assigned_to?.name || ''}`.toLowerCase();
           if (!text.includes(fq)) return false;
         }
         return true;
       });
+    }
+
+    function setDateRange(range) {
+      STATE.dateRange = range;
+      document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+      const btn = document.querySelector(`.date-btn[data-range="${range}"]`);
+      if (btn) btn.classList.add('active');
+      const show = range === 'custom';
+      document.getElementById('date-from').style.display = show ? '' : 'none';
+      document.getElementById('date-to').style.display = show ? '' : 'none';
+      document.getElementById('date-sep').style.display = show ? '' : 'none';
+      renderBoard();
     }
 
     function renderFilters() {
@@ -690,6 +779,8 @@
       const list = document.getElementById('issue-list');
       list.innerHTML = '';
       const filtered = getFilteredIssues();
+      document.getElementById('filter-count').innerHTML =
+        `筛选结果: <b>${filtered.length}</b> / ${STATE.issues.length}`;
 
       // Default sort when no column selected: open first, priority desc, updated desc
       if (!STATE.sortKey) {
@@ -873,7 +964,7 @@
       document.getElementById('btn-refresh').addEventListener('click', loadData);
 
       // All filter changes trigger re-render
-      ['filter-project', 'filter-priority', 'filter-tracker', 'filter-source'].forEach(id => {
+      ['filter-project', 'filter-priority', 'filter-tracker', 'filter-status', 'filter-source'].forEach(id => {
         document.getElementById(id).addEventListener('change', () => { renderFilters(); renderBoard(); });
       });
 
@@ -883,6 +974,14 @@
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => { renderBoard(); }, 200);
       });
+
+      // Date range buttons
+      document.querySelectorAll('.date-btn').forEach(btn => {
+        btn.addEventListener('click', () => setDateRange(btn.dataset.range));
+      });
+      document.getElementById('date-field').addEventListener('change', () => renderBoard());
+      document.getElementById('date-from').addEventListener('change', () => renderBoard());
+      document.getElementById('date-to').addEventListener('change', () => renderBoard());
 
       document.getElementById('auto-refresh').addEventListener('change', e => {
         if (e.target.checked) STATE.autoRefreshTimer = setInterval(loadData, CONFIG.AUTO_REFRESH_MS);
