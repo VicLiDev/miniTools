@@ -527,12 +527,12 @@
     /* ── Filters ── */
     const STATUS_CN = {
       'New': '新建', 'Confirmed': '已确认', 'In Progress': '进行中',
-      'Resolved': '已解决', 'Closed': '已关闭', 'Feedback': '待反馈',
-      'Rejected': '已拒绝', 'Assigned': '已指派', 'Reopened': '已重新打开',
-      'Pending': '待处理', 'Won\'t Fix': '不修复', 'Duplicate': '重复',
+      'Resolved': '已解决', 'Closed': '关闭', 'Feedback': '待反馈',
+      'Rejected': '已拒绝', 'Assigned': '已指派', 'Reopened': '重新打开',
+      'Pending': '挂起', 'Won\'t Fix': '不修复', 'Duplicate': '重复',
       'Locked': '已锁定', 'Ready': '待开始', 'Testing': '测试中',
       'To Be Tested': '待测试', 'Verified': '已验证', 'Merged': '已合并',
-      'Blocked': '已阻塞', 'Cancelled': '已取消',
+      'Blocked': '已阻塞', 'Cancelled': '已取消', 'HangUp': '挂起',
     };
     function statusCN(name) { return STATUS_CN[name] || name; }
     const STATUS_BTN_CLASS = {
@@ -639,6 +639,7 @@
           document.getElementById('filter-source').value = '';
           setActiveStatus(String(s.id));
           renderFilters();
+          renderBoard();
         });
         btnWrap.appendChild(btn);
       });
