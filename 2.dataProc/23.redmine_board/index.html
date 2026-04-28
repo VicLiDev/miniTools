@@ -193,7 +193,7 @@
     .row-id:hover { text-decoration: underline; }
     .row-source {
       font-size: 10px; font-weight: 600; white-space: nowrap;
-      width: 56px; flex-shrink: 0; text-align: center;
+      width: 72px; flex-shrink: 0; text-align: center;
     }
     .row-source.src-assigned { color: #2980b9; }
     .row-source.src-watched { color: #d35400; }
@@ -238,11 +238,29 @@
       text-overflow: ellipsis;
       flex-shrink: 0;
     }
+    .row-assigned {
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+    .row-updater {
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
     .row-updated {
       font-size: 11px;
       color: var(--text-secondary);
       white-space: nowrap;
-      width: 58px;
+      width: 82px;
       flex-shrink: 0;
     }
     .row-link {
@@ -315,7 +333,7 @@
     /* ── Responsive ── */
     @media (max-width: 700px) {
       header { flex-direction: column; padding: 8px 12px; }
-      .row-meta, .row-updated { display: none; }
+      .row-meta, .row-updated, .row-assigned, .row-updater { display: none; }
     }
   </style>
 </head>
@@ -421,10 +439,12 @@
       { key: 'status',    label: '状态',   style: 'width:72px' },
       { key: 'priority',  label: '优先级', style: 'width:68px' },
       { key: 'subject',   label: '标题',   style: 'flex:1;min-width:120px' },
-      { key: 'project',   label: '项目',   style: 'width:140px' },
-      { key: 'source',    label: '来源',   style: 'width:56px' },
-      { key: 'created',   label: '创建',   style: 'width:58px' },
-      { key: 'updated',   label: '更新',   style: 'width:58px' },
+      { key: 'project',       label: '项目',   style: 'width:140px' },
+      { key: 'assigned_to',   label: '指派给', style: 'width:140px' },
+      { key: 'last_updated_by', label: '最近更新', style: 'width:140px' },
+      { key: 'source',        label: '来源',   style: 'width:72px;text-align:center' },
+      { key: 'created',   label: '创建',   style: 'width:82px' },
+      { key: 'updated',   label: '更新',   style: 'width:82px' },
     ];
 
     /* ── Persistence ── */
@@ -453,8 +473,9 @@
       return resp.json();
     }
 
-    async function fetchAllIssues(params) {
+    async function fetchAllIssues(params, include = '') {
       const base = { ...params, limit: CONFIG.PER_PAGE, offset: 0 };
+      if (include) base.include = include;
       let all = [];
       const first = await redmineFetch('/issues.json', base);
       all = all.concat(first.issues || []);
@@ -489,15 +510,26 @@
           STATE.statusesList.push({ id: s.id, name: s.name, is_closed: s.is_closed });
         });
 
-        const assigned = await fetchAllIssues({ assigned_to_id: 'me', status_id: '*' });
+        const assigned = await fetchAllIssues({ assigned_to_id: 'me', status_id: '*' }, 'journals');
         STATE.assignedIds = new Set(assigned.map(i => i.id));
 
-        const watched = await fetchAllIssues({ watcher_id: STATE.userId, status_id: '*' });
+        const watched = await fetchAllIssues({ watcher_id: STATE.userId, status_id: '*' }, 'journals');
         STATE.watchedIds = new Set(watched.map(i => i.id));
 
         const issueMap = new Map();
         [...assigned, ...watched].forEach(i => issueMap.set(i.id, i));
         STATE.issues = Array.from(issueMap.values());
+
+        // Extract last_updated_by from journals
+        STATE.issues.forEach(i => {
+          const journals = i.journals || [];
+          if (journals.length > 0) {
+            const last = journals[journals.length - 1];
+            i._last_updated_by = last.user ? (last.user.name || '') : '';
+          } else {
+            i._last_updated_by = i.author ? (i.author.name || '') : '';
+          }
+        });
 
         // Build filter options
         const pSet = new Map(), tSet = new Map(), prSet = new Map();
@@ -685,6 +717,10 @@
             cmp = (a.subject || '').localeCompare(b.subject || '');
           } else if (key === 'project') {
             cmp = (a.project?.name || '').localeCompare(b.project?.name || '');
+          } else if (key === 'assigned_to') {
+            cmp = (a.assigned_to?.name || '').localeCompare(b.assigned_to?.name || '');
+          } else if (key === 'last_updated_by') {
+            cmp = (a._last_updated_by || '').localeCompare(b._last_updated_by || '');
           } else if (key === 'source') {
             const sa = (STATE.assignedIds.has(a.id) ? 0 : 2) - (STATE.watchedIds.has(a.id) ? 1 : 0);
             const sb = (STATE.assignedIds.has(b.id) ? 0 : 2) - (STATE.watchedIds.has(b.id) ? 1 : 0);
@@ -727,6 +763,8 @@
         <span class="row-priority p-${pid}">${esc(pName)}</span>
         <a class="row-subject" href="${url}" target="_blank" title="${esc(issue.subject)}">${esc(issue.subject)}</a>
         <span class="row-meta">${esc(project)}</span>
+        <span class="row-assigned">${esc(issue.assigned_to?.name || '')}</span>
+        <span class="row-updater">${esc(issue._last_updated_by || '')}</span>
         <span class="row-source ${srcClass}">${srcText}</span>
         <span class="row-updated" title="${esc(issue.created_on)}">${created}</span>
         <span class="row-updated" title="${esc(issue.updated_on)}">${updated}</span>
@@ -753,7 +791,7 @@
       if (m < 1) return 'now'; if (m < 60) return m+'m'; const h = Math.floor(m/60);
       if (h < 24) return h+'h'; const dd = Math.floor(h/24);
       if (dd < 30) return dd+'d';
-      return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
     /* ── Sort ── */
