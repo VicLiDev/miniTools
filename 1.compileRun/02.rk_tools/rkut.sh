@@ -6,7 +6,7 @@
 # Created Time: Thu 07 May 2026 09:46:45 AM CST
 #########################################################################
 
-# rkUT.sh - Rockchip upgrade_tool wrapper
+# rkut.sh.sh - Rockchip upgrade_tool wrapper
 
 UPGRADE_TOOL="${HOME}/bin/upgrade_tool"
 
@@ -65,8 +65,8 @@ function resolve_img()
 function rkut_help()
 {
     cat <<'HELPEOF'
-usage: rkUT.sh <command> [args...]
-       rkUT.sh -urk <raw upgrade_tool args...>
+usage: rkut.sh.sh <command> [args...]
+       rkut.sh.sh -urk <raw upgrade_tool args...>
 
 --- Device ---
   -ld                    List rockusb devices
@@ -141,34 +141,34 @@ Environment:
 
 Examples:
   # List connected devices
-  rkUT.sh -ld
+  rkut.sh.sh -ld
 
   # Upgrade whole firmware (uses default image_path/update.img)
-  rkUT.sh -uf
+  rkut.sh.sh -uf
 
   # Upgrade loader (uses default image_path/MiniLoaderAll.bin)
-  rkUT.sh -ul
+  rkut.sh.sh -ul
 
   # Download boot to device (uses default image_path/boot.img)
-  rkUT.sh -di -b
+  rkut.sh.sh -di -b
 
   # Download multiple partitions at once
-  rkUT.sh -di -u -b -re
+  rkut.sh.sh -di -u -b -re
 
   # Download with explicit file path
-  rkUT.sh -di -b /tmp/my_boot.img
+  rkut.sh.sh -di -b /tmp/my_boot.img
 
   # Download custom partition
-  rkUT.sh -di -vendor /path/to/vendor.img
+  rkut.sh.sh -di -vendor /path/to/vendor.img
 
   # Read partition table from device
-  rkUT.sh -pl
+  rkut.sh.sh -pl
 
   # Burn partition table to device
-  rkUT.sh -dp
+  rkut.sh.sh -dp
 
   # Show firmware info
-  rkUT.sh -sfi
+  rkut.sh.sh -sfi
 HELPEOF
 }
 

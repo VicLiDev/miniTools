@@ -130,21 +130,21 @@ function init_data_proc_tools()
 function init_rk_tools()
 {
     rk_tools_dir="${repo_root}/1.compileRun/02.rk_tools"
-    
+
     # mpp
     create_link_to_bin ${rk_tools_dir}/rkBuildMpp.sh rkBuildMpp.sh
     create_link_to_bin ${rk_tools_dir}/rkDebugMpp.sh rkDebugMpp.sh
-    
+
     # kernel
     create_link_to_bin ${rk_tools_dir}/rkBuildKer.sh rkBuildKer.sh
     create_link_to_bin ${rk_tools_dir}/rkDebugKer.sh rkDebugKer.sh
-    create_link_to_bin ${rk_tools_dir}/rkUT.sh       rkUT.sh
-    
+    create_link_to_bin ${rk_tools_dir}/rkut.sh       rkut.sh
+
     # tools
     create_link_to_bin ${rk_tools_dir}/adbDebug.sh   adbDebug.sh
     create_link_to_bin ${rk_tools_dir}/adbSelCmd.sh  adbs
     create_link_to_bin ${rk_tools_dir}/rk_tar_mpp.sh rk_tar_mpp.sh
-    
+
     # batch test tools
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTCore.sh         rkBtC
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTTolkit.sh       rkBt
@@ -152,7 +152,7 @@ function init_rk_tools()
 
     # rga
     create_link_to_bin ${rk_tools_dir}/rkBuildRga.sh rkBuildRga.sh
-    
+
     echo
     echo "==> rk tools: for prj"
     echo 'ln -s ${HOME}/bin/rkBuildMpp.sh .prjBuild.sh'
