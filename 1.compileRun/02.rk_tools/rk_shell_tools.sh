@@ -79,6 +79,26 @@ ldev()
     eval ${adbCmd} shell
 }
 
+# 通过 scrcpy 打开设备屏幕镜像
+#
+# 问题: 部分设备 serial 相同(如 0000000000000000), scrcpy --serial 无法区分
+# 解决: scrcpy 不支持 --transport-id, 但支持 ADB 环境变量指定 adb 路径。
+#        创建临时 adb 包装脚本, 内部对所有命令注入 -t <transport_id>,
+#        使 scrcpy 间接通过 transport ID 定位设备。
+#
+# 运行逻辑:
+#   shell 将 ADB 环境变量设置为临时脚本路径, 然后启动 scrcpy 进程。
+#   scrcpy 内部需要调用 adb 时, 会先检查 ADB 环境变量, 发现非空则调用包装脚本而非系统 adb。
+#   scrcpy 本身不知道自己使用的是包装脚本, 它只是遵循 ADB 环境变量的约定。
+#   wrapper 收到命令后, 用 transport ID 唯一定位目标设备, 绕过 serial 重复的问题。
+#
+# 包装脚本处理两类命令:
+#   1. adb devices:
+#      拦截 → 用 adb -t <tp_id> get-serialno 获取目标设备 serial
+#           → 伪造单设备列表输出, 让 scrcpy 以为只有一个设备
+#   2. 其他命令(如 shell push ...):
+#      剥离 scrcpy 附加的 -s/--serial 参数(避免与 -t 冲突)
+#      → 改用 adb -t <tp_id> <原始命令> 执行
 opdev()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
@@ -86,14 +106,59 @@ opdev()
         echo ""
         echo "Usage: opdev"
         echo ""
+        echo "Note: Uses transport ID to handle duplicate serial devices"
         echo "Requires: adbs, scrcpy"
         return 0
     fi
 
-    devSelNo=`adbs get-serialno`
-    [ -z "${devSelNo}" ] && return 0
-    echo "dev No: ${devSelNo}"
-    scrcpy --serial=${devSelNo}
+    # adbs 输出如 "adb -t 3", 提取末尾的 transport ID
+    adbCmd=$(adbs)
+    [ -z "${adbCmd}" ] && return 0
+    tp_id="${adbCmd##* }"
+    echo "transport ID: ${tp_id}"
+
+    # 创建临时 adb 包装脚本
+    # 用 sed 将 __TPID__ 占位符替换为实际 transport ID,
+    # <<'EOF' 禁止 heredoc 内的变量展开, 避免 $1 $@ 等被提前解释
+    local tmp_adb
+    # mktemp:
+    # 末尾 X 会被替换为随机字符(至少 3 个 X, 仅 X 为占位符，其他字符不行),
+    # 生成唯一临时文件, 避免并发冲突
+    tmp_adb=$(mktemp /tmp/adb_t_XXXXXX)
+    sed "s/__TPID__/${tp_id}/" > "${tmp_adb}" <<'EOF'
+#!/bin/bash
+_tp="__TPID__"
+if [ "$1" = "devices" ]; then
+    # 拦截 devices 命令: 只返回目标设备, 让 scrcpy 以为只有一个设备
+    _sn=$(adb -t "${_tp}" get-serialno 2>/dev/null)
+    [ -z "$_sn" ] && exit 0
+    printf 'List of devices attached\n%s\tdevice\n' "$_sn"
+else
+    # 其他命令: 剥离 -s/--serial 避免 adb 同时收到 -t 和 -s 冲突,
+    # 统一通过 -t <transport_id> 定位设备
+    # 初始化空数组, 用于收集过滤后的参数
+    _a=()
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            # -s|--serial: 跳过标志和紧随的 serial 值(shift 2)
+            -s|--serial) shift 2 ;;
+            # --serial=xxx: 直接丢弃, 不 shift 等同跳过
+            --serial=*) ;;
+            # 其他参数: 保留到数组 _a
+            *) _a+=("$1"); shift ;;
+        esac
+    done
+    # 用 transport ID 执行过滤后的命令, 剥离的 -s 被替换为 -t
+    exec adb -t "${_tp}" "${_a[@]}"
+fi
+EOF
+    chmod +x "${tmp_adb}"
+
+    # 通过 ADB 环境变量让 scrcpy 使用包装脚本
+    # 括号 () 创建子 shell: ADB 变量无论加不加括号都不会泄露到当前 shell(inline 赋值仅对当前命令生效),
+    # 加括号的真正区别是 scrcpy 在子 shell 中执行, 其内部的 cd/exit 等不会影响当前 shell
+    ( ADB="${tmp_adb}" scrcpy )
+    rm -f "${tmp_adb}"
 }
 
 vimdiff_strm()
