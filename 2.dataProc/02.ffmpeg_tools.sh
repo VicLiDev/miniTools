@@ -627,3 +627,102 @@ f_chk_frm_type()
     fi
 }
 
+f_pkt_size()
+{
+    cmd_input=""
+    cmd_max="100"
+    cmd_summary="false"
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -h) echo "usage: <exe> -i <input_strm> [-n <max_packets>] [-s]"
+                echo "  -i  input video stream file"
+                echo "  -n  max packets to check, 0=all, default: 100"
+                echo "  -s  show summary (min/max/avg)"
+                return 0; ;;
+            -i) cmd_input="$2"; shift; ;;
+            -n) cmd_max="$2"; shift; ;;
+            -s) cmd_summary="true"; ;;
+            *)  echo "unknow para: ${key}"
+                echo "usage: <exe> -i <input_strm> [-n <max_packets>] [-s]"
+                return 1; ;;
+        esac; shift
+    done
+
+    [ -z "${cmd_input}" ] && { echo "No input strm!"; return 1; }
+    [ ! -e "${cmd_input}" ] && { echo "Strm path invalid!"; return 1; }
+
+    local file_size
+    file_size=$(ls -lh "${cmd_input}" | awk '{print $5}')
+    echo "file: ${cmd_input} (${file_size})"
+
+    if [ "${cmd_max}" = "0" ]; then
+        echo "checking all packets... (use -n N to limit)"
+    else
+        echo "checking first ${cmd_max} packets..."
+    fi
+
+    # -v error: 只输出错误日志，屏蔽 info/warning，保持输出干净
+    # -select_streams v:0: 只选择第一个视频流（v:0），忽略音频、字幕等其它流
+    # -show_entries packet=pts_time,size:
+    #     逐 packet 读取，每个 packet 对应 demux 后的一个数据包
+    #     pts_time: packet 的显示时间戳（秒），可用于判断时间间隔、帧率
+    #     size    : packet 的字节数（不含容器层开销，纯编码数据大小）
+    # -of csv=p=0: 输出格式为纯 CSV（逗号分隔），p=0 表示不打印字段名行
+    #     输出示例: 0.000000,54231
+    local ffprobe_args=(-v error -select_streams v:0 -show_entries packet=pts_time,size -of csv=p=0)
+    if [ "${cmd_max}" != "0" ]; then
+        ffprobe_args+=(-read_intervals "%+#${cmd_max}")
+    fi
+
+    if [ "${cmd_summary}" = "true" ]; then
+        echo "====== Packet Size Summary ======"
+        local total=0 total_bytes=0 min_size=999999999 max_size=0
+        local progress_dot=0
+        while IFS=, read -r pts size; do
+            [ -z "${size}" ] && continue
+            total_bytes=$((total_bytes + size))
+            total=$((total + 1))
+            (( size < min_size )) && min_size=${size}
+            (( size > max_size )) && max_size=${size}
+            ((progress_dot++))
+            if (( progress_dot % 100 == 0 )); then
+                printf "."
+            fi
+        done < <(ffprobe "${ffprobe_args[@]}" "${cmd_input}")
+        echo ""
+        [ ${total} -eq 0 ] && { echo "No packets found!"; return 1; }
+        local avg=$((total_bytes / total))
+        echo "  Packets   : ${total}"
+        echo "  Total bytes: ${total_bytes} ($(ls -lh "${cmd_input}" | awk '{print $5}'))"
+        echo "  Min size  : ${min_size} bytes"
+        echo "  Max size  : ${max_size} bytes"
+        echo "  Avg size  : ${avg} bytes"
+        echo "================================="
+    else
+        echo "====== Packet Size List ======"
+        local idx=0
+        while IFS=, read -r pts size; do
+            [ -z "${size}" ] && continue
+            # size 单位为 byte，转换为人类可读格式
+            if [ ${size} -ge 1048576 ]; then
+                hr_size="$(echo "scale=2; ${size}/1048576" | bc)MB"
+            elif [ ${size} -ge 1024 ]; then
+                hr_size="$(echo "scale=2; ${size}/1024" | bc)KB"
+            else
+                hr_size="${size}B"
+            fi
+            printf "  [%4d] pts=%-10s size=%-10s (%s bytes)\n" "${idx}" "${pts}" "${hr_size}" "${size}"
+            ((idx++))
+        done < <(ffprobe "${ffprobe_args[@]}" "${cmd_input}")
+        if [ ${idx} -eq 0 ]; then
+            echo "No packets found!"
+            return 1
+        fi
+        echo "==============================="
+        echo "  Total: ${idx} packets"
+        echo "==============================="
+    fi
+}
+
