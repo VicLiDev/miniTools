@@ -27,41 +27,89 @@
 # 这个参数的说明，可以查看 adbSelCmd.sh
 export ADB_LIBUSB=0
 
-clog()
+function clog()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "clog: View device logcat"
         echo ""
         echo "Usage:"
-        echo "  clog               Clear logcat buffer and view logs in real time"
-        echo "  clog -c \"cmd\"    Clear logcat, run cmd on device, capture logs during execution"
+        echo "  clog                         Clear logcat buffer and view logs in real time"
+        echo "  clog -c \"cmd\"                Clear logcat, run cmd on device, dump logs after execution"
+        echo "  clog -o <file>               Output logcat to file (tee: both screen and file)"
+        echo "  clog -d <num>                Specify device by index (pass-through to adbs --idx)"
+        echo "  clog -r                      Root and remount device before operation"
+        echo "  clog -c \"cmd\" -o <file>      Run cmd and save logs to file"
+        echo "  clog -d <num> -o <file>      Specify device and output to file"
         echo ""
         echo "Requires: adbs"
         return 0
     fi
 
+    local cmd_log_file=""
+    local cmd_adb_idx=""
+    local cmd_run_cmd=""
+    local cmd_root=""
+
+    # 解析参数
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -o) cmd_log_file="$2"; shift 2; ;;
+            -d) cmd_adb_idx="$2"; shift 2; ;;
+            -c) shift; cmd_run_cmd="$1"; shift; ;;
+            -r) cmd_root="1"; shift; ;;
+            *)  shift; ;;
+        esac
+    done
+
     clear
-    adbCmd=$(adbs)
-    [ -z "${adbCmd}" ] && return 0
+    echo "clog: device=${cmd_adb_idx:-select}  cmd=${cmd_run_cmd:-none}  log=${cmd_log_file:-none}  root=${cmd_root:-no}"
+    local adb_args=""
+    [ -n "${cmd_adb_idx}" ] && adb_args="--idx ${cmd_adb_idx}"
+    adbCmd=$(adbs ${adb_args})
+    [ -z "${adbCmd}" ] && { echo "!!! no dev selected, use -d <id>"; return 1; }
 
-    if [ "$1" = "-c" ] && [ -n "$2" ]; then
-        local cmd="$2"
+    if [ -n "${cmd_root}" ]; then
+        # adb root 后设备会断开再重连 adbd, 不能立即执行后续命令
+        # 不使用 wait-for-device: 在部分 Rockchip 设备上可能长时间阻塞
+        # 固定等待 3 秒: 实测足够覆盖大多数 Rockchip 设备的 adbd 重启周期
+        eval ${adbCmd} root
+        sleep 3
+        # root 后设备重连, transport ID 会变化, 必须重新获取
+        adbCmd=$(adbs ${adb_args})
+        [ -z "${adbCmd}" ] && { echo "!!! device lost after root"; return 1; }
+        eval ${adbCmd} remount
+    fi
 
+    # 打印最终设备信息, 确认操作对象正确
+    local dev_serial=$(eval ${adbCmd} get-serialno 2>/dev/null)
+    local dev_name=$(eval ${adbCmd} shell "cat /proc/device-tree/compatible" 2>/dev/null | tr -d '\0')
+    echo "clog: serial=${dev_serial}  ${adbCmd}  ${dev_name}"
+    [ -n "${cmd_log_file}" ] && echo "clog: serial=${dev_serial}  ${adbCmd}  ${dev_name}" > "${cmd_log_file}"
+
+    if [ -n "${cmd_run_cmd}" ]; then
         # Clear logcat buffer before command
         eval ${adbCmd} logcat -c
 
         # Execute the command on device
-        eval ${adbCmd} shell "${cmd}"
+        eval ${adbCmd} shell "${cmd_run_cmd}"
 
         # Dump logcat buffer after command
-        eval ${adbCmd} logcat -d
+        if [ -n "${cmd_log_file}" ]; then
+            eval ${adbCmd} logcat -d | tee -a "${cmd_log_file}"
+        else
+            eval ${adbCmd} logcat -d
+        fi
     else
         eval ${adbCmd} logcat -c
-        eval ${adbCmd} logcat
+        if [ -n "${cmd_log_file}" ]; then
+            eval ${adbCmd} logcat | tee -a "${cmd_log_file}"
+        else
+            eval ${adbCmd} logcat
+        fi
     fi
 }
 
-ldev()
+function ldev()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "ldev: Enter device shell (auto root + remount)"
@@ -99,7 +147,7 @@ ldev()
 #   2. 其他命令(如 shell push ...):
 #      剥离 scrcpy 附加的 -s/--serial 参数(避免与 -t 冲突)
 #      → 改用 adb -t <tp_id> <原始命令> 执行
-opdev()
+function opdev()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "opdev: Open device screen mirror via scrcpy"
@@ -161,7 +209,7 @@ EOF
     rm -f "${tmp_adb}"
 }
 
-vimdiff_strm()
+function vimdiff_strm()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "vimdiff_strm: Compare stream files as hex text via vimdiff"
@@ -182,7 +230,7 @@ vimdiff_strm()
     vimdiff ${file1}_tmp ${file2}_tmp
 }
 
-akill_media()
+function akill_media()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "akill_media: Kill media-related processes on device"
@@ -207,7 +255,7 @@ akill_media()
     eval ${adbCmd} shell killall android.hardware.media.c2@1.1-service
 }
 
-aen_fbc_l()
+function aen_fbc_l()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "aen_fbc_l: Enable/disable AFBC via GStreamer env variable (current shell only)"
@@ -235,7 +283,7 @@ aen_fbc_l()
     fi
 }
 
-aen_fbc_a()
+function aen_fbc_a()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "aen_fbc_a: Enable/disable AFBC via system property (global, requires setenforce 0)"
