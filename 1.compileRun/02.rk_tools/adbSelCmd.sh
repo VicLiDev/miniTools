@@ -180,7 +180,7 @@ function main()
 {
     proc_paras $@
 
-    [ "${cmd_root_remount}" == "true" ] && root_remount_no_info_devs
+    [ "${cmd_root_remount}" == "true" ] && { root_remount_no_info_devs; exit 0; }
 
     gen_dev_info_list
 
