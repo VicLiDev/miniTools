@@ -118,30 +118,14 @@ function proc_paras()
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -h|--hlep)
-                help_info
-                exit 0
-                ;;
-            -l)
-                cmd_list_devs="true"
-                ;;
-            -c)
-                cmd_get_count="true"
-                ;;
-            -s)
-                cmd_gen_s_style="true"
-                ;;
-            --idx)
-                cmd_sel_idx="$2"
-                shift # move to next para
-                ;;
-            *)
-                # next is adb paras
-                cmd_orgAdbOpt=$@
-                return
-                ;;
+            -h|--hlep) help_info; exit 0 ;;
+            -l)        cmd_list_devs="true" ;;
+            -c)        cmd_get_count="true" ;;
+            -s)        cmd_gen_s_style="true" ;;
+            --idx)     cmd_sel_idx="$2"; shift ;;
+            *)         cmd_orgAdbOpt=$@; return ;;
         esac
-        shift # move to next para
+        shift
     done
 }
 
