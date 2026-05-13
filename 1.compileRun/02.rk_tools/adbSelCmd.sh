@@ -50,6 +50,7 @@ devSerIDList=()
 devTPIDList=()
 devNameList=()
 selectList=()
+devUsbPathList=()
 
 function help_info()
 {
@@ -73,6 +74,7 @@ function gen_dev_info_list()
 {
     devSerIDList=(`adb devices | grep device$ | awk '{print $1}'`)
     devTPIDList=($(adb devices -l | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
+    devUsbPathList=($(adb devices -l | awk '/usb:/{for(i=1;i<=NF;i++) if($i~/^usb:/) print $i}'))
     devNameList=()
     selectList=()
 
@@ -84,7 +86,7 @@ function gen_dev_info_list()
         nameTmp=${nameTmp%rockchip*}
         nameTmp=${nameTmp#"rockchip,"}
         devNameList[${i}]=${nameTmp}
-        selectList[${i}]="${devNameList[${i}]} ==> serID: ${devSerIDList[${i}]} ==> TrsptID: ${devTPIDList[${i}]}"
+        selectList[${i}]="${devNameList[${i}]} ==> serID: ${devSerIDList[${i}]} ==> usb: ${devUsbPathList[${i}]} ==> TrsptID: ${devTPIDList[${i}]}"
     done
 }
 
