@@ -51,7 +51,7 @@ devTPIDList=()
 devNameList=()
 selectList=()
 
-help_info()
+function help_info()
 {
     echo "usage: adbs <adbsParas> [<orgAdbParas>]"
     echo "    -h|--help help info"
@@ -69,7 +69,7 @@ help_info()
     echo '           adbCmd=$(adbs -s)        '
 }
 
-gen_dev_info_list()
+function gen_dev_info_list()
 {
     devSerIDList=(`adb devices | grep device$ | awk '{print $1}'`)
     devTPIDList=($(adb devices -l | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
@@ -88,7 +88,7 @@ gen_dev_info_list()
     done
 }
 
-gen_adb_cmd()
+function gen_adb_cmd()
 {
     mSelectedDev=""
 
@@ -111,7 +111,7 @@ gen_adb_cmd()
     echo ${adbCmd}
 }
 
-proc_paras()
+function proc_paras()
 {
     while [[ $# -gt 0 ]]; do
         key="$1"
@@ -146,7 +146,7 @@ proc_paras()
 # ====== main ======
 source ${HOME}/bin/_select_node.sh
 
-main()
+function main()
 {
     proc_paras $@
     gen_dev_info_list
