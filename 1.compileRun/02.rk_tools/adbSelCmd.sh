@@ -45,6 +45,7 @@ cmd_list_devs="false"
 cmd_get_count="false"
 cmd_gen_s_style="false"
 cmd_sel_idx=""
+cmd_soc_info=""
 cmd_root_remount="false"
 
 devSerIDList=()
@@ -61,6 +62,7 @@ function help_info()
     echo "    -c Get device count"
     echo "    -s gen \"adb -s\" style cmd, default \"adb -t\" style"
     echo "    --idx <num>  Generates cmd with idx:num"
+    echo "    --soc <info> Select device by device tree compatible info"
     echo "    -r           Root and remount devices with no info"
     echo
     echo "use session:                        "
@@ -164,6 +166,7 @@ function proc_paras()
             -s)        cmd_gen_s_style="true" ;;
             -r)        cmd_root_remount="true" ;;
             --idx)     cmd_sel_idx="$2"; shift ;;
+            --soc)     cmd_soc_info="$2"; shift ;;
             *)         cmd_orgAdbOpt=$@; return ;;
         esac
         shift
@@ -176,8 +179,32 @@ source ${HOME}/bin/_select_node.sh
 function main()
 {
     proc_paras $@
+
     [ "${cmd_root_remount}" == "true" ] && root_remount_no_info_devs
+
     gen_dev_info_list
+
+    # --soc: match device by SoC name pattern, set cmd_sel_idx
+    if [ -n "${cmd_soc_info}" ]; then
+        cmd_soc_info=$(echo "${cmd_soc_info}" | tr '[:upper:]' '[:lower:]')
+        local soc_match_list=()
+        for ((i = 0; i < ${#devNameList[@]}; i++)); do
+            if [[ "${devNameList[${i}]}" == *"${cmd_soc_info}"* ]]; then
+                soc_match_list+=(${i})
+            fi
+        done
+        [ ${#soc_match_list[@]} -eq 0 ] && { echo "No device matching '${cmd_soc_info}' found!" >&2; exit 1; }
+        if [ ${#soc_match_list[@]} -eq 1 ]; then
+            cmd_sel_idx="${soc_match_list[0]}"
+        else
+            echo "Multiple devices matching '${cmd_soc_info}', using the first one:" >&2
+            for idx in "${soc_match_list[@]}"; do
+                echo "  [$idx] ${selectList[${idx}]}" >&2
+            done
+            cmd_sel_idx="${soc_match_list[0]}"
+        fi
+    fi
+
     if [ ${cmd_get_count} == "true" ]; then
         echo "${#selectList[@]}"
     elif [ "${cmd_list_devs}" == "true" ]; then
