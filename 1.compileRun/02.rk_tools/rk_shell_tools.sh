@@ -37,6 +37,7 @@ function clog()
         echo "  clog -c \"cmd\"                Clear logcat, run cmd on device, dump logs after execution"
         echo "  clog -o <file>               Output logcat to file (tee: both screen and file)"
         echo "  clog -d <num>                Specify device by index (pass-through to adbs --idx)"
+        echo "  clog --soc <info>            Select device by SoC name (pass-through to adbs --soc)"
         echo "  clog -r                      Root and remount device before operation"
         echo "  clog -c \"cmd\" -o <file>      Run cmd and save logs to file"
         echo "  clog -d <num> -o <file>      Specify device and output to file"
@@ -47,23 +48,26 @@ function clog()
 
     local cmd_log_file=""
     local cmd_adb_idx=""
+    local cmd_soc_info=""
     local cmd_run_cmd=""
     local cmd_root=""
 
     # 解析参数
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            -o) cmd_log_file="$2"; shift 2; ;;
-            -d) cmd_adb_idx="$2"; shift 2; ;;
-            -c) shift; cmd_run_cmd="$1"; shift; ;;
-            -r) cmd_root="1"; shift; ;;
-            *)  shift; ;;
+            -o)    cmd_log_file="$2"; shift 2; ;;
+            -d)    cmd_adb_idx="$2"; shift 2; ;;
+            --soc) cmd_soc_info="$2"; shift 2; ;;
+            -c)    shift; cmd_run_cmd="$1"; shift; ;;
+            -r)    cmd_root="1"; shift; ;;
+            *)     shift; ;;
         esac
     done
 
     clear
-    echo "clog: device=${cmd_adb_idx:-select}  cmd=${cmd_run_cmd:-none}  log=${cmd_log_file:-none}  root=${cmd_root:-no}"
+    echo "clog: device=${cmd_adb_idx:-select}  soc=${cmd_soc_info:-auto}  cmd=${cmd_run_cmd:-none}  log=${cmd_log_file:-none}  root=${cmd_root:-no}"
     local adb_args=""
+    [ -n "${cmd_soc_info}" ] && adb_args="--soc ${cmd_soc_info}"
     [ -n "${cmd_adb_idx}" ] && adb_args="--idx ${cmd_adb_idx}"
     adbCmd=$(adbs ${adb_args})
     [ -z "${adbCmd}" ] && { echo "!!! no dev selected, use -d <id>"; return 1; }
