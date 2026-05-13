@@ -45,6 +45,7 @@ cmd_list_devs="false"
 cmd_get_count="false"
 cmd_gen_s_style="false"
 cmd_sel_idx=""
+cmd_root_remount="false"
 
 devSerIDList=()
 devTPIDList=()
@@ -60,6 +61,7 @@ function help_info()
     echo "    -c Get device count"
     echo "    -s gen \"adb -s\" style cmd, default \"adb -t\" style"
     echo "    --idx <num>  Generates cmd with idx:num"
+    echo "    -r           Root and remount devices with no info"
     echo
     echo "use session:                        "
     echo "    1. use adbs as adb command      "
@@ -70,6 +72,44 @@ function help_info()
     echo '           adbCmd=$(adbs -s)        '
 }
 
+function root_remount_no_info_devs()
+{
+    devSerIDList=(`adb devices | grep device$ | awk '{print $1}'`)
+    devTPIDList=($(adb devices -l | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
+    devUsbPathList=($(adb devices -l | awk '/usb:/{for(i=1;i<=NF;i++) if($i~/^usb:/) print $i}'))
+
+    [ ${#devTPIDList[@]} -eq 0 ] && { echo "No device found!" >&2; exit 0; }
+
+    local need_root_tpids=()
+    local -A need_root_usb
+    for ((i = 0; i < ${#devTPIDList[@]}; i++)); do
+        # `adb shell id` returns uid=0(root) when rooted, uid=2000(shell) when not
+        local uid=`adb -t ${devTPIDList[${i}]} shell id 2>/dev/null | grep -oP 'uid=\K\d+'`
+        if [ "${uid}" != "0" ]; then
+            need_root_tpids+=(${devTPIDList[${i}]})
+            need_root_usb[${devUsbPathList[${i}]}]=1
+        fi
+    done
+    [ ${#need_root_tpids[@]} -eq 0 ] && return;
+
+    for tpid in "${need_root_tpids[@]}"; do
+        echo "[${tpid}] not rooted, executing root..." >&2
+        adb -t ${tpid} root
+    done
+    sleep 2
+    # re-fetch: transport_id changes after root, usb path is stable
+    devSerIDList=(`adb devices | grep device$ | awk '{print $1}'`)
+    devTPIDList=($(adb devices -l | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
+    devUsbPathList=($(adb devices -l | awk '/usb:/{for(i=1;i<=NF;i++) if($i~/^usb:/) print $i}'))
+    # remount only devices that needed root (match by stable USB path)
+    for ((i = 0; i < ${#devTPIDList[@]}; i++)); do
+        if [[ -n "${need_root_usb[${devUsbPathList[${i}]}]}" ]]; then
+            adb -t ${devTPIDList[${i}]} remount
+        fi
+    done
+    sleep 1
+}
+
 function gen_dev_info_list()
 {
     devSerIDList=(`adb devices | grep device$ | awk '{print $1}'`)
@@ -78,7 +118,7 @@ function gen_dev_info_list()
     devNameList=()
     selectList=()
 
-    if [ ${#devTPIDList[@]} -eq 0 ]; then echo "No device found!" >&2; exit 0; fi
+    [ ${#devTPIDList[@]} -eq 0 ] && { echo "No device found!" >&2; exit 0; }
 
     for ((i = 0; i < ${#devTPIDList[@]}; i++))
     do
@@ -122,6 +162,7 @@ function proc_paras()
             -l)        cmd_list_devs="true" ;;
             -c)        cmd_get_count="true" ;;
             -s)        cmd_gen_s_style="true" ;;
+            -r)        cmd_root_remount="true" ;;
             --idx)     cmd_sel_idx="$2"; shift ;;
             *)         cmd_orgAdbOpt=$@; return ;;
         esac
@@ -135,6 +176,7 @@ source ${HOME}/bin/_select_node.sh
 function main()
 {
     proc_paras $@
+    [ "${cmd_root_remount}" == "true" ] && root_remount_no_info_devs
     gen_dev_info_list
     if [ ${cmd_get_count} == "true" ]; then
         echo "${#selectList[@]}"
