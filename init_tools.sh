@@ -26,7 +26,7 @@ function create_link_to_bin()
     target_bin="$2"
     target_t="${HOME}/bin/${target_bin}"
 
-    [ ! -e "${HOME}/bin" ] && mkdir ${HOME}/bin
+    [ ! -d "${HOME}/bin" ] && mkdir -p ${HOME}/bin
 
     [ ! -f "${src_tool}" ] && { echo "tool: ${src_tool} not exist!"; return 1; }
     [ -L ${target_t} ] && { rm ${target_t}; }
@@ -40,7 +40,7 @@ function compile_tool_to_bin()
     target_bin="$3"
     target_t="${HOME}/bin/${target_bin}"
 
-    [ ! -e "${HOME}/bin" ] && mkdir ${HOME}/bin
+    [ ! -d "${HOME}/bin" ] && mkdir -p ${HOME}/bin
 
     [ ! -f "${src_tool}" ] && { echo "tool: ${src_tool} not exist!"; return 1; }
     [ -e ${target_t} ] && { rm ${target_t}; }
@@ -59,6 +59,9 @@ function compile_tool_to_bin()
 
 function init_source_tools()
 {
+    echo
+    echo "==> Generating ${source_file}"
+
     echo "source ${repo_root}/0.general_tools/01.gen_cmd_cfg.sh" > ${source_file}
     echo "source ${repo_root}/0.general_tools/02.git_tools.sh" >> ${source_file}
     echo "source ${repo_root}/1.compileRun/02.rk_tools/rk_shell_tools.sh" >> ${source_file}
@@ -71,6 +74,9 @@ function init_source_tools()
 
 function init_general_tools()
 {
+    echo
+    echo "==> Installing general tools"
+
     tools_dir="${repo_root}/0.general_tools"
 
     create_link_to_bin ${tools_dir}/0.dir_file_opt.sh _dir_file_opt.sh
@@ -85,6 +91,9 @@ function init_general_tools()
 
 function init_build_run_tools()
 {
+    echo
+    echo "==> Installing build/run tools"
+
     tools_dir="${repo_root}/1.compileRun"
 
     create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build_all.sh  m_ffmpeg_bd.sh
@@ -92,10 +101,8 @@ function init_build_run_tools()
 
     create_link_to_bin ${tools_dir}/6.stress_test.py                     m_stree_test.py
 
-    echo
-    echo "==> build/run tools: for prj"
-    echo 'ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
-    echo
+    echo "build/run tools: for prj usage"
+    echo '  ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
 
 
     create_link_to_bin ${tools_dir}/03.sw_codec_eval/sw_codec.sh  m_sw_codec_eval.sh
@@ -107,6 +114,9 @@ function init_build_run_tools()
 
 function init_data_proc_tools()
 {
+    echo
+    echo "==> Installing data processing tools"
+
     tools_dir="${repo_root}/2.dataProc"
 
     create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py  m_plt.py
@@ -131,6 +141,9 @@ function init_data_proc_tools()
 
 function init_rk_tools()
 {
+    echo
+    echo "==> Installing RK tools"
+
     rk_tools_dir="${repo_root}/1.compileRun/02.rk_tools"
 
     # mpp
@@ -155,13 +168,12 @@ function init_rk_tools()
     # rga
     create_link_to_bin ${rk_tools_dir}/rkBuildRga.sh rkBuildRga.sh
 
-    echo
-    echo "==> rk tools: for prj"
-    echo 'ln -s ${HOME}/bin/rkBuildMpp.sh .prjBuild.sh'
-    echo 'ln -s ${HOME}/bin/rkDebugMpp.sh .prjDebug.sh'
-    echo 'ln -s ${HOME}/bin/rkBuildKer.sh .prjBuild.sh'
-    echo 'ln -s ${HOME}/bin/rkDebugKer.sh .prjDebug.sh'
-    echo 'ln -s ${HOME}/bin/rkBuildRga.sh .prjBuild.sh'
+    echo "rk tools: for prj usage"
+    echo '  ln -s ${HOME}/bin/rkBuildMpp.sh .prjBuild.sh'
+    echo '  ln -s ${HOME}/bin/rkDebugMpp.sh .prjDebug.sh'
+    echo '  ln -s ${HOME}/bin/rkBuildKer.sh .prjBuild.sh'
+    echo '  ln -s ${HOME}/bin/rkDebugKer.sh .prjDebug.sh'
+    echo '  ln -s ${HOME}/bin/rkBuildRga.sh .prjBuild.sh'
     echo
 
 
@@ -180,6 +192,9 @@ function init_rk_tools()
 
 function init_shell()
 {
+    echo
+    echo "==> init shell config"
+
     # bashrc
     rc_file=${HOME}/.bashrc
     if [ -z "$(cat ${rc_file} | grep 'Personal configuration')" ];
@@ -196,7 +211,6 @@ function init_shell()
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else
-        echo
         echo "${rc_file} has configed!"
     fi
     # zshrc
@@ -215,16 +229,20 @@ function init_shell()
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else
-        echo
         echo "${rc_file} has configed!"
     fi
 }
 
-get_repo_root
-init_source_tools
-init_general_tools
-init_build_run_tools
-init_data_proc_tools
-init_rk_tools
-init_shell
+function main()
+{
+    get_repo_root
+    init_source_tools
+    init_general_tools
+    init_build_run_tools
+    init_data_proc_tools
+    init_rk_tools
+    init_shell
+}
+
+main $@
 
