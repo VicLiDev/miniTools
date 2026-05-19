@@ -259,12 +259,12 @@ function akill_media()
     eval ${adbCmd} shell killall android.hardware.media.c2@1.1-service
 }
 
-function aen_fbc_l()
+function rk_en_fbc_l()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-        echo "aen_fbc_l: Enable/disable AFBC via GStreamer env variable (current shell only)"
+        echo "rk_en_fbc_l: Enable/disable AFBC via GStreamer env variable (current shell only)"
         echo ""
-        echo "Usage: aen_fbc_l <0|1>"
+        echo "Usage: rk_en_fbc_l <0|1>"
         echo "  0    Disable AFBC"
         echo "  1    Enable AFBC"
         echo ""
@@ -273,7 +273,7 @@ function aen_fbc_l()
     fi
 
     en_fbc=$1
-    [ -z "${en_fbc}" ] && { echo "usage: aen_fbc_l <0|1>    0=disable, 1=enable"; return 1; }
+    [ -z "${en_fbc}" ] && { echo "usage: rk_en_fbc_l <0|1>    0=disable, 1=enable"; return 1; }
 
     adbCmd=$(adbs)
     if [ "${en_fbc}" = "1" ]; then
@@ -287,12 +287,12 @@ function aen_fbc_l()
     fi
 }
 
-function aen_fbc_a()
+function rk_en_fbc_a()
 {
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-        echo "aen_fbc_a: Enable/disable AFBC via system property (global, requires setenforce 0)"
+        echo "rn_en_fbc_a: Enable/disable AFBC via system property (global, requires setenforce 0)"
         echo ""
-        echo "Usage: aen_fbc_a <0|1>"
+        echo "Usage: rk_en_fbc_a <0|1>"
         echo "  0    Disable AFBC"
         echo "  1    Enable AFBC"
         echo ""
@@ -301,7 +301,7 @@ function aen_fbc_a()
     fi
 
     en_fbc=$1
-    [ -z "${en_fbc}" ] && { echo "usage: aen_fbc_a <0|1>    0=disable, 1=enable"; return 1; }
+    [ -z "${en_fbc}" ] && { echo "usage: rk_en_fbc_a <0|1>    0=disable, 1=enable"; return 1; }
 
     adbCmd=$(adbs)
     if [ "${en_fbc}" = "1" ]; then
