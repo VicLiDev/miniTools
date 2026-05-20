@@ -159,6 +159,7 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/adbDebug.sh   adbDebug.sh
     create_link_to_bin ${rk_tools_dir}/adbSelCmd.sh  adbs
     create_link_to_bin ${rk_tools_dir}/rk_tar_mpp.sh rk_tar_mpp.sh
+    create_link_to_bin ${rk_tools_dir}/rk_tar_ker.sh rk_tar_ker.sh
 
     # batch test tools
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTCore.sh         rkBtC
