@@ -130,6 +130,7 @@ function init_data_proc_tools()
     create_link_to_bin ${tools_dir}/11.pip_display.py                           m_pip_display.py
     create_link_to_bin ${tools_dir}/21.hex_diff_off.py                          m_hex_diff_off.py
     create_link_to_bin ${tools_dir}/22.split_bin2frms.py                        m_split_bin2frms.py
+    create_link_to_bin ${tools_dir}/24.xml_fmt.py                               m_xml_fmt.py
 
     compile_tool_to_bin gcc ${tools_dir}/09.conv_str_bin.c       m_conv_str_bin
     compile_tool_to_bin gcc ${tools_dir}/12.map_raster_zorder.c  m_map_raster_zorder
