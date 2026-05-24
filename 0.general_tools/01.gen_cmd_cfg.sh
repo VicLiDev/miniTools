@@ -218,6 +218,8 @@ if [ -n "${conda_root}" ]; then
         unset __mamba_setup
     fi
 fi
+# esp32 env init
+[ -e "${HOME}/esp/esp-idf/export.sh" ] && { alias esp_get_idf=". ~/esp/esp-idf/export.sh"; }
 
 # =============================================================================
 # =============================== tools =======================================
@@ -456,3 +458,224 @@ function ck_ssh_safe()
     # journalctl -u sshd
 }
 
+function esp_init_prj()
+{
+    # ================================================
+    # Usage:
+    #   esp_init_prj <project_name> [path] [target]
+    #
+    #   project_name  - 项目名称 (必填)
+    #   path          - 项目路径 (可选, 默认当前目录)
+    #   target        - 目标芯片 (可选, 默认 esp32)
+    #                   支持: esp32/esp32s2/esp32s3/esp32c3/esp32c6
+    #
+    # Example:
+    #   esp_init_prj smart-home                   # 当前目录
+    #   esp_init_prj smart-home ~/Projects/esp32  # 指定目录
+    #   esp_init_prj sensor-node . esp32s3        # 指定芯片
+    #
+    # What it does:
+    #   1. 检查 ESP-IDF 环境 ($IDF_PATH 或 ~/esp/esp-idf)
+    #   2. 从 hello_world 模板复制并清理 .git
+    #   3. 生成 CMakeLists.txt / main.c / .gitignore / sdkconfig.defaults
+    #   4. 创建 components/ 目录用于放置自定义组件
+    #   5. 生成 README.md (含 Quick Start 和项目结构说明)
+    #   6. sdkconfig.defaults 预置:
+    #      - 4MB Flash, 921600 烧录波特率
+    #      - 日志级别 Info, FreeRTOS 栈溢出检测
+    # ================================================
+
+    # ---- 帮助 ----
+    if [ "${1}" = "-h" ] || [ "${1}" = "--help" ] || [ -z "${1}" ]; then
+        echo "Usage: esp_init_prj <project_name> [path] [target]"
+        echo ""
+        echo "  project_name  project name (required)"
+        echo "  path          project root path (default: .)"
+        echo "  target        chip target (default: esp32)"
+        echo "                  esp32 | esp32s2 | esp32s3 | esp32c3 | esp32c6"
+        echo ""
+        echo "Examples:"
+        echo "  esp_init_prj smart-home                   # current dir, esp32"
+        echo "  esp_init_prj smart-home ~/Projects/esp32  # custom path"
+        echo "  esp_init_prj sensor-node . esp32s3        # custom target"
+        return 0
+    fi
+
+    local proj_name="${1}"
+    local proj_path="${2:-.}"
+    local target="${3:-esp32}"
+
+    # ---- 检查 ESP-IDF 环境 ----
+    local idf_path="${IDF_PATH}"
+    if [ -z "${idf_path}" ]; then
+        # 尝试默认路径
+        if [ -f "${HOME}/esp/esp-idf/export.sh" ]; then
+            idf_path="${HOME}/esp/esp-idf"
+        else
+            echo "Error: ESP-IDF not found"
+            echo "  Please run 'esp_get_idf' or set IDF_PATH first"
+            return 1
+        fi
+    fi
+    local template="${idf_path}/examples/get-started/hello_world"
+    if [ ! -d "${template}" ]; then
+        echo "Error: template not found: ${template}"
+        return 1
+    fi
+
+    # ---- 创建项目 ----
+    local proj_dir="${proj_path}/${proj_name}"
+    if [ -e "${proj_dir}" ]; then
+        echo "Error: ${proj_dir} already exists"
+        return 1
+    fi
+
+    echo "============================="
+    echo "==> ESP32 Project Init <=="
+    echo "============================="
+    echo "  name:   ${proj_name}"
+    echo "  path:   ${proj_dir}"
+    echo "  target: ${target}"
+    echo "  idf:    ${idf_path}"
+    echo ""
+
+    # 复制模板
+    cp -r "${template}" "${proj_dir}"
+    rm -rf "${proj_dir}/.git" 2>/dev/null  # 移除模板的 git 历史
+
+    # ---- 更新 CMakeLists.txt ----
+    cat > "${proj_dir}/CMakeLists.txt" << 'EOF'
+# The following five lines of boilerplate have to be in your project's CMakeLists
+cmake_minimum_required(VERSION 3.16)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+project(PROJ_PLACEHOLDER)
+EOF
+    sed -i "s/PROJ_PLACEHOLDER/${proj_name}/" "${proj_dir}/CMakeLists.txt"
+
+    # ---- 写 main.c ----
+    cat > "${proj_dir}/main/main.c" << 'EOF'
+/**
+ * @file main.c
+ * @brief PROJ_PLACEHOLDER - ESP32 project
+ */
+
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+
+static const char *TAG = "main";
+
+void app_main(void)
+{
+    ESP_LOGI(TAG, "Hello from PROJ_PLACEHOLDER!");
+    ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
+
+    int count = 0;
+    while (1) {
+        ESP_LOGI(TAG, "running... (%d)", ++count);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+EOF
+    sed -i "s/PROJ_PLACEHOLDER/${proj_name}/" "${proj_dir}/main/main.c"
+
+    # ---- 写 .gitignore ----
+    cat > "${proj_dir}/.gitignore" << 'EOF'
+# build artifacts
+build/
+managed_components/
+
+# idf.py generated
+sdkconfig
+sdkconfig.old
+sdkconfig.old.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+EOF
+
+    # ---- 写 sdkconfig.defaults ----
+    cat > "${proj_dir}/sdkconfig.defaults" << EOF
+# Flash
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_BAUD_921600=y
+
+# Log
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_MAXIMUM_LEVEL_DEBUG=y
+
+# FreeRTOS
+CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_CHECK_STACKOVERFLOW_CANARY=y
+
+# Partition Table
+CONFIG_PARTITION_TABLE_SINGLE_APP=y
+EOF
+
+    # ---- 写 main/CMakeLists.txt (如需添加更多源文件) ----
+    cat > "${proj_dir}/main/CMakeLists.txt" << 'EOF'
+idf_component_register(SRCS "main.c"
+                       INCLUDE_DIRS ".")
+EOF
+
+    # ---- 创建组件目录 ----
+    mkdir -p "${proj_dir}/components"
+
+    # ---- 创建 README.md ----
+    cat > "${proj_dir}/README.md" << EOF
+# ${proj_name}
+
+ESP32 project (target: \`${target}\`)
+
+## Quick Start
+
+\`\`\`bash
+# activate idf env
+esp_get_idf
+
+# build
+cd ${proj_name}
+idf.py set-target ${target}
+idf.py build
+
+# flash & monitor
+idf.py -p /dev/ttyUSB0 flash monitor
+\`\`\`
+
+## Project Structure
+
+\`\`\`
+${proj_name}/
++-- CMakeLists.txt        # top-level cmake
++-- main/
+|   +-- CMakeLists.txt    # main component
+|   +-- main.c            # entry point (app_main)
++-- components/           # custom components
++-- sdkconfig.defaults    # project config defaults
++-- .gitignore
++-- README.md
+\`\`\`
+EOF
+
+    # ---- 结果 ----
+    echo ""
+    echo "==> Done! Project created at: ${proj_dir}"
+    echo ""
+    echo "Next steps:"
+    echo "  cd ${proj_dir}"
+    echo "  esp_get_idf                          # activate ESP-IDF env"
+    echo "  idf.py set-target ${target}          # set chip target"
+    echo "  idf.py build                         # build"
+    echo "  idf.py -p /dev/ttyUSB0 flash monitor # flash & monitor"
+}
