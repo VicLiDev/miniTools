@@ -100,6 +100,7 @@ function init_build_run_tools()
     create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build_smp.sh  m_ffmpeg_smp.sh
 
     create_link_to_bin ${tools_dir}/6.stress_test.py                     m_stree_test.py
+    create_link_to_bin ${tools_dir}/16.usbinfo.sh                        m_usbinfo.sh
 
     echo "build/run tools: for prj usage"
     echo '  ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
