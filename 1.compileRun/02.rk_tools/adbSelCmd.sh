@@ -145,9 +145,9 @@ function query_soc_by_usb_path()
 #   1. 扫描 /dev/ttyUSB* 和 /dev/ttyACM* 收集设备列表
 #   2. 对每个设备, 通过 sysfs 从串口节点桥接到 USB 设备, 读取 VID/PID/product 等属性
 #   3. 获取平台 (SoC) 信息, 按优先级依次尝试:
-#      a. product 字符串中直接含 SoC 名称 (如 Rockchip Gadget 的 "rk3588_s")
-#      b. manufacturer 字段
-#      c. 通过 USB Hub 路径匹配 adb 设备, 远程查询 /proc/device-tree/compatible
+#      a. 通过 USB Hub 路径匹配 adb 设备, 远程查询 /proc/device-tree/compatible (最准确)
+#      b. product 字符串中直接含 SoC 名称 (如 Rockchip Gadget 的 "rk3588_s")
+#      c. manufacturer 字段
 #      d. 通过 VID 解析已知的厂商名称
 #   4. 通过 stty 查询当前波特率
 #   5. 格式化输出表格
@@ -222,22 +222,21 @@ function list_usb_serial_devs()
                 prod_id=$(cat "${usb_dev_path}/idProduct" 2>/dev/null | tr -d '[:space:]')
                 product=$(cat "${usb_dev_path}/product" 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-                # 平台信息: 从 product 或 manufacturer 中提取 SoC 型号
-                # Rockchip USB Gadget 将 SoC 名称放在 product 中 (如 "rk3588_s", "rk3566_t")
-                # 其他设备可能放在 manufacturer 中
-                local _manufacturer=$(cat "${usb_dev_path}/manufacturer" 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-                if [[ "${product}" =~ ^[Rr][Kk][0-9] ]]; then
-                    platform="${product}"
-                elif [ -n "${_manufacturer}" ]; then
-                    platform="${_manufacturer}"
+                # 平台信息 (SoC), 按优先级依次尝试:
+                # 1. 通过 USB Hub 路径匹配 adb 设备, 远程查询 /proc/device-tree/compatible (最准确)
+                local _usb_phy=$(cat "${usb_dev_path}/devpath" 2>/dev/null)
+                local _busnum=$(cat "${usb_dev_path}/busnum" 2>/dev/null)
+                if [ -n "${_usb_phy}" ] && [ -n "${_busnum}" ]; then
+                    platform=$(query_soc_by_usb_path "usb:${_busnum}-${_usb_phy}")
                 fi
 
-                # 尝试通过 USB Hub 路径查询 adb 设备获取 SoC 信息
+                # 2. product 字符串中直接含 SoC 名称 (如 Rockchip Gadget 的 "rk3588_s", "rk3566_t")
                 [ -z "${platform}" ] && {
-                    local _usb_phy=$(cat "${usb_dev_path}/devpath" 2>/dev/null)
-                    local _busnum=$(cat "${usb_dev_path}/busnum" 2>/dev/null)
-                    if [ -n "${_usb_phy}" ] && [ -n "${_busnum}" ]; then
-                        platform=$(query_soc_by_usb_path "usb:${_busnum}-${_usb_phy}")
+                    local _manufacturer=$(cat "${usb_dev_path}/manufacturer" 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                    if [[ "${product}" =~ ^[Rr][Kk][0-9] ]]; then
+                        platform="${product}"
+                    elif [ -n "${_manufacturer}" ]; then
+                        platform="${_manufacturer}"
                     fi
                 }
 
