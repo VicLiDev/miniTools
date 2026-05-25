@@ -89,6 +89,19 @@ then
     if command -v nc &> /dev/null; then
         _ssh_cfg="${HOME}/.ssh/config"
         _ssh_proxy_cfg="ProxyCommand nc -X 5 -x ${proxyIP}:${proxyPort} %h %p"
+        # 用临时文件代替 sed -i，彻底避免 GNU/BSD sed 的 -i 语法差异
+        #   GNU sed: sed -i 's/a/b/' file        ← 无需后缀
+        #   BSD sed: sed -i '' 's/a/b/' file     ← 必须传空字符串后缀
+        # 两步操作：
+        #   1) sed "$@" "${_ssh_cfg}" > "${_ssh_cfg}.tmp"
+        #      $@ 透传所有参数给 sed，调用者决定具体编辑逻辑，函数只负责"原地写入"
+        #      结果写入 .tmp 临时文件，不修改原文件
+        #   2) && mv "${_ssh_cfg}.tmp" "${_ssh_cfg}"
+        #      sed 成功（退出码 0）后，将临时文件替换原文件
+        #      && 保证 sed 失败时不会用损坏的临时文件覆盖原配置
+        _sed_inplace() {
+            sed "$@" "${_ssh_cfg}" > "${_ssh_cfg}.tmp" && mv "${_ssh_cfg}.tmp" "${_ssh_cfg}"
+        }
         if [ -f "${_ssh_cfg}" ]; then
             # grep -q "^Host github.com"：
             #   ^       行首锚定，避免匹配到 "# Host github.com" 注释行
@@ -97,12 +110,11 @@ then
                 # 情况 1 或 2：已有 Host 块
                 # 先尝试替换已有的 ProxyCommand（情况 1：有则更新；情况 2：无则什么都不做）
                 # sed 命令详解：
-                #   -i              直接修改文件（不输出到 stdout）
                 #   "/^Host github.com/,/^$/"  地址范围：从 Host 行到空行（一个 Host 块）
                 #   { ... }         在该范围内执行大括号内的命令
                 #   s|ProxyCommand.*|${_ssh_proxy_cfg}|  替换整行 ProxyCommand 为新值
                 #                  使用 | 作为分隔符（因为替换内容包含 /）
-                sed -i "/^Host github.com/,/^$/{ s|ProxyCommand.*|${_ssh_proxy_cfg}| }" "${_ssh_cfg}"
+                _sed_inplace '/^Host github.com/,/^$/{ s|ProxyCommand.*|'"${_ssh_proxy_cfg}"'|; }'
                 # 替换后再次检查，如果仍然没有 ProxyCommand → 说明原本就没有，需要追加（情况 2）
                 # 用 sed 取出整个 Host 块内容（从 Host 行到空行），再 grep 查 ProxyCommand
                 # 不用 grep -A5（固定行数可能不够，块内配置多时会漏掉）
@@ -117,9 +129,9 @@ then
                     #   /^$/           匹配空行（块结尾）
                     #   i\\             insert：在匹配行之前插入
                     #   注意：POSIX sed 要求 \\ 后必须换行，插入内容写在下一行
-                    sed -i "/^Host github.com/,/^$/{ /^$/i\\
+                    _sed_inplace "/^Host github.com/,/^$/{ /^$/i\\
     ${_ssh_proxy_cfg}
-}" "${_ssh_cfg}"
+}"
                 fi
             else
                 # 情况 3：没有 Host 块 → 追加完整块
@@ -130,7 +142,7 @@ then
             printf 'Host github.com\n    HostName github.com\n    User git\n    %s\n' "${_ssh_proxy_cfg}" > "${_ssh_cfg}"
             chmod 600 "${_ssh_cfg}"
         fi
-        unset _ssh_proxy_cfg _ssh_cfg
+        unset -f _sed_inplace; unset _ssh_proxy_cfg _ssh_cfg
     fi
 fi
 
