@@ -133,6 +133,14 @@ then
     ${_ssh_proxy_cfg}
 }"
                 fi
+                # 情况 4：Host github.com 是最后一个块，且文件末尾无空行
+                # 上面 /^$/ 范围无法终止（没有空行来结束范围），替换和插入都未生效
+                # 判断条件：从 Host github.com 到文件末尾没有空行（说明块直接延伸到 EOF）
+                #           且该范围内没有 ProxyCommand（避免重复追加）
+                if ! sed -n '/^Host github.com/,$p' "${_ssh_cfg}" | grep -q '^$' \
+                   && ! sed -n '/^Host github.com/,$p' "${_ssh_cfg}" | grep -q "ProxyCommand"; then
+                    printf '    %s\n' "${_ssh_proxy_cfg}" >> "${_ssh_cfg}"
+                fi
             else
                 # 情况 3：没有 Host 块 → 追加完整块
                 printf '\nHost github.com\n    HostName github.com\n    User git\n    %s\n' "${_ssh_proxy_cfg}" >> "${_ssh_cfg}"
