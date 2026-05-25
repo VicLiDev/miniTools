@@ -53,7 +53,32 @@ then
     export http_proxy=http://${proxyIP}:${proxyPort}
     export https_proxy=http://${proxyIP}:${proxyPort}
     export all_proxy=socks5://${proxyIP}:${proxyPort}
+
+    # <SSH 代理>
+    # SSH 不读 http_proxy/all_proxy 环境变量
+    # 通过 git core.sshCommand 设置，让 git 调用 SSH 时自动带上 ProxyCommand
+    # 等价于在 ~/.ssh/config 中写 ProxyCommand，但当前方法只影响 git 操作（不影响 ssh/scp 等）
+    #
+    # nc（netcat）的作用：SSH 只知道目标地址，不懂代理协议，需要一个中间人帮它走代理
+    #   无代理：SSH ─────────────────────────────> github.com:22（直连，可能被 reset）
+    #   有代理：SSH ──> nc ──> SOCKS5代理服务器 ──> github.com:22（nc 帮 SSH 建隧道）
+    #
+    # nc 参数说明：
+    #   -X 5          使用 SOCKS5 协议（-X 4 = SOCKS4, -X connect = HTTP CONNECT）
+    #   -x IP:PORT    代理服务器地址和端口
+    #   %h %p         SSH 自动替换为目标主机名和端口（如 github.com 和 22）
+    #
+    # 工作流程：
+    #   1. git 调用 SSH 时，SSH 执行 ProxyCommand 而不是直连目标
+    #   2. nc 通过 SOCKS5 协议连接代理服务器，请求转发到 github.com:22
+    #   3. 代理服务器与 github.com:22 建立 TCP 连接（隧道）
+    #   4. nc 把隧道两端的标准输入输出交给 SSH
+    #   5. SSH 在隧道上完成密钥交换、认证、数据传输（对上层透明）
+    if command -v nc &> /dev/null; then
+        git config --global core.sshCommand "ssh -o ProxyCommand='nc -X 5 -x ${proxyIP}:${proxyPort} %h %p'"
+    fi
 fi
+
 # -------------------------
 # ------> sys tools <------
 # -------------------------
@@ -375,3 +400,4 @@ function ck_ssh_safe()
     # 或
     # journalctl -u sshd
 }
+
