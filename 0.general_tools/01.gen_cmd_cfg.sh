@@ -54,7 +54,7 @@ then
     export https_proxy=http://${proxyIP}:${proxyPort}
     export all_proxy=socks5://${proxyIP}:${proxyPort}
 
-    # <SSH 代理>
+    # <SSH 代理 - 方案一：git core.sshCommand>
     # SSH 不读 http_proxy/all_proxy 环境变量
     # 通过 git core.sshCommand 设置，让 git 调用 SSH 时自动带上 ProxyCommand
     # 等价于在 ~/.ssh/config 中写 ProxyCommand，但当前方法只影响 git 操作（不影响 ssh/scp 等）
@@ -76,6 +76,61 @@ then
     #   5. SSH 在隧道上完成密钥交换、认证、数据传输（对上层透明）
     if command -v nc &> /dev/null; then
         git config --global core.sshCommand "ssh -o ProxyCommand='nc -X 5 -x ${proxyIP}:${proxyPort} %h %p'"
+    fi
+
+    # <SSH 代理 - 方案二：修改 ~/.ssh/config>
+    # 直接修改 SSH 配置文件，影响所有 SSH 操作（git/ssh/scp 等）
+    # 与方案一的区别：方案一只影响 git，本方案影响所有通过 SSH 的操作
+    #
+    # 分三种情况处理：
+    #   1) 已有 github.com Host 块，且已有 ProxyCommand → 更新为当前代理地址
+    #   2) 已有 github.com Host 块，但没有 ProxyCommand → 在块末尾（空行前）追加
+    #   3) 没有 github.com Host 块 → 追加一个完整的 Host 块
+    if command -v nc &> /dev/null; then
+        _ssh_cfg="${HOME}/.ssh/config"
+        _ssh_proxy_cfg="ProxyCommand nc -X 5 -x ${proxyIP}:${proxyPort} %h %p"
+        if [ -f "${_ssh_cfg}" ]; then
+            # grep -q "^Host github.com"：
+            #   ^       行首锚定，避免匹配到 "# Host github.com" 注释行
+            #   -q      quiet（静默模式），不输出匹配内容，只返回退出码（0=匹配到, 1=未匹配）
+            if grep -q "^Host github.com" "${_ssh_cfg}"; then
+                # 情况 1 或 2：已有 Host 块
+                # 先尝试替换已有的 ProxyCommand（情况 1：有则更新；情况 2：无则什么都不做）
+                # sed 命令详解：
+                #   -i              直接修改文件（不输出到 stdout）
+                #   "/^Host github.com/,/^$/"  地址范围：从 Host 行到空行（一个 Host 块）
+                #   { ... }         在该范围内执行大括号内的命令
+                #   s|ProxyCommand.*|${_ssh_proxy_cfg}|  替换整行 ProxyCommand 为新值
+                #                  使用 | 作为分隔符（因为替换内容包含 /）
+                sed -i "/^Host github.com/,/^$/{ s|ProxyCommand.*|${_ssh_proxy_cfg}| }" "${_ssh_cfg}"
+                # 替换后再次检查，如果仍然没有 ProxyCommand → 说明原本就没有，需要追加（情况 2）
+                # 用 sed 取出整个 Host 块内容（从 Host 行到空行），再 grep 查 ProxyCommand
+                # 不用 grep -A5（固定行数可能不够，块内配置多时会漏掉）
+                # sed 参数说明：
+                #   -n              默认不输出任何行（安静模式），只输出 p 命令显式匹配的行
+                #   "/^Host github.com/,/^$/p"  地址范围 + p 命令：打印从 Host 行到空行的所有内容
+                #   如果不加 -n，sed 会先打印所有行，p 命令又会重复打印匹配的行（输出两份）
+                if ! sed -n "/^Host github.com/,/^$/p" "${_ssh_cfg}" | grep -q "ProxyCommand"; then
+                    # 在 Host 块的末尾（空行之前）追加 ProxyCommand
+                    # sed i\ 命令详解：
+                    #   "/^Host github.com/,/^$/"  地址范围：从 Host 行到空行
+                    #   /^$/           匹配空行（块结尾）
+                    #   i\\             insert：在匹配行之前插入
+                    #   注意：POSIX sed 要求 \\ 后必须换行，插入内容写在下一行
+                    sed -i "/^Host github.com/,/^$/{ /^$/i\\
+    ${_ssh_proxy_cfg}
+}" "${_ssh_cfg}"
+                fi
+            else
+                # 情况 3：没有 Host 块 → 追加完整块
+                printf '\nHost github.com\n    HostName github.com\n    User git\n    %s\n' "${_ssh_proxy_cfg}" >> "${_ssh_cfg}"
+            fi
+        else
+            # ~/.ssh/config 不存在 → 创建文件并写入完整配置
+            printf 'Host github.com\n    HostName github.com\n    User git\n    %s\n' "${_ssh_proxy_cfg}" > "${_ssh_cfg}"
+            chmod 600 "${_ssh_cfg}"
+        fi
+        unset _ssh_proxy_cfg _ssh_cfg
     fi
 fi
 
