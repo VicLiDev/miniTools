@@ -129,7 +129,7 @@ function init_data_proc_tools()
     create_link_to_bin ${tools_dir}/07.conv_bit2val.py                          m_convbit2val.py
     create_link_to_bin ${tools_dir}/08.conv_ascii.py                            m_conv_ascii.py
     create_link_to_bin ${tools_dir}/11.pip_display.py                           m_pip_display.py
-    create_link_to_bin ${tools_dir}/21.hex_diff_off.py                          m_hex_diff_off.py
+    create_link_to_bin ${tools_dir}/21.hex_data_ana.py                          m_hex_data_ana.py
     create_link_to_bin ${tools_dir}/22.split_bin2frms.py                        m_split_bin2frms.py
     create_link_to_bin ${tools_dir}/24.xml_fmt.py                               m_xml_fmt.py
 
