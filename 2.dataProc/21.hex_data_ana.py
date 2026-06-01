@@ -111,7 +111,7 @@ def cmd_diff(file1, file2):
 
     print(f"File1: {file1}")
     print(f"File2: {file2}")
-    print(f"Found {len(diffs)} differing bit(s):")
+    print(f"Found {len(diffs)} differing bit(s): (Line: 1-based, Bit: 0-based)")
     hdr = f"{'Idx':<5}{'Line':<6}{'Bit':<10}{'File1':<{COL_WIDTH_VAL}}{'File2':<{COL_WIDTH_VAL}}Context"
     print(hdr)
     ctx_max_len = (CTX_LEFT + CTX_RIGHT) * 2 + len(" vs ")
