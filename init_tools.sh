@@ -99,14 +99,17 @@ function init_build_run_tools()
     create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build_all.sh  m_ffmpeg_bd.sh
     create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build_smp.sh  m_ffmpeg_smp.sh
 
-    create_link_to_bin ${tools_dir}/06.stress_test.py                    m_stree_test.py
-    create_link_to_bin ${tools_dir}/16.usbinfo.sh                        m_usbinfo.sh
+    create_link_to_bin ${tools_dir}/03.codec_tools/01.sw_codec_eval/sw_codec.sh  m_sw_codec_eval.sh
+    create_link_to_bin ${tools_dir}/03.codec_tools/02.spec_build/specBuild.sh    m_spec_build.sh
+    create_link_to_bin ${tools_dir}/03.codec_tools/02.spec_build/specDebug.sh    m_spec_debug.sh
+
+    create_link_to_bin ${tools_dir}/06.stress_test.py  m_stree_test.py
+    create_link_to_bin ${tools_dir}/16.usbinfo.sh      m_usbinfo.sh
 
     echo "build/run tools: for prj usage"
     echo '  ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
-
-
-    create_link_to_bin ${tools_dir}/03.sw_codec_eval/sw_codec.sh  m_sw_codec_eval.sh
+    echo '  ln -s ${HOME}/bin/m_spec_build.sh .prjBuild.sh'
+    echo '  ln -s ${HOME}/bin/m_spec_debug.sh .prjDebug.sh'
 }
 
 # =============================================================================
