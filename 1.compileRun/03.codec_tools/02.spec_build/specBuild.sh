@@ -24,6 +24,7 @@ spec_lst=(
     "xavs2"
     "vp9"
     "av1"
+    "av2"
     "jpg1"
     "jpg2"
     )
@@ -42,6 +43,7 @@ function spec_work_dir()
         vvc)   echo "${spec_root}/02.3.h266/VVCSoftware_VTM/build" ;;
         vp9)   echo "${spec_root}/03.1.vp9/libvpx/Lbuild" ;;
         av1)   echo "${spec_root}/03.2.av1/aom/Lbuild" ;;
+        av2)   echo "${spec_root}/03.3.av2/aom/Lbuild" ;;
         avs2)  echo "${spec_root}/04.1.avs2/RD17.0/build/linux" ;;
         davs2) echo "${spec_root}/04.1.avs2/davs2/build/linux" ;;
         xavs2) echo "${spec_root}/04.1.avs2/xavs2/build/linux" ;;
@@ -127,6 +129,16 @@ function build_av1()
 {
     echo "======> build av1 (aom) <======"
     local work_dir=$(spec_work_dir av1)
+    create_dir ${work_dir} && cd ${work_dir}
+    [ "${cmd_clean}" == "true" ] && rm -rf ./*
+    cmake -DCMAKE_BUILD_TYPE=Debug ..
+    make -j$(nproc)
+}
+
+function build_av2()
+{
+    echo "======> build av2 (aom) <======"
+    local work_dir=$(spec_work_dir av2)
     create_dir ${work_dir} && cd ${work_dir}
     [ "${cmd_clean}" == "true" ] && rm -rf ./*
     cmake -DCMAKE_BUILD_TYPE=Debug ..
