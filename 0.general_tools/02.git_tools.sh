@@ -392,3 +392,48 @@ function gcroot()
 {
     cd `git rev-parse --show-toplevel`
 }
+
+# ====== batch update repos ======
+function gupdate()
+{
+    cur_dir=$(pwd)
+    wk_dir="${1:-${HOME}/Projects}"
+    echo "<< cur  dir: ${cur_dir} >>"
+    echo "<< work dir: ${wk_dir} >>"
+    repos=(
+        ai-skills
+        LearnAlgo
+        LearnEmb
+        LearnOpenGL
+        LearnQt
+        LearnScript
+        LearnVcodec
+        miniTools
+        mpp
+        rk_mpp_framework
+        SmartHome
+        vimcfg
+    )
+
+    for prj in ${repos[@]}
+    do
+        echo ""
+        echo "======> cur prj ${prj} <======"
+        if [ ! -e ${wk_dir}/${prj} ]
+        then
+            echo "repository ${prj} not exists, clone it ..."
+            git clone git@github.com:VicLiDev/${prj}.git ${wk_dir}/${prj}
+            continue
+        fi
+        cd ${wk_dir}/${prj}
+        if [ -n "`git status | grep "nothing" | grep "commit"`" ]
+        then
+            echo "update repository ${prj}"
+            git pull origin --rebase
+        else
+            echo "repository ${prj} is not clean!"
+        fi
+    done
+
+    cd ${cur_dir}
+}
