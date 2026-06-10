@@ -825,3 +825,110 @@ f_pkt_size()
     fi
 }
 
+f_v2yuv()
+{
+    cmd_input=""
+    cmd_fmt="yuv420p"
+    cmd_out=""
+    cmd_frames="0"
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -h) echo "usage: <exe> -i <input_strm> [-f <pix_fmt>] [-o <output>] [-n <frames>]"
+                echo "  -i  input video stream file"
+                echo "  -f  pixel format, default: yuv420p"
+                echo "      common: yuv420p, nv12, yuv422p, yuv444p, yuv420p10le, gray"
+                echo "  -o  output file name, default: <input_basename>.yuv"
+                echo "  -n  max frames to decode, 0=all, default: 0(all)"
+                return 0; ;;
+            -i) cmd_input="$2"; shift; ;;
+            -f) cmd_fmt="$2"; shift; ;;
+            -o) cmd_out="$2"; shift; ;;
+            -n) cmd_frames="$2"; shift; ;;
+            *)  echo "unknow para: ${key}"
+                echo "usage: <exe> -i <input_strm> [-f <pix_fmt>] [-o <output>] [-n <frames>]"
+                return 1; ;;
+        esac; shift
+    done
+
+    [ -z "${cmd_input}" ] && { echo "No input strm!"; return 1; }
+    [ ! -e "${cmd_input}" ] && { echo "Strm path invalid!"; return 1; }
+
+    [ -z "${cmd_out}" ] && cmd_out="$(basename "${cmd_input}")"
+    cmd_out="${cmd_out%.*}.${cmd_fmt}.yuv"
+
+    local file_size
+    file_size=$(ls -lh "${cmd_input}" | awk '{print $5}')
+
+    # 解码视频到原始 YUV 数据
+    # -c:v rawvideo: 使用 rawvideo 解码器输出未压缩的原始像素数据
+    # -pix_fmt: 指定输出的像素格式
+    # -f rawvideo: 输出格式为原始视频（无容器封装）
+    local exe_cmd=(ffmpeg -v error -i "${cmd_input}" -c:v rawvideo -pix_fmt "${cmd_fmt}" -f rawvideo)
+    if [ "${cmd_frames}" != "0" ]; then
+        exe_cmd+=(-vframes "${cmd_frames}")
+    fi
+    exe_cmd+=("${cmd_out}" -y)
+
+    echo "file     : ${cmd_input} (${file_size})"
+    echo "pix_fmt  : ${cmd_fmt}"
+    echo "out_file : ${cmd_out}"
+    echo "cmd      : ${exe_cmd[@]}"
+    echo
+
+    eval ${exe_cmd[@]}
+    [ $? -eq 0 ] && echo "done: ${cmd_out}" || echo "decode failed!"
+}
+
+f_playyuv()
+{
+    cmd_input=""
+    cmd_size=""
+    cmd_fmt="yuv420p"
+    cmd_fps="30"
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -h) echo "usage: <exe> -i <yuv_file> -s <WxH> [-f <pix_fmt>] [-r <fps>]"
+                echo "  -i  input YUV file"
+                echo "  -s  resolution, e.g. 1920x1080 (required)"
+                echo "  -f  pixel format, default: yuv420p"
+                echo "      common: yuv420p, nv12, yuv422p, yuv444p, yuv420p10le, gray"
+                echo "  -r  frame rate, default: 30"
+                return 0; ;;
+            -i) cmd_input="$2"; shift; ;;
+            -s) cmd_size="$2"; shift; ;;
+            -f) cmd_fmt="$2"; shift; ;;
+            -r) cmd_fps="$2"; shift; ;;
+            *)  echo "unknow para: ${key}"
+                echo "usage: <exe> -i <yuv_file> -s <WxH> [-f <pix_fmt>] [-r <fps>]"
+                return 1; ;;
+        esac; shift
+    done
+
+    [ -z "${cmd_input}" ] && { echo "No input file!"; return 1; }
+    [ ! -e "${cmd_input}" ] && { echo "File path invalid!"; return 1; }
+    [ -z "${cmd_size}" ] && { echo "Resolution required (-s WxH)!"; return 1; }
+
+    local file_size
+    file_size=$(ls -lh "${cmd_input}" | awk '{print $5}')
+
+    # ffplay 播放原始 YUV 数据
+    # -f rawvideo: 输入格式为原始视频（无容器封装，无帧头信息）
+    # -pix_fmt: 像素格式
+    # -video_size: 分辨率
+    # -framerate: 帧率（控制播放速度，不影响解码）
+    local cmd="ffplay -v error -f rawvideo -pixel_format ${cmd_fmt} -video_size ${cmd_size} -framerate ${cmd_fps} -i \"${cmd_input}\" -autoexit"
+
+    echo "file     : ${cmd_input} (${file_size})"
+    echo "size     : ${cmd_size}"
+    echo "pix_fmt  : ${cmd_fmt}"
+    echo "fps      : ${cmd_fps}"
+    echo "cmd      : ${cmd}"
+    echo
+
+    eval ${cmd}
+}
+
