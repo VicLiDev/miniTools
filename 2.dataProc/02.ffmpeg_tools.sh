@@ -627,6 +627,105 @@ f_chk_frm_type()
     fi
 }
 
+f_gop()
+{
+    cmd_input=""
+    cmd_max="0"
+    cmd_summary="true"
+
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -h) echo "usage: <exe> -i <input_strm> [-n <max_gops>] [-l]"
+                echo "  -i  input video stream file"
+                echo "  -n  max GOPs to check, 0=all, default: 0(all)"
+                echo "  -l  show detail list (each GOP size), default: summary only"
+                return 0; ;;
+            -i) cmd_input="$2"; shift; ;;
+            -n) cmd_max="$2"; shift; ;;
+            -l) cmd_summary="false"; ;;
+            *)  echo "unknow para: ${key}"
+                echo "usage: <exe> -i <input_strm> [-n <max_gops>] [-l]"
+                return 1; ;;
+        esac; shift
+    done
+
+    [ -z "${cmd_input}" ] && { echo "No input strm!"; return 1; }
+    [ ! -e "${cmd_input}" ] && { echo "Strm path invalid!"; return 1; }
+
+    local file_size
+    file_size=$(ls -lh "${cmd_input}" | awk '{print $5}')
+    echo "file: ${cmd_input} (${file_size})"
+
+    echo "analyzing GOP..."
+    # -skip_frame nokey: 只解码关键帧，大幅加速解析
+    # -show_entries frame=key_frame,pict_type: 逐帧输出是否关键帧和帧类型
+    # awk: 仅提取关键帧(I帧)的序号，相邻I帧序号之差即为GOP大小
+    local awk_limit=""
+    [ "${cmd_max}" != "0" ] && awk_limit="&& nr<${cmd_max}"
+
+    local stats
+    stats=$(ffprobe -v error -select_streams v:0 \
+        -show_entries frame=key_frame -of csv=p=0 "${cmd_input}" \
+        | awk -v limit="${cmd_max}" '
+    BEGIN { gop_idx=0; prev_iframe=0 }
+    {
+        if ($0 == "1") {
+            gop_idx++
+            if (gop_idx == 1) { prev_iframe=NR; next }
+            gop_size = NR - prev_iframe
+            prev_iframe = NR
+            sizes[gop_idx-1] = gop_size
+            total += gop_size
+            if (gop_size < min || min == 0) min = gop_size
+            if (gop_size > max) max = gop_size
+        }
+    }
+    END {
+        if (gop_idx <= 1) { print "0,0,0,0,0"; exit }
+        cnt = gop_idx - 1
+        avg = total / cnt
+        printf "%d,%d,%d,%.1f,%d\n", cnt, min, max, avg, total
+    }')
+
+    IFS=, read -r gop_cnt gop_min gop_max gop_avg gop_total <<< "${stats}"
+
+    if [ "${gop_cnt}" = "0" ]; then
+        echo "No GOP found (only 1 I-frame or no I-frame)!"
+        return 1
+    fi
+
+    if [ "${cmd_summary}" = "true" ]; then
+        echo "====== GOP Summary ======"
+        echo "  GOP count  : ${gop_cnt}"
+        echo "  Min GOP    : ${gop_min} frames"
+        echo "  Max GOP    : ${gop_max} frames"
+        echo "  Avg GOP    : ${gop_avg} frames"
+        echo "  Total IFs  : $((gop_cnt + 1))"
+        echo "========================="
+    else
+        echo "====== GOP Detail List ======"
+        local idx=1
+        ffprobe -v error -select_streams v:0 \
+            -show_entries frame=key_frame -of csv=p=0 "${cmd_input}" \
+        | awk -v limit="${cmd_max}" '
+        BEGIN { gop_idx=0; prev_iframe=0 }
+        {
+            if ($0 == "1") {
+                gop_idx++
+                if (limit != "0" && gop_idx > limit) exit
+                if (gop_idx == 1) { prev_iframe=NR; next }
+                gop_size = NR - prev_iframe
+                prev_iframe = NR
+                printf "  [%4d] GOP size: %d frames\n", gop_idx-1, gop_size
+            }
+        }'
+        echo "============================"
+        echo "  GOP count: ${gop_cnt}, min=${gop_min}, max=${gop_max}, avg=${gop_avg}"
+        echo "============================"
+    fi
+}
+
 f_pkt_size()
 {
     cmd_input=""
