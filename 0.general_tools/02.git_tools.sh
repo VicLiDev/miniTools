@@ -404,6 +404,7 @@ function gupdate()
         ai-skills
         LearnAlgo
         LearnEmb
+        LearnFpga
         LearnOpenGL
         LearnQt
         LearnScript
