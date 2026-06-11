@@ -35,6 +35,11 @@ alias golcurb="gonel --first-parent"
 # 只看merge，不看其他
 # git log --merges --oneline
 
+function gcroot()
+{
+    cd `git rev-parse --show-toplevel`
+}
+
 # ====== commit forward/backword ======
 function get_commit_info()
 {
@@ -388,11 +393,6 @@ function gapply()
     done
 }
 
-function gcroot()
-{
-    cd `git rev-parse --show-toplevel`
-}
-
 # ====== batch update repos ======
 function gupdate()
 {
@@ -437,4 +437,153 @@ function gupdate()
     done
 
     cd ${cur_dir}
+}
+
+# ====== submodule operations ======
+# 子仓库管理工具集，所有函数以 gsub_ 为前缀
+
+function gsub_help()
+{
+    cat <<'EOF'
+=== git 子仓库工具 (gsub_*) ===
+
+gsub_help                           打印本帮助信息
+gsub_init                           初始化并拉取所有子仓库 (git submodule update --init --recursive)
+gsub_pull                           拉取所有子仓库远端最新代码 (各自 git pull origin --rebase)
+gsub_status                         查看所有子仓库状态 (commit hash / 脏标记 / 分支)
+gsub_diff                           对比子仓库实际 commit 与 .gitmodules 记录 commit 的差异
+gsub_reset                          重置所有子仓库到主仓库记录的 commit (丢弃子仓库本地修改)
+gsub_add   <repo_url> <path>        添加子仓库 (自动注册到 .gitmodules)
+gsub_rm    <path>                   完全删除子仓库 (deinit + 清理 .git/modules + git rm)
+gsub_branch <branch_name>           切换所有子仓库到指定分支 (不存在的分支自动跳过)
+gsub_foreach <cmd>                  在每个子仓库中递归执行指定命令
+
+常用场景:
+  首次拉取带子仓库的项目:   gsub_init
+  日常更新子仓库:           gsub_pull
+  子仓库改乱了想恢复:       gsub_reset
+  查看哪些子仓库有改动:     gsub_status / gsub_diff
+  在所有子仓库执行同一命令: gsub_foreach "git log --oneline -3"
+  切换开发分支:             gsub_branch develop
+EOF
+}
+
+# gsub_init: 初始化并更新所有子仓库 (等同于 git submodule update --init --recursive)
+function gsub_init()
+{
+    echo "==> submodule init & update (recursive)"
+    git submodule update --init --recursive
+}
+
+# gsub_pull: 更新所有子仓库到远端最新
+function gsub_pull()
+{
+    local cur_dir=$(pwd)
+    local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        echo "Error: not in a git repository"
+        return 1
+    fi
+
+    # 方式1: 拉取所有子仓库远端更新 (子仓库内部各自 pull)
+    git submodule foreach --recursive 'echo "==> $name"; git pull origin --rebase'
+
+    # 确保主仓库的 submodule 记录是最新的
+    cd ${git_root}
+    git submodule update --init --recursive
+    cd ${cur_dir}
+}
+
+# gsub_status: 查看所有子仓库状态
+function gsub_status()
+{
+    echo "==> submodule status"
+    git submodule status --recursive
+}
+
+# gsub_diff: 对比子仓库当前 commit 与 .gitmodules 记录的 commit
+function gsub_diff()
+{
+    echo "==> submodule diff (committed vs .gitmodules)"
+    # git diff submodule 输出的是两个 commit id 之间的差异
+    git diff --submodule
+}
+
+# gsub_reset: 重置所有子仓库到主仓库记录的 commit
+function gsub_reset()
+{
+    local cur_dir=$(pwd)
+    local git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        echo "Error: not in a git repository"
+        return 1
+    fi
+
+    echo "==> reset all submodules to recorded commit"
+    git submodule update --init --recursive --force
+    cd ${cur_dir}
+}
+
+# gsub_add: 添加子仓库
+# 用法: gsub_add <repo_url> <path>
+function gsub_add()
+{
+    local repo_url="$1"
+    local sub_path="$2"
+
+    if [ -z "${repo_url}" ] || [ -z "${sub_path}" ]; then
+        echo "gsub_add <repo_url> <path>"
+        return 1
+    fi
+
+    git submodule add ${repo_url} ${sub_path}
+}
+
+# gsub_rm: 删除子仓库 (完全清理)
+# 用法: gsub_rm <path>
+function gsub_rm()
+{
+    local sub_path="$1"
+
+    if [ -z "${sub_path}" ]; then
+        echo "gsub_rm <path>"
+        return 1
+    fi
+
+    # 1. 反注册子仓库
+    git submodule deinit -f ${sub_path}
+    # 2. 删除 .git/modules 下的缓存
+    rm -rf .git/modules/${sub_path}
+    # 3. 删除工作区子仓库目录
+    git rm -f ${sub_path}
+    echo "==> submodule '${sub_path}' removed"
+}
+
+# gsub_branch: 切换所有子仓库到指定分支
+# 用法: gsub_branch <branch_name>
+function gsub_branch()
+{
+    local br_name="$1"
+
+    if [ -z "${br_name}" ]; then
+        echo "gsub_branch <branch_name>"
+        return 1
+    fi
+
+    echo "==> checkout all submodules to '${br_name}'"
+    git submodule foreach --recursive \
+        "git branch -a | grep -q 'remotes/origin/${br_name}' && { echo '==> $name -> ${br_name}'; git checkout ${br_name}; } || echo '==> $name: branch ${br_name} not found, skip'"
+}
+
+# gsub foreach: 在每个子仓库中执行命令
+# 用法: gsub_foreach <cmd>
+function gsub_foreach()
+{
+    local cmd="$*"
+    if [ -z "${cmd}" ]; then
+        echo "gsub_foreach <cmd>"
+        return 1
+    fi
+
+    git submodule foreach --recursive "${cmd}"
 }
