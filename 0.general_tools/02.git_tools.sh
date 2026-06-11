@@ -587,3 +587,38 @@ function gsub_foreach()
 
     git submodule foreach --recursive "${cmd}"
 }
+
+# ====== commit stat by author ======
+# 分析最近 n 条或全部提交中，每个人的提交量
+# git shortlog -s -n:
+#   -s: summary 模式，只显示每个作者的提交数，不显示具体提交信息
+#   -n: 按提交数从多到少排序
+# git shortlog 默认只统计 HEAD 所在分支的提交历史
+# --all: 统计所有分支的提交历史（用于分析整个仓库）
+function gstat()
+{
+    cmd_cnt=""
+    cmd_all=""
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case ${key} in
+            -n) cmd_cnt="$2"; if [ -z "$cmd_cnt" ]; then return 1; fi; shift; ;;
+            -a) cmd_all="--all"; ;;
+            -h) echo "gstat [-n <commit_cnt>,def ALL] [-a (all branches)]"; return 0; ;;
+            *) echo "unknow para: ${key}"; return 1; ;;
+        esac; shift
+    done
+
+    echo "===== commit stat by author ====="
+    if [ -n "${cmd_cnt}" ]; then
+        echo "[last ${cmd_cnt} commits]${cmd_all:+ [all branches]}"
+    else
+        echo "[all commits]${cmd_all:+ [all branches]}"
+    fi
+    echo ""
+
+    # 用 git log 提取最近 n 条提交的作者，再 sort | uniq -c | sort -rn 统计
+    # 比 git shortlog 更灵活，因为 shortlog 不支持限制提交数量
+    git log ${cmd_all} -n ${cmd_cnt:-999999} --format="%aN" \
+        | sort | uniq -c | sort -rn
+}
