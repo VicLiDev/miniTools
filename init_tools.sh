@@ -131,6 +131,7 @@ function init_data_proc_tools()
     create_link_to_bin ${tools_dir}/06.split_hex_txt.py                         m_split_hex_txt.py
     create_link_to_bin ${tools_dir}/07.conv_bit2val.py                          m_convbit2val.py
     create_link_to_bin ${tools_dir}/08.conv_ascii.py                            m_conv_ascii.py
+    create_link_to_bin ${tools_dir}/10.data_cut.sh                              m_data_cut.sh
     create_link_to_bin ${tools_dir}/11.pip_display.py                           m_pip_display.py
     create_link_to_bin ${tools_dir}/21.hex_data_ana.py                          m_hex_data_ana.py
     create_link_to_bin ${tools_dir}/22.split_bin2frms.py                        m_split_bin2frms.py
