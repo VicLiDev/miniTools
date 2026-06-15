@@ -244,6 +244,44 @@ fi
 # =============================================================================
 # =============================== tools =======================================
 # =============================================================================
+
+function ranger()
+{
+    # 没装 ranger 就别建临时文件、别执行 command ranger（否则会抛 command not found）
+    if ! command -v ranger &> /dev/null; then
+        echo "ranger 未安装，请先安装：apt-get install ranger / brew install ranger" >&2
+        return 1
+    fi
+
+    # IFS 设成只有 tab 和换行，避免后面 cat 出来的路径被空格/特殊字符切错
+    local IFS=$'\t\n'
+
+    # 建一个临时文件，用来在 ranger 内部和外部 shell 之间「传递当前目录路径」
+    # （ranger 是子进程，没法直接改父 shell 的 PWD，只能通过文件中转）
+    local tempfile="$(mktemp -t tmp.XXXXXX)"
+
+    # command ranger：强制调用真正的 ranger 二进制，避免递归调用本函数
+    # --cmd：在启动时给 ranger 注入一条按键映射
+    #   map Q = 把 Q 键重定义成后面的命令链
+    #   chain A; B = 依次执行 A 和 B
+    #   shell echo \$PWD > $tempfile = 在 shell 里把当前目录写进临时文件
+    #       注意 \$PWD 要转义，让它由 ranger 内部 shell 解释（ranger 的 PWD），
+    #       而 $tempfile 不转义，由外层 zsh 提前展开成真实路径
+    #   quitall = 退出 ranger
+    # 整句效果：按 Q → 写路径 → 退出；按 q 走默认行为（直接退出，不写文件）
+    command ranger --cmd="map Q chain shell echo \$PWD > $tempfile; quitall"
+
+    # 退出 ranger 后回到这里。判断要不要 cd：
+    #   - -s "$tempfile"：文件非空（说明按了 Q，写了路径进来）
+    #   - 路径和当前 PWD 不同才有必要 cd，避免无意义的 cd
+    if [[ -s "$tempfile" ]] && [[ "$(cat -- "$tempfile")" != "$PWD" ]]; then
+        cd -- "$(cat -- "$tempfile")" || return
+    fi
+
+    # 清理临时文件
+    command rm -f -- "$tempfile" >/dev/null 2>&1
+}
+
 function mount_smb()
 {
     # Linux
