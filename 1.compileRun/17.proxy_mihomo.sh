@@ -13,15 +13,20 @@
 #  由 init_tools.sh 软链为 ~/bin/m_proxy_mihomo(独立可执行,非 source)。
 #  它通过三条通道管理 mihomo:
 #
-#    [A] RESTful API    curl 127.0.0.1:9090   运行时热改(不重启、不断连接)
-#    [B] 配置文件       ~/.config/mihomo/     启动期配置(需重启)
-#    [C] systemd        systemctl --user      进程生命周期
+#    [A] RESTful API    mihomo external-controller   运行时热改(不重启、不断连接)
+#    [B] 配置文件       ~/.config/mihomo/            启动期配置(需重启)
+#    [C] systemd        systemctl --user             进程生命周期
 #
 #  核心原则:能不重启就不重启 —— 运行时可改的走 API,改不了的才动文件+重启。
 #
 # =======================================================================
 #  通道 A —— RESTful API (external-controller)
 # =======================================================================
+#  API 地址决定优先级(高→低):
+#    1. config.yaml external-controller  (自动读取,跟随当前配置)
+#    2. 环境变量 proxyMihomoAddr        (export proxyMihomoAddr=HOST:PORT)
+#    3. 默认值 127.0.0.1:9090
+#
 #    GET   /configs              读运行配置(mode / allow-lan / ports)
 #    PATCH /configs              切模式 / 开关 LAN(热生效,连接不断)
 #    PUT   /configs?force=true   热加载配置文件(config / update 切配置后)
@@ -615,7 +620,6 @@ if socks:
     fi
     echo "mihomo restarted (active); run 'proxy_mihomo ports' to confirm ports"
 }
-
 function cmd_fg()
 {
     # args: <cfg_dir> <mihomo_bin>
@@ -848,24 +852,29 @@ function dispatch()
 
 function main()
 {
-    local api_addr="${proxyMihomoAddr:-127.0.0.1:9090}"
+    local cfg_dir="${proxyMihomoCfgDir:-${HOME}/.config/mihomo}"
+    local mihomo_bin="${proxyMihomoBin:-${HOME}/.local/bin/mihomo}"
+
+    # read secret + external-controller from config.yaml (if exists)
+    local secret=""
+    local ext_ctrl=""
+    if [ -f "${cfg_dir}/config.yaml" ]; then
+        secret=$(grep -E '^\s*secret:' "${cfg_dir}/config.yaml" 2>/dev/null \
+                 | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '"' | tr -d "'")
+        [ -z "${secret// }" ] && secret=""
+
+        ext_ctrl=$(grep -E '^\s*external-controller:' "${cfg_dir}/config.yaml" 2>/dev/null \
+                  | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '"' | tr -d "'")
+    fi
+
+    # priority: external-controller in config > env proxyMihomoAddr > default
+    local api_addr="${ext_ctrl:-${proxyMihomoAddr:-127.0.0.1:9090}}"
     local api_url="http://${api_addr}"
     # API is local -> never route it through the proxy. Otherwise switching to
     # global mode loops the API call back through mihomo itself (HTTP 502).
     local api_host="${api_addr%%:*}"
     export no_proxy="${api_host},127.0.0.1,localhost"
     export NO_PROXY="${no_proxy}"
-    local cfg_dir="${proxyMihomoCfgDir:-${HOME}/.config/mihomo}"
-    local mihomo_bin="${proxyMihomoBin:-${HOME}/.local/bin/mihomo}"
-
-    # read secret from config.yaml if exists
-    local secret=""
-    if [ -f "${cfg_dir}/config.yaml" ]; then
-        secret=$(grep -E '^\s*secret:' "${cfg_dir}/config.yaml" 2>/dev/null \
-                 | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '"' | tr -d "'")
-        # skip empty secret (placeholder comment like "secret: #xxx")
-        [ -z "${secret// }" ] && secret=""
-    fi
     local auth_header=""
     [ -n "${secret}" ] && auth_header="-H Authorization:\ Bearer\ ${secret}"
 
