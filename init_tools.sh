@@ -105,6 +105,7 @@ function init_build_run_tools()
 
     create_link_to_bin ${tools_dir}/06.stress_test.py  m_stree_test.py
     create_link_to_bin ${tools_dir}/16.usbinfo.sh      m_usbinfo.sh
+    create_link_to_bin ${tools_dir}/17.proxy_mihomo.sh m_proxy_mihomo
 
     echo "build/run tools: for prj usage"
     echo '  ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
@@ -213,6 +214,9 @@ function init_shell()
         echo "# ======> my tools and config"                            >> ${rc_file}
         echo "# proxyIP=<your_proxy_ip>"                                >> ${rc_file}
         echo "# proxyPort=<your_proxy_port>"                            >> ${rc_file}
+        echo "# export proxyMihomoAddr=127.0.0.1:9090"                  >> ${rc_file}
+        echo "# export proxyMihomoCfgDir=\${HOME}/.config/mihomo"       >> ${rc_file}
+        echo "# export proxyMihomoBin=\${HOME}/.local/bin/mihomo"       >> ${rc_file}
         echo "# export ANDROID_ADB_SERVER_PORT=<adb_port>"              >> ${rc_file}
         echo "#-- export ADB_SERVER_SOCKET=tcp:127.0.0.1:<port>"        >> ${rc_file}
         echo "source ${source_file}"                                    >> ${rc_file}
@@ -231,6 +235,9 @@ function init_shell()
         echo "# ======> my tools and config"                            >> ${rc_file}
         echo "# proxyIP=<your_proxy_ip>"                                >> ${rc_file}
         echo "# proxyPort=<your_proxy_port>"                            >> ${rc_file}
+        echo "# export proxyMihomoAddr=127.0.0.1:9090"                  >> ${rc_file}
+        echo "# export proxyMihomoCfgDir=\${HOME}/.config/mihomo"       >> ${rc_file}
+        echo "# export proxyMihomoBin=\${HOME}/.local/bin/mihomo"       >> ${rc_file}
         echo "# export ANDROID_ADB_SERVER_PORT=<adb_port>"              >> ${rc_file}
         echo "#-- export ADB_SERVER_SOCKET=tcp:127.0.0.1:<port>"        >> ${rc_file}
         echo "source ${source_file}"                                    >> ${rc_file}
