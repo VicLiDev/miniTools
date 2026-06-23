@@ -101,6 +101,35 @@ function api_ok()
     [ "${API_HTTP_CODE}" = "200" ] || [ "${API_HTTP_CODE}" = "204" ]
 }
 
+# Validate a config via `mihomo -t`. Sets globals:
+#   CFG_TEST_VERDICT = ok | geo | fail
+#   CFG_TEST_LOG     = full mihomo -t output (stdout+stderr)
+# `mihomo -t` is STRICTER than runtime for exactly one case: if a geo data file
+# (GeoSite.dat / Geoip.dat / Country.mmdb) is missing, the test tries to download
+# it and exits 1 on failure -- but at runtime mihomo only logs a warning and keeps
+# running (degraded: geosite/geoip rules + DNS fallback-filter go inactive), it
+# does NOT crash. So a failure caused SOLELY by an unreachable geo download is
+# non-fatal and must not block a switch/restart (the config itself is valid).
+# We detect it by checking that every level=error line is geo-download related;
+# any other error -> real config problem -> verdict "fail".
+# args: <mihomo_bin> <cfg_dir> <cfg_file>
+function cfg_test()
+{
+    local mihomo_bin="${1}" cfg_dir="${2}" cfg_file="${3}"
+    CFG_TEST_LOG="$("${mihomo_bin}" -t -d "${cfg_dir}" -f "${cfg_file}" 2>&1)"
+    local rc=$?
+    CFG_TEST_VERDICT="fail"
+    [ "${rc}" -eq 0 ] && { CFG_TEST_VERDICT="ok"; return 0; }
+    local err_lines non_geo
+    err_lines="$(printf '%s\n' "${CFG_TEST_LOG}" | grep -E 'level=error')"
+    # error lines that do NOT mention geo data -> a real (non-geo) config error
+    non_geo="$(printf '%s\n' "${err_lines}" | grep -ivE 'geosite|geoip|country\.mmdb|geoip\.metadb')"
+    if [ -n "${err_lines}" ] && [ -z "${non_geo}" ]; then
+        CFG_TEST_VERDICT="geo"
+    fi
+    return "${rc}"
+}
+
 # =============================================================================
 #  subcommand handlers (cmd_*)
 # =============================================================================
@@ -237,12 +266,24 @@ function cmd_config()
     target_name="$(basename "${cfg_path}")"
     # pre-check the target config BEFORE repointing the symlink, so a broken
     # config is rejected without leaving the symlink pointing at it (which
-    # would crash mihomo on the next restart).
-    if ! ${mihomo_bin} -t -d "${cfg_dir}" -f "${cfg_dir}/${target_name}" >/dev/null 2>&1; then
-        echo "error: target config failed mihomo -t; not switching (symlink untouched)" >&2
-        ${mihomo_bin} -t -d "${cfg_dir}" -f "${cfg_dir}/${target_name}" 2>&1 | tail -3 | sed 's/^/  /' >&2
-        return 1
-    fi
+    # would crash mihomo on the next restart). A failure that is ONLY a missing
+    # geo download is non-fatal (runtime tolerates it) -> still switch (cfg_test).
+    cfg_test "${mihomo_bin}" "${cfg_dir}" "${cfg_dir}/${target_name}"
+    case "${CFG_TEST_VERDICT}" in
+        ok) ;;
+        geo)
+            echo "warning: mihomo -t could not download GeoSite/Geoip data (offline? proxy down?)." >&2
+            echo "  the config is valid; switching anyway. mihomo runs degraded until the geo" >&2
+            echo "  files exist -- geosite/geoip rules + the DNS fallback-filter stay inactive." >&2
+            echo "  to fix later: put geosite.dat / country.mmdb in ${cfg_dir}, then 'proxy_mihomo restart'." >&2
+            ;;
+        fail)
+            echo "error: target config failed mihomo -t; not switching (symlink untouched)" >&2
+            printf '%s\n' "${CFG_TEST_LOG}" | grep -E 'level=error|test failed' | tail -3 | sed 's/^/  /' >&2
+            echo "  (run 'proxy_mihomo test ${target_name}' for the full report)" >&2
+            return 1
+            ;;
+    esac
     # switch: repoint config.yaml symlink to the selected file, then reload
     ln -sfn "${target_name}" "${cur_link}"
     api_call "${api_url}" "${auth_header}" PUT "/configs?force=true" "{\"path\":\"${cur_link}\"}"
@@ -590,17 +631,24 @@ if socks:
             ;;
     esac
     echo "(backup: ${cfg_file}.bak.port)"
-    # validate the edited config BEFORE touching the service: a failed mihomo -t
-    # means mihomo will exit with status 1 on start (it is not "overly strict" --
-    # it matches runtime behavior). On failure we roll back and do NOT restart,
-    # so systemd is not left in an auto-restart crash loop.
-    if ! ${mihomo_bin} -t -d "${cfg_dir}" -f "${cfg_file}" >/dev/null 2>&1; then
-        echo "error: mihomo -t rejected the edited config; rolling back" >&2
-        ${mihomo_bin} -t -d "${cfg_dir}" -f "${cfg_file}" 2>&1 | tail -3 | sed 's/^/  /' >&2
-        cp "${cfg_file}.bak.port" "${cfg_file}"
-        echo "rolled back to ${cfg_file}.bak.port (service left untouched)" >&2
-        return 1
-    fi
+    # validate the edited config BEFORE touching the service: a real config
+    # error means mihomo exits 1 on start, so we roll back and do NOT restart
+    # (avoids a systemd auto-restart crash loop). A geo-download-only failure is
+    # runtime-tolerated (cfg_test -> verdict "geo") and does NOT roll back.
+    cfg_test "${mihomo_bin}" "${cfg_dir}" "${cfg_file}"
+    case "${CFG_TEST_VERDICT}" in
+        ok) ;;
+        geo)
+            echo "warning: mihomo -t couldn't fetch GeoSite/Geoip data; proceeding (runtime tolerates it)" >&2
+            ;;
+        fail)
+            echo "error: mihomo -t rejected the edited config; rolling back" >&2
+            printf '%s\n' "${CFG_TEST_LOG}" | grep -E 'level=error|test failed' | tail -3 | sed 's/^/  /' >&2
+            cp "${cfg_file}.bak.port" "${cfg_file}"
+            echo "rolled back to ${cfg_file}.bak.port (service left untouched)" >&2
+            return 1
+            ;;
+    esac
     systemctl --user restart mihomo.service
     # post-restart health check; if the service does not become active within ~5s
     # (rare, since -t passed), roll back to the backup and restart on it.
