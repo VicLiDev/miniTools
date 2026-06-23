@@ -869,10 +869,17 @@ function main()
 
     # priority: external-controller in config > env proxyMihomoAddr > default
     local api_addr="${ext_ctrl:-${proxyMihomoAddr:-127.0.0.1:9090}}"
-    local api_url="http://${api_addr}"
+    # normalize host: mihomo accepts a bare ":port" (bind all interfaces) or
+    # "0.0.0.0:port", but curl needs an explicit reachable host -> use 127.0.0.1.
+    # otherwise "external-controller: ':9090'" yields the invalid URL "http://:9090"
+    # and every API call fails with HTTP 000 = "unreachable" (the service is fine).
+    local api_host="${api_addr%%:*}"
+    case "${api_host}" in
+        ""|0.0.0.0|"*") api_host="127.0.0.1" ;;
+    esac
+    local api_url="http://${api_host}:${api_addr#*:}"
     # API is local -> never route it through the proxy. Otherwise switching to
     # global mode loops the API call back through mihomo itself (HTTP 502).
-    local api_host="${api_addr%%:*}"
     export no_proxy="${api_host},127.0.0.1,localhost"
     export NO_PROXY="${no_proxy}"
     local auth_header=""
