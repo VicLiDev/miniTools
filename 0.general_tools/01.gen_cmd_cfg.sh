@@ -375,46 +375,206 @@ function code_fmt_c()
     fi
 }
 
-function ck_ssh_safe()
+function chk_ssh_safe()
 {
-    echo "======> log failed"
-    echo "如果看到："
-    echo "Failed password for invalid user admin from 185.xxx.xxx.xxx"
-    echo "Failed password for root from 45.xxx.xxx.xxx"
-    echo "说明有人在尝试登录你的服务器"
-    echo "------> current status <------"
-    grep "Failed password" /var/log/auth.log
+    # =================================================================
+    # SSH 安全自检：列出失败/可疑登录、成功登录、爆破强度统计
+    #
+    # 会自动探测环境（直连/纯 DNAT vs SNAT），并标注下面每一项检查
+    # 在当前环境下是否有效：
+    #   - SNAT（路由器源地址转换）会把外网连接的源 IP 全部改写成路由器
+    #     的内网地址，导致「按 IP 溯源 / 识别陌生来源」类检查失效。
+    # =================================================================
+
+    local AUTH_LOG="/var/log/auth.log"
+
+    # ---- 参数处理 ----
+    case "${1}" in
+        -h|--help)
+            echo "用法: chk_ssh_safe [选项]"
+            echo "  (无参数)        执行 SSH 安全自检（失败/可疑登录、成功登录、爆破统计）"
+            echo "  -c, --clear     清空 ${AUTH_LOG}（清除历史登录信息，需 sudo 密码）"
+            echo "  -e, --explain   打印 DNAT/SNAT/masquerade 原理详解（含数据流示意图）"
+            echo "  -h, --help      显示本帮助"
+            return 0
+            ;;
+        -c|--clear)
+            echo "==> 清空 ${AUTH_LOG}（含 SSH/sudo 等所有认证记录，需 sudo）"
+            if sudo truncate -s 0 "${AUTH_LOG}" 2>/dev/null; then
+                echo "==> 已清空。rsyslog 会继续写入新记录，之后统计即为干净数据。"
+            else
+                echo "==> 清空失败（sudo 被取消或权限不足）"
+                return 1
+            fi
+            return 0
+            ;;
+        -e|--explain)
+            echo "======> NAT 原理详解（DNAT / SNAT / masquerade）======"
+            cat <<'CHK_SSH_EXPLAIN'
+
+【DNAT / SNAT 各按什么方向生效（Linux netfilter 钩子）】
+  一个包穿过路由器: 入站 ──►[PREROUTING]──► 路由判断 ──►[POSTROUTING]──► 出站
+  · DNAT 在「入站」生效(PREROUTING，包刚进来还没路由时)——改「目的」。
+  · SNAT 在「出站」生效(POSTROUTING，包发出去之前)——改「源」；masquerade 就是这里的 SNAT。
+  总结: DNAT=进来改目的(Destination, 入站)；SNAT=出去改源(Source, 出站)。
+  落到端口转发: 外网包入站→PREROUTING 里 DNAT 改目的(端口转发规则本身，不受 masq 开关影响)；
+                路由后从 LAN 口出站→POSTROUTING 里若 LAN masq 开则 SNAT 改源。
+  ⇒ 关 LAN masq 只去掉「出站改源」，不影响「入站改目的」——端口转发照常，源 IP 恢复。
+
+【masquerade 按「出口方向」生效 —— WAN / LAN 各在何时起作用】
+  规则: masq 标在哪个区域，就作用于「从该区域接口发出去(egress)」的流量——包从哪个网口出，就看那个口所在区域的 masq。
+  WAN masq 生效 = 包从 WAN 口出 = 内网→互联网(上网):
+    内网电脑 ──►[LAN进]路由器[WAN出·WAN masq 改源→公网IP]──► 互联网
+  LAN masq 生效 = 包从 LAN 口出 = 互联网→内网(端口映射):
+    互联网客户端 ──►[WAN进·DNAT改目的]路由器[LAN出·若LAN masq开则改源→路由器LAN IP]──► 内网服务器
+  ⇒ 上网走 WAN 口→靠 WAN masq(必须开)；端口映射走 LAN 口→LAN masq 开了会污染源 IP(不要开)。
+
+【两个方向，两种 NAT —— 理解一切的钥匙】
+  方向① 内网 → 公网（上网）              需要 SNAT → WAN 区「IP 动态伪装」必须开 ✅
+  方向② 公网 → 内网（端口映射/发布服务） 只需 DNAT → 不要 SNAT，关掉 LAN masq ❌
+
+【端口转发 = DNAT(改目的)；masquerade 是叠加的 SNAT(改源)】
+  外网客户端(真实IP A) ──► [路由器] 对这个包做两件事：
+                            ① DNAT：改「目的」 公网IP:P → 服务器:22   (端口映射核心，必须)
+                            ② masq：改「源」   A → 路由器IP           (额外叠加的 SNAT，可去掉)
+                               ▼
+                            服务器(看到的源 = 路由器IP)
+  ① ② 是两件独立的事「叠」在一起。关 LAN masq = 只做① 不做②  → 服务器看到真实源 A。
+
+【为什么共享上网必须 SNAT —— 私有 IP 在公网不可路由】
+  没有 SNAT(上不了网):
+    电脑 192.168.1.100 ──请求──► 8.8.8.8
+    8.8.8.8 回包: 目的=192.168.1.100 → 私有地址，公网不认识，回包丢失 ❌
+  有 SNAT(WAN masq 开):
+    电脑 192.168.1.100 ──► 路由器 ──源改成公网IP 1.2.3.4──► 8.8.8.8
+                                                          │
+    8.8.8.8 回包: 目的=1.2.3.4 ◄──路由器◄─────────────────┘
+        │ 查 NAT 表，目的改回 192.168.1.100
+        └─► 电脑 ✅
+
+【WAN 勾选 IP 动态伪装 = 对外翻译/隐藏内网 IP（靠端口区分多设备 = NAPT）】
+  手机 192.168.1.101 ─┐
+  电脑 192.168.1.100 ─┼─► 路由器(SNAT) ──► 公网: 源 IP 全是 1.2.3.4
+  电视 192.168.1.102 ─┘
+  外网只看到 1.2.3.4 一个 IP，三个内网私有 IP 被翻译掉。
+  回包靠端口号区分: 1.2.3.4:50001→手机  :50002→电脑  :50003→电视  (这就是 NAPT/PAT)
+
+【判断与处理】
+  · 若日志里源 IP 全是路由器内网 IP(如 192.168.1.1)，说明在「方向② 」里误开了 SNAT(LAN masq)。
+  · 关掉 LAN masq 后，方向② 只剩纯 DNAT，服务器恢复记录真实公网源 IP。
+  · WAN masq 别动(方向① 上网要用)；只关 LAN masq。
+CHK_SSH_EXPLAIN
+            return 0
+            ;;
+    esac
+
+    # ---- 0. 日志来源 & 环境探测 ----
+    if [ ! -r "${AUTH_LOG}" ]; then
+        echo "无法读取 ${AUTH_LOG}（需要 adm 组成员或 sudo）"
+        echo "可改用： sudo journalctl -u ssh -u sshd --since '24 hours ago'"
+        return 1
+    fi
+
+    # 取 sshd 日志里出现的所有「连接源 IP」（去重），判断是否全部落在私有内网段
+    # —— SNAT 的特征：外网攻击者真实公网 IP 被抹掉，日志里只剩内网地址
+    # 注意：先排除 "Server listening on ..." 这类启动行（会带入 0.0.0.0 监听地址，
+    #       那不是连接来源，会让私有段判断误判为公网）
+    local src_ips priv_all
+    src_ips=$(grep -a sshd "${AUTH_LOG}" 2>/dev/null \
+              | grep -avE "Server listening|re-executing|Received signal" \
+              | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort -u \
+              | grep -vE '^(0\.0\.0\.0|255\.255\.255\.255)$')
+    priv_all=1
+    [ -z "${src_ips}" ] && priv_all=0
+    while read -r ip; do
+        [ -z "${ip}" ] && continue
+        case "${ip}" in
+            10.*|192.168.*|172.1[6-9].*|172.2[0-9].*|172.3[01].*) ;;  # 私有段，继续
+            *) priv_all=0;;                                           # 出现公网 IP，非 SNAT
+        esac
+    done <<< "${src_ips}"
+
+    local snat=0
+    [ "${priv_all}" = "1" ] && [ -n "${src_ips}" ] && snat=1
+
+    echo "################### SSH 安全自检 ###################"
+    echo "日志来源: ${AUTH_LOG}"
+    if [ "${snat}" = "1" ]; then
+        echo "当前环境: [SNAT / 纯内网] 源 IP 全是路由器内网私有地址（公网真实来源被抹掉）"
+        echo "           -> 按 IP 溯源 / 识别陌生来源的检查会失效。"
+    else
+        echo "当前环境: [直连 / 纯 DNAT] 源 IP 被保留，可正常溯源"
+    fi
     echo ""
 
-    echo "======> log Accepted"
-    echo "应该只看到："
-    echo "自己的用户名"
-    echo "自己的 IP"
-    echo "如果有陌生 IP，说明已经被登录过"
-    echo "------> current status <------"
-    grep "Accepted" /var/log/auth.log
+    # ---- 原理 & 操作指引（DNAT / SNAT / IP 动态伪装）----
+    if [ "${snat}" = "1" ]; then
+        echo "状态建议: ⚠ 当前为 SNAT 环境，建议按下方指引在路由器 Web 界面改成纯 DNAT"
+    else
+        echo "状态建议: ✓ 当前已是纯 DNAT（源 IP 保留），以下为原理与维护指引"
+    fi
+    echo "------> 原理 & 操作指引 <------"
+    cat <<'CHK_SSH_NAT_INFO'
+  · 检测当前是 DNAT 还是 SNAT：看 SSH 日志里的源 IP —— 真实公网 IP = 纯 DNAT；全是路由器内网 IP(如 192.168.x.1) = 被 SNAT 改写。(本工具「当前环境」即此判据)
+  · DNAT(目的 NAT)：端口映射的核心，把「公网IP:外端口」改成「内网IP:内端口」，保留客户端真实源 IP。
+  · SNAT/masquerade(源 NAT =「IP 动态伪装」)：把源 IP 改成路由器自己的 IP。端口转发里它「叠加」在 DNAT 之上(DNAT 改目的、masq 再改源)；去掉 masq = 露出本就在的 DNAT，而非「转成」DNAT。
+  · 为什么共享上网必须 SNAT：内网私有 IP(192.168.x) 在公网不可路由，回包送不回来；路由器 SNAT 把源换成 WAN 公网 IP，外网才能回包到路由器、再转回内网。
+  · WAN 区勾选 IP 动态伪装 = 内网出网时源 IP 换成路由器公网 IP(对外隐藏内网私有 IP，靠端口区分多台设备)——共享上网的根本，必须保留。
+  · Web(LuCI)改成纯 DNAT：网络 → 防火墙 → 区域 → 编辑 lan → 取消「IP 动态伪装」→ 保存并应用。(wan 的保持勾选)
+  · 影响/前提：去掉 LAN masq 后服务器记录真实源 IP(可溯源/封 IP)；前提是服务器网关指向本路由器，否则外网连不上。兜底：若改后外网 SSH 断，LuCI 仍可访问，勾回 lan 的「IP 动态伪装」即可。
+CHK_SSH_NAT_INFO
     echo ""
 
-    echo "======> log Accepted"
-    echo "看哪些 IP 在反复试密码，即 “扫端口 / 爆破”"
-    echo "输出示例："
-    echo "120  103.88.xx.xx"
-    echo "87   45.142.xx.xx"
-    echo "同一 IP 尝试几十、上百次 = 自动化攻击"
+    # 可疑尝试匹配模式：补全原版只 grep "Failed password" 的盲区 ——
+    # 多数扫描在 preauth 阶段就断开，只留下 "Invalid user" / "Connection reset [preauth]"
+    local atk_pat='Failed password|Invalid user|Connection reset.*preauth|Connection closed.*preauth|Disconnected from.*preauth|kex_exchange_identification'
+
+    # ---- 1. 失败 & 可疑登录尝试 ----
+    echo "======> [1] 失败 & 可疑登录尝试"
+    echo "场景对照 → 纯DNAT ✅ 能看到真实来源IP  |  SNAT ⚠️  只能看到'有人在试'(真实IP被抹掉)"
+    if [ "${snat}" = "1" ]; then
+        echo "▶ 当前[SNAT] ⚠️  受限：仍能看到有人在试，但真实 IP 被抹成内网地址"
+    else
+        echo "▶ 当前[纯DNAT] ✅ 有效：能看到真实来源 IP，可判断是否有人爆破"
+    fi
     echo "------> current status <------"
-    grep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head
+    grep -aE "${atk_pat}" "${AUTH_LOG}" 2>/dev/null | tail -30
     echo ""
 
-    # 实时监控 SSH 尝试
-    # sudo tail -f /var/log/auth.log
-    # 什么都不做，只要看到类似：
-    # Failed password for invalid user test from 91.xx.xx.xx
-    # 就是公网在扫你。
+    # ---- 2. 成功登录记录 ----
+    echo "======> [2] 成功登录记录（识别是否有陌生来源登入过）"
+    echo "场景对照 → 纯DNAT ✅ 有效(靠IP识别陌生人)  |  SNAT ❌ 失效(源IP全是路由器,无法区分)"
+    if [ "${snat}" = "1" ]; then
+        echo "▶ 当前[SNAT] ❌ 失效：所有登录源 IP 都被改写成内网地址，无法靠 IP 区分陌生人（仅能核对用户名）"
+    else
+        echo "▶ 当前[纯DNAT] ✅ 有效：只应出现自己的用户名 + 自己的 IP，出现陌生 IP 即可能被入侵"
+    fi
+    echo "------> current status <------"
+    grep -a "Accepted" "${AUTH_LOG}" 2>/dev/null | tail -30
+    echo ""
 
-    # 看 SSH 服务有没有被频繁访问
-    # journalctl -u ssh --since "1 hour ago"
-    # 或
-    # journalctl -u sshd
+    # ---- 3. 爆破 & 扫描强度统计 ----
+    echo "======> [3] 爆破 & 扫描强度统计"
+    echo "场景对照 → 纯DNAT ✅ 按来源IP统计  |  SNAT ⚠️  按IP无意义,改按事件类型计数"
+    if [ "${snat}" = "1" ]; then
+        echo "▶ 当前[SNAT] ⚠️  调整：按事件类型计数（见下）"
+        echo "------> current status <------"
+        echo -n "  Failed password (走到密码验证): "; grep -ac "Failed password"            "${AUTH_LOG}" 2>/dev/null
+        echo -n "  Invalid user    (用户名不存在): "; grep -ac "Invalid user"               "${AUTH_LOG}" 2>/dev/null
+        echo -n "  preauth 断开     (扫描/探测):   "; grep -acE "Connection (reset|closed).*preauth" "${AUTH_LOG}" 2>/dev/null
+        echo -n "  kex 异常         (密钥交换探测): "; grep -ac "kex_exchange_identification" "${AUTH_LOG}" 2>/dev/null
+    else
+        echo "▶ 当前[纯DNAT] ✅ 有效：按来源 IP 统计，同一 IP 几十/上百次 = 自动化攻击"
+        echo "------> current status <------"
+        grep -aE "${atk_pat}" "${AUTH_LOG}" 2>/dev/null \
+            | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort | uniq -c | sort -nr | head
+    fi
+    echo ""
+
+    # ---- 实时监控（需要时手动执行） ----
+    echo "======> 实时监控（手动执行）"
+    echo "  sudo tail -f /var/log/auth.log"
+    echo "  sudo journalctl -u ssh -u sshd --since '1 hour ago'"
 }
 
 function esp_init_prj()
