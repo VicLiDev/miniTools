@@ -577,6 +577,197 @@ CHK_SSH_NAT_INFO
     echo "  sudo journalctl -u ssh -u sshd --since '1 hour ago'"
 }
 
+function chk_vnc_safe()
+{
+    # =================================================================
+    # VNC 安全自检：监听暴露面、认证强度、连接来源分析
+    #
+    # 核心风险: VNC 若监听 0.0.0.0 并经路由器端口映射到公网，配合弱
+    #   认证 VncAuth(8 字符 DES)，极易被扫描爆破。
+    # 加固方向: VNC 收回本地(-localhost yes)，公网只暴露 SSH，远程
+    #   访问走 SSH 加密隧道（详见 -e）。
+    # =================================================================
+
+    local VNC_LOG_DIR="$HOME/.vnc"
+
+    # ---- 参数处理 ----
+    case "${1}" in
+        -h|--help)
+            echo "用法: chk_vnc_safe [选项]"
+            echo "  (无参数)      VNC 安全自检（监听暴露、认证、连接来源）"
+            echo "  -e, --explain 打印 VNC 加固方案（SSH 隧道原理与 5 步操作）"
+            echo "  -h, --help    显示本帮助"
+            return 0
+            ;;
+        -e|--explain)
+            echo "======> VNC 加固方案详解（SSH 隧道）======"
+            cat <<'CHK_VNC_EXPLAIN'
+核心思路: 把 VNC 收回本地(只听 127.0.0.1)，公网只暴露 SSH，
+          远程访问经 SSH 加密隧道转发到本地 VNC。
+
+【为什么不要直接暴露 VNC】
+  · VncAuth 仅 8 字符密码 + DES 加密，弱认证，易被爆破/重放。
+  · -localhost no 监听 0.0.0.0，配合端口映射即公网可达。
+  · 公网对 5900/5990 的扫描非常普遍。
+
+【SSH 隧道加固 5 步】
+  1. 服务器端 VNC 只听本地:
+       vncserver -geometry 1920x1080 :90 -localhost yes
+       验证: ss -tlnp | grep 5990   应为 127.0.0.1:5990，而非 0.0.0.0:5990
+  2. 路由器: 删除 VNC(5990) 映射，只保留 SSH(22)；
+             外部端口用非标准号(如 22222→22)可挡自动扫描。
+  3. SSH 加固: /etc/ssh/sshd_config 设 PasswordAuthentication no
+             (先 ssh-keygen + ssh-copy-id 配好密钥再禁密码)、PermitRootLogin no。
+  4. 客户端建隧道:
+       ssh -L 5990:localhost:5990 user@<公网IP> -p <SSH端口>
+       后台: ssh -fN -L 5990:localhost:5990 user@<公网IP> -p <SSH端口>
+  5. VNC viewer 连 localhost:5990（不是服务器 IP），流量经 SSH 加密送达。
+
+【改造前后】
+  前: 公网暴露 VNC 5990(弱认证) → 5900/5990 常被扫
+  后: 公网仅 SSH 22，VNC 收回本地 → 扫不到 VNC，SSH 密钥强认证
+
+【autossh 自动重连】
+  autossh -M 0 -fN -o "ServerAliveInterval=30" -o "ServerAliveCountMax=3" \
+          -o "ExitOnForwardFailure=yes" -L 5990:localhost:5990 user@<IP> -p <端口>
+CHK_VNC_EXPLAIN
+            return 0
+            ;;
+    esac
+
+    echo "################### VNC 安全自检 ###################"
+    echo ""
+
+    # ---- 1. VNC 进程 & 监听端口（暴露面）----
+    echo "======> [1] VNC 进程 & 监听端口"
+    echo "------> current status <------"
+    local vnc_procs
+    vnc_procs=$(pgrep -af 'Xtigervnc|Xvnc|x11vnc|tightvnc' 2>/dev/null | grep -v pgrep)
+    if [ -z "${vnc_procs}" ]; then
+        echo "  (未检测到 VNC 进程在运行)"
+    else
+        echo "${vnc_procs}" | sed 's/^/  /'
+    fi
+    echo ""
+    echo "  监听端口 (0.0.0.0=公网暴露 / 127.0.0.1=仅本地):"
+    ss -tlnp 2>/dev/null | grep -E ':(59[0-9][0-9])' | sed 's/^/  /' \
+        || echo "  (无 VNC 端口监听)"
+    echo ""
+
+    # ---- 2. 监听暴露面判定 ----
+    echo "======> [2] 监听暴露面判定"
+    if ss -tln 2>/dev/null | grep -qE '^LISTEN.*0\.0\.0\.0:59[0-9][0-9]'; then
+        echo "  ⚠ 危险: VNC 监听 0.0.0.0（公网可达）"
+        echo "     建议 -localhost yes + SSH 隧道（chk_vnc_safe -e 看详情）"
+    elif ss -tln 2>/dev/null | grep -qE '^LISTEN.*127\.0\.0\.1:59[0-9][0-9]'; then
+        echo "  ✓ 安全: VNC 只监听 127.0.0.1（本地）"
+    else
+        echo "  (未检测到 VNC 监听)"
+    fi
+    echo ""
+
+    # ---- 3. 认证方式（SecurityTypes，从进程参数看）----
+    echo "======> [3] 认证方式（SecurityTypes）"
+    echo "------> current status <------"
+    if [ -n "${vnc_procs}" ]; then
+        local sec
+        sec=$(ps -eo args 2>/dev/null | grep -E '[X]tigervnc|[X]vnc' \
+              | grep -oE 'SecurityTypes [^ ]+' | head -1)
+        if [ -n "${sec}" ]; then
+            echo "  ${sec}"
+        else
+            echo "  (命令行未显式指定 SecurityTypes)"
+        fi
+        echo "  说明: VncAuth=弱(8字符DES) / TLSVnc·X509=较强"
+    else
+        echo "  (无 VNC 进程)"
+    fi
+    echo ""
+
+    # ---- 4. 连接来源分析（谁在连/试连 VNC）----
+    echo "======> [4] 连接来源分析（谁在连/试连 VNC）"
+    echo "------> current status <------"
+
+    # 4.1 实时在线连接
+    echo "  ▶ 实时在线连接（ESTAB）:"
+    local estab
+    estab=$(ss -tnp 2>/dev/null | grep ':59[0-9][0-9]' | grep ESTAB)
+    if [ -n "${estab}" ]; then
+        echo "${estab}" | sed 's/^/    /'
+    else
+        echo "    (无在线连接)"
+    fi
+    echo ""
+
+    # 4.2 ~ 4.5 日志来源分析
+    if ! ls "${VNC_LOG_DIR}"/*.log >/dev/null 2>&1; then
+        echo "  (未找到 ${VNC_LOG_DIR}/*.log，跳过日志来源分析)"
+        echo ""
+    else
+        # 4.2 成功连入历史（accepted，最敏感）
+        echo "  ▶ 成功连入历史（accepted，最敏感）:"
+        local acc
+        acc=$(grep -ahE 'Connections: accepted:' "${VNC_LOG_DIR}"/*.log 2>/dev/null \
+              | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort | uniq -c | sort -nr)
+        if [ -n "${acc}" ]; then echo "${acc}" | sed 's/^/    /'; else echo "    (无)"; fi
+        echo ""
+
+        # 4.3 所有连入尝试（closing，含成功/失败/探测）
+        echo "  ▶ 所有连入尝试（closing，含成功/失败/探测）:"
+        local cl
+        cl=$(grep -ahE 'closing [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+::' "${VNC_LOG_DIR}"/*.log 2>/dev/null \
+             | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort | uniq -c | sort -nr)
+        if [ -n "${cl}" ]; then echo "${cl}" | head -10 | sed 's/^/    /'; else echo "    (无)"; fi
+        echo ""
+
+        # 4.4 失败/拉黑/探测统计
+        local n_auth n_blk n_rfb
+        n_auth=$(grep -ahc 'Authentication failure' "${VNC_LOG_DIR}"/*.log 2>/dev/null \
+                 | awk '{s+=$1} END{print s+0}')
+        n_blk=$(grep -ahc 'blacklisted' "${VNC_LOG_DIR}"/*.log 2>/dev/null \
+                | awk '{s+=$1} END{print s+0}')
+        n_rfb=$(grep -ahc 'not an RFB' "${VNC_LOG_DIR}"/*.log 2>/dev/null \
+                | awk '{s+=$1} END{print s+0}')
+        echo "  ▶ 失败/拉黑/探测统计:"
+        echo "    认证失败(AuthFailure): ${n_auth}"
+        echo "    被拉黑(blacklisted):   ${n_blk}"
+        echo "    端口探测(not an RFB):  ${n_rfb}"
+        if [ "${n_blk}" != "0" ]; then
+            echo "    blacklisted 来源 TOP:"
+            grep -ah 'blacklisted' "${VNC_LOG_DIR}"/*.log 2>/dev/null \
+                | grep -oE 'blacklisted: [0-9.]+' | sort | uniq -c | sort -nr | head -5 \
+                | sed 's/^/      /'
+        fi
+        echo ""
+
+        # 4.5 NAT 环境判定（来源是否被路由器 SNAT 抹掉）
+        echo "  ▶ NAT 环境判定（来源是否被路由器 SNAT 抹掉）:"
+        local src_ips has_pub
+        src_ips=$(grep -ahE 'Connections: (accepted|blacklisted):|closing [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+::' \
+                  "${VNC_LOG_DIR}"/*.log 2>/dev/null \
+                  | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort -u \
+                  | grep -vE '^(0\.0\.0\.0|127\.0\.0\.1)$')
+        if [ -z "${src_ips}" ]; then
+            echo "    (日志无连接来源记录)"
+        else
+            has_pub=$(echo "${src_ips}" | grep -cvE '^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)')
+            if [ "${has_pub}" = "0" ]; then
+                echo "    [SNAT] 来源全是私有内网段 → 真实公网被路由器抹，溯源失效"
+            else
+                echo "    [纯DNAT] 含公网来源，可溯源:"
+                echo "${src_ips}" | grep -vE '^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)' \
+                    | sed 's/^/      /'
+            fi
+        fi
+    fi
+    echo ""
+
+    # ---- 实时监控（手动执行）----
+    echo "======> 实时监控（手动执行）"
+    echo "  tail -f ~/.vnc/*.log"
+    echo "  详细加固方案: chk_vnc_safe -e"
+}
+
 function esp_init_prj()
 {
     # ================================================
