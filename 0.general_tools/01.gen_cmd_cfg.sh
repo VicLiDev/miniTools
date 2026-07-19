@@ -291,13 +291,14 @@ function code_fmt_a()
     # ---- help ----
     for a in "$@"; do
         if [ "$a" = "-h" ] || [ "$a" = "--help" ]; then
-            echo "Usage: code_fmt_a [-r] [-h] [files...]"
+            echo "Usage: code_fmt_a [-r] [-w N] [-h] [files...]"
             echo ""
             echo "  Format C/C++/Java/C# source files via astyle."
             echo ""
             echo "  Options:"
-            echo "    -r           Recursively search directories for supported files"
-            echo "    -h, --help   Show this help"
+            echo "    -r                 Recursively search directories for supported files"
+            echo "    -w, --width N      Max line width (default: 100)"
+            echo "    -h, --help         Show this help"
             echo ""
             echo "  Supported: c, cpp, cc, cxx, h, hpp, hxx, m, mm, cs, java"
             echo "  Config:    generates .astylerc in current dir if not present"
@@ -305,11 +306,21 @@ function code_fmt_a()
         fi
     done
 
+    local max_width=100
     local recursive=0
-    if [ "$1" = "-r" ]; then
-        recursive=1
-        shift
-    fi
+    local files_args=()
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -r) recursive=1; shift; ;;
+            -w) max_width="$2"; shift 2; ;;
+            -w*) max_width="${1#-w}"; shift; ;;
+            --width) max_width="$2"; shift 2; ;;
+            --width=*) max_width="${1#*=}"; shift; ;;
+            *) files_args+=("$1"); shift; ;;
+        esac
+    done
+    set -- "${files_args[@]}"
 
     local allowed=(c cpp cc cxx h hpp hxx m mm cs java)
     local files
@@ -354,7 +365,7 @@ function code_fmt_a()
         echo "#--indent-preprocessor"         >> ${cfg_file}
         echo "--min-conditional-indent=0"     >> ${cfg_file}
         echo "--max-instatement-indent=120"   >> ${cfg_file}
-        echo "--max-code-length=160"          >> ${cfg_file}
+        echo "--max-code-length=${max_width}" >> ${cfg_file}
         echo ""                               >> ${cfg_file}
         echo "# padding setting"              >> ${cfg_file}
         echo "#--break-blocks"                >> ${cfg_file}
@@ -381,7 +392,7 @@ function code_fmt_a()
     fi
 
     echo "==> Format files: ${files}"
-    cmd="astyle --quiet --options=${cfg_file} ${files}"
+    cmd="astyle --quiet --options=${cfg_file} --max-code-length=${max_width} ${files}"
     echo "==> cmd: ${cmd}"
     eval ${cmd}
 
@@ -399,13 +410,14 @@ function code_fmt_c()
     # ---- help ----
     for a in "$@"; do
         if [ "$a" = "-h" ] || [ "$a" = "--help" ]; then
-            echo "Usage: code_fmt_c [-r] [-h] [files...]"
+            echo "Usage: code_fmt_c [-r] [-w N] [-h] [files...]"
             echo ""
             echo "  Format C/C++/Java/C#/JS/Python source files via clang-format."
             echo ""
             echo "  Options:"
-            echo "    -r           Recursively search directories for supported files"
-            echo "    -h, --help   Show this help"
+            echo "    -r                 Recursively search directories for supported files"
+            echo "    -w, --width N      Max line width (default: 100)"
+            echo "    -h, --help         Show this help"
             echo ""
             echo "  Supported: c, cpp, cc, cxx, h, hpp, hxx, m, mm, cs, java,"
             echo "             js, json, proto, py"
@@ -414,11 +426,21 @@ function code_fmt_c()
         fi
     done
 
+    local max_width=100
     local recursive=0
-    if [ "$1" = "-r" ]; then
-        recursive=1
-        shift
-    fi
+    local files_args=()
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -r) recursive=1; shift; ;;
+            -w) max_width="$2"; shift 2; ;;
+            -w*) max_width="${1#-w}"; shift; ;;
+            --width) max_width="$2"; shift 2; ;;
+            --width=*) max_width="${1#*=}"; shift; ;;
+            *) files_args+=("$1"); shift; ;;
+        esac
+    done
+    set -- "${files_args[@]}"
 
     local allowed=(c cpp cc cxx h hpp hxx m mm cs java js json proto py)
     local files
@@ -452,6 +474,7 @@ function code_fmt_c()
         echo "BasedOnStyle: Google"               >  ${cfg_file}
         # 缩紧为4
         echo "IndentWidth: 4"                     >> ${cfg_file}
+        echo "ColumnLimit: ${max_width}"          >> ${cfg_file}
         echo ""                                   >> ${cfg_file}
         # 自己来定义花括号规则
         echo "BreakBeforeBraces: Custom"          >> ${cfg_file}
