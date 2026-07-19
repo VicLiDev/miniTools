@@ -257,9 +257,40 @@ function mount_smb()
 }
 
 
+function _fmt_filter_files()
+{
+    local allowed="$1"
+    shift
+    local filtered=""
+
+    for f in "$@"; do
+        if [ -d "$f" ]; then
+            # directory: let the formatter handle recursion
+            filtered="${filtered} ${f}"
+            continue
+        fi
+        local ext="${f##*.}"
+        if [ "$ext" = "$f" ]; then
+            # no extension: skip
+            echo "[skip] ${f} (no extension)" >&2
+            continue
+        fi
+        # check if extension is in allowed list
+        if echo " ${allowed} " | grep -q " ${ext} "; then
+            filtered="${filtered} ${f}"
+        else
+            echo "[skip] ${f} (unsupported extension: .${ext})" >&2
+        fi
+    done
+
+    echo "${filtered}"
+}
+
 function code_fmt_a()
 {
-    files="$@"
+    local allowed="c cpp cc cxx h hpp hxx m mm cs java"
+    local files
+    files=$(_fmt_filter_files "${allowed}" "$@")
     cfg_file=".astylerc"
 
     echo "========================="
@@ -308,6 +339,11 @@ function code_fmt_a()
         echo "--lineend=linux"                >> ${cfg_file}
     fi
 
+    if [ -z "${files// /}" ]; then
+        echo "==> No supported files to format (nothing to do)"
+        return 0
+    fi
+
     echo "==> Format files: ${files}"
     cmd="astyle --quiet --options=${cfg_file} ${files}"
     echo "==> cmd: ${cmd}"
@@ -324,7 +360,9 @@ function code_fmt_a()
 
 function code_fmt_c()
 {
-    files="$@"
+    local allowed="c cpp cc cxx h hpp hxx m mm cs java js json proto py"
+    local files
+    files=$(_fmt_filter_files "${allowed}" "$@")
     cfg_file=".clang-format"
 
     echo "==============================="
@@ -360,6 +398,11 @@ function code_fmt_c()
         # 参数换行对齐方式
         # echo "AlignAfterOpenBracket: Align"       >> ${cfg_file}
 
+    fi
+
+    if [ -z "${files// /}" ]; then
+        echo "==> No supported files to format (nothing to do)"
+        return 0
     fi
 
     echo "==> Format files: ${files}"
