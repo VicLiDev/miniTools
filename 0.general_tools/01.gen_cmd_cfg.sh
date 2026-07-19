@@ -288,9 +288,45 @@ function _fmt_filter_files()
 
 function code_fmt_a()
 {
-    local allowed="c cpp cc cxx h hpp hxx m mm cs java"
+    # ---- help ----
+    for a in "$@"; do
+        if [ "$a" = "-h" ] || [ "$a" = "--help" ]; then
+            echo "Usage: code_fmt_a [-r] [-h] [files...]"
+            echo ""
+            echo "  Format C/C++/Java/C# source files via astyle."
+            echo ""
+            echo "  Options:"
+            echo "    -r           Recursively search directories for supported files"
+            echo "    -h, --help   Show this help"
+            echo ""
+            echo "  Supported: c, cpp, cc, cxx, h, hpp, hxx, m, mm, cs, java"
+            echo "  Config:    generates .astylerc in current dir if not present"
+            return 0
+        fi
+    done
+
+    local recursive=0
+    if [ "$1" = "-r" ]; then
+        recursive=1
+        shift
+    fi
+
+    local allowed=(c cpp cc cxx h hpp hxx m mm cs java)
     local files
-    files=$(_fmt_filter_files "${allowed}" "$@")
+
+    if [ $recursive -eq 1 ]; then
+        local search_dirs="${@:-.}"
+        echo "==> Recursively searching: ${search_dirs}"
+        local name_args=""
+        for ext in "${allowed[@]}"; do
+            [ -n "$name_args" ] && name_args="${name_args} -o"
+            name_args="${name_args} -name \"*.${ext}\""
+        done
+        files=$(eval "find ${search_dirs} -type f \( ${name_args} \)" 2>/dev/null | sort | tr '\n' ' ')
+    else
+        files=$(_fmt_filter_files "${allowed[*]}" "$@")
+    fi
+
     cfg_file=".astylerc"
 
     echo "========================="
@@ -360,9 +396,46 @@ function code_fmt_a()
 
 function code_fmt_c()
 {
-    local allowed="c cpp cc cxx h hpp hxx m mm cs java js json proto py"
+    # ---- help ----
+    for a in "$@"; do
+        if [ "$a" = "-h" ] || [ "$a" = "--help" ]; then
+            echo "Usage: code_fmt_c [-r] [-h] [files...]"
+            echo ""
+            echo "  Format C/C++/Java/C#/JS/Python source files via clang-format."
+            echo ""
+            echo "  Options:"
+            echo "    -r           Recursively search directories for supported files"
+            echo "    -h, --help   Show this help"
+            echo ""
+            echo "  Supported: c, cpp, cc, cxx, h, hpp, hxx, m, mm, cs, java,"
+            echo "             js, json, proto, py"
+            echo "  Config:    generates .clang-format in current dir if not present"
+            return 0
+        fi
+    done
+
+    local recursive=0
+    if [ "$1" = "-r" ]; then
+        recursive=1
+        shift
+    fi
+
+    local allowed=(c cpp cc cxx h hpp hxx m mm cs java js json proto py)
     local files
-    files=$(_fmt_filter_files "${allowed}" "$@")
+
+    if [ $recursive -eq 1 ]; then
+        local search_dirs="${@:-.}"
+        echo "==> Recursively searching: ${search_dirs}"
+        local name_args=""
+        for ext in "${allowed[@]}"; do
+            [ -n "$name_args" ] && name_args="${name_args} -o"
+            name_args="${name_args} -name \"*.${ext}\""
+        done
+        files=$(eval "find ${search_dirs} -type f \( ${name_args} \)" 2>/dev/null | sort | tr '\n' ' ')
+    else
+        files=$(_fmt_filter_files "${allowed[*]}" "$@")
+    fi
+
     cfg_file=".clang-format"
 
     echo "==============================="
