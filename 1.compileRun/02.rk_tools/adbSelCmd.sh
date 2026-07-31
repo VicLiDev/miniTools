@@ -372,7 +372,7 @@ function gen_dev_info_list()
             shell "cat /proc/device-tree/compatible" | tr '\0' '\n'`
         nameTmp=$(echo "${compatRaw}" | grep -m1 -E 'r[kv][0-9]')
         # 去掉厂商前缀(首个逗号前的部分), 如 rockchip,xxx -> xxx
-        nameTmp=${nameTmp#*,}
+        nameTmp=${nameTmp#rockchip,}
         devNameList[${i}]=${nameTmp}
         # 芯片名称: 取板级名首个 "-" 之前的部分 (如 rk3588, rv1126b, rk3588s)
         local chipTmp=${nameTmp%%-*}
