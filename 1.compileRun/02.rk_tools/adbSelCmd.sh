@@ -88,6 +88,24 @@ devChipList=()
 selectList=()
 devUsbPathList=()
 
+# ===================== 远程模式 / ssh 隧道配置 =====================
+# 工作原理:
+#   本地模式: adb client 直连本机 adb server (默认 5037), 控制本机 USB 设备
+#   远程模式: 先建 ssh 隧道 localhost:LOCAL_PORT -> 远程:REMOTE_PORT,
+#             再让 adb client 连本机 LOCAL_PORT, 实际命中远程的 adb server,
+#             从而操作远程主机上插着的 USB 设备。
+#   adb client 选择 server 端口由环境变量 ANDROID_ADB_SERVER_PORT 控制。
+# 配置持久化到 ${ADBS_CONF_FILE}, 可手动编辑 (KEY=VALUE)。
+ADBS_CONF_DIR="${HOME}/.config/adbs"
+ADBS_CONF_FILE="${ADBS_CONF_DIR}/adbs.conf"
+
+# 配置项默认值 (无配置文件时使用)
+cfg_mode="local"            # 模式: local | remote
+cfg_remote_host=""          # ssh 目标, 如 user@1.2.3.4
+cfg_local_port="5038"       # ssh 隧道本地监听端口
+cfg_remote_port="5037"      # 远程 adb server 端口
+cfg_changed="false"         # 本次调用是否修改过配置 (用于决定是否落盘后退出)
+
 function help_info()
 {
     echo "usage: adbs <adbsParas> [<orgAdbParas>]"
@@ -100,6 +118,17 @@ function help_info()
     echo "    -r           Root and remount devices with no info"
     echo "    -u           List USB serial port devices (ttyUSB/ttyACM)"
     echo
+    echo "mode & ssh tunnel (persisted to ${ADBS_CONF_FILE}):"
+    echo "    --mode <local|remote> switch mode"
+    echo "           local : use local adb server"
+    echo "           remote: use remote adb server (auto setup/reuse ssh tunnel)"
+    echo "    --remote-host <host>  ssh target, e.g. user@1.2.3.4"
+    echo "    --local-port <port>   local tunnel listen port (default 5038)"
+    echo "    --remote-port <port>  remote adb server port (default 5037)"
+    echo "    --show-config         show current config"
+    echo "    --stop-tunnel         stop the ssh tunnel"
+    echo "    NOTE: options above only update config then exit, no adb command runs"
+    echo
     echo "use session:                        "
     echo "    1. use adbs as adb command      "
     echo "       ex: adbs push <file> <dir>   "
@@ -107,6 +136,173 @@ function help_info()
     echo "    2. gen adb -t/-s prefix         "
     echo '       ex: adbCmd=$(adbs)           '
     echo '           adbCmd=$(adbs -s)        '
+}
+
+# -------------------- 配置读写 --------------------
+
+# 读取持久化配置文件 (KEY=VALUE), 安全逐行解析, 仅认已知键
+function load_config()
+{
+    [ -f "${ADBS_CONF_FILE}" ] || return
+    local k v
+    while IFS='=' read -r k v; do
+        # 跳过注释行和空行
+        [[ "${k}" =~ ^[[:space:]]*# ]] && continue
+        [ -z "${k}" ] && continue
+        k="${k%%[[:space:]]*}"   # 去掉键两侧空白
+        case "${k}" in
+            MODE)        cfg_mode="${v}" ;;
+            REMOTE_HOST) cfg_remote_host="${v}" ;;
+            LOCAL_PORT)  cfg_local_port="${v}" ;;
+            REMOTE_PORT) cfg_remote_port="${v}" ;;
+        esac
+    done < "${ADBS_CONF_FILE}"
+}
+
+# 校验配置合法性 (端口数字/模式取值), 非法则报错退出
+function validate_config()
+{
+    case "${cfg_mode}" in
+        local|remote) ;;
+        *) echo "[adbs] invalid MODE: '${cfg_mode}' (expected local|remote)" >&2; exit 1 ;;
+    esac
+    local -a _ports=("${cfg_local_port}" "${cfg_remote_port}")
+    for _p in "${_ports[@]}"; do
+        if ! [[ "${_p}" =~ ^[0-9]+$ ]] || [ "${_p}" -lt 1 ] || [ "${_p}" -gt 65535 ]; then
+            echo "[adbs] invalid port: '${_p}' (expected 1..65535)" >&2; exit 1
+        fi
+    done
+    if [ "${cfg_mode}" == "remote" ] && [ -z "${cfg_remote_host}" ]; then
+        echo "[adbs] warning: REMOTE_HOST not set in remote mode," >&2
+        echo "       use --remote-host <user@host> to specify it" >&2
+    fi
+}
+
+# 把当前内存配置落盘
+function save_config()
+{
+    mkdir -p "${ADBS_CONF_DIR}"
+    cat > "${ADBS_CONF_FILE}" <<EOF
+# adbSelCmd.sh 配置文件, 可手动编辑 (KEY=VALUE)
+# MODE: local | remote
+MODE=${cfg_mode}
+REMOTE_HOST=${cfg_remote_host}
+LOCAL_PORT=${cfg_local_port}
+REMOTE_PORT=${cfg_remote_port}
+EOF
+}
+
+# 配置文件不存在时, 用当前内存值 (默认或已 load) 生成一份, 方便查看/编辑
+function ensure_config_file()
+{
+    [ -f "${ADBS_CONF_FILE}" ] && return 0
+    save_config
+    echo "[adbs] default config generated: ${ADBS_CONF_FILE}" >&2
+}
+
+# 打印当前配置 (到 stdout)
+function show_config()
+{
+    echo "MODE        = ${cfg_mode}"
+    echo "REMOTE_HOST = ${cfg_remote_host:-(not set)}"
+    echo "LOCAL_PORT  = ${cfg_local_port}"
+    echo "REMOTE_PORT = ${cfg_remote_port}"
+}
+
+# -------------------- ssh 隧道管理 --------------------
+
+# 检查隧道是否可用: 返回 0 可用, 非 0 不可用。两级判定:
+#   1. pgrep 精确匹配本配置的 ssh 转发进程。同用户必然命中;
+#      /proc 无 hidepid 时也能命中他人进程 (跨用户复用)。
+#   2. 兜底: 本地端口已在监听。/proc 有 hidepid 时看不到他人进程,
+#      但他人隧道仍在 127.0.0.1:LOCAL_PORT 上监听, 可直接复用。
+#      ExitOnForwardFailure 保证不会与既有监听重复绑定。
+function ssh_tunnel_alive()
+{
+    [ -z "${cfg_remote_host}" ] && return 1
+    # 1. 精确: 匹配本配置的 ssh 进程命令行
+    pgrep -f "ssh.*-L ${cfg_local_port}:127.0.0.1:${cfg_remote_port}.*${cfg_remote_host}" \
+        > /dev/null 2>&1 && return 0
+    # 2. 兜底: 本地端口在监听。hidepid 下看不到他人 ssh 进程,
+    #    但他人隧道仍监听该端口可复用; 若占用进程可识别且非 ssh
+    #    (典型为本机残留的 adb server 误占), 则不算隧道可用
+    command -v ss > /dev/null 2>&1 || return 1
+    local _ln
+    _ln=$(ss -tlnpH 2>/dev/null | grep -E ":${cfg_local_port}\b")
+    [ -z "${_ln}" ] && return 1
+    echo "${_ln}" | grep -q 'users:(' \
+        && ! echo "${_ln}" | grep -qE 'users:\(\("ssh' && return 1
+    return 0
+}
+
+# 建立后台 ssh 隧道。已存在直接复用, 不存在则建立, 失败返回非 0
+# 选项说明:
+#   -fNT       -f 认证后转后台; -N 不执行远端命令; -T 不分配伪终端
+#   ExitOnForwardFailure=yes  本地端口被占用导致转发失败时, ssh 立即退出
+#   ServerAliveInterval/CountMax  连接保活, 远端失联后 ssh 自动退出 (避免僵尸隧道)
+function ensure_ssh_tunnel()
+{
+    [ -z "${cfg_remote_host}" ] && {
+        echo "[adbs] REMOTE_HOST not set in remote mode, use --remote-host to specify it" >&2
+        return 1
+    }
+    ssh_tunnel_alive && return 0
+
+    # 端口可能被本机残留的 adb server 误占 (之前隧道未就绪时 adb client 自启),
+    # 会导致 ssh -L 绑定失败。识别并停掉占用端口的 adb server。
+    if command -v ss > /dev/null 2>&1; then
+        local _adb_pid
+        _adb_pid=$(ss -tlnpH 2>/dev/null | grep -E ":${cfg_local_port}\b" \
+            | grep -oE 'users:\(\("adb",pid=[0-9]+' | grep -oE '[0-9]+$')
+        if [ -n "${_adb_pid}" ]; then
+            echo "[adbs] killing stray local adb (pid ${_adb_pid}) on :${cfg_local_port}" >&2
+            kill "${_adb_pid}" 2>/dev/null
+            sleep 0.3
+        fi
+    fi
+
+    echo "[adbs] setting up ssh tunnel: localhost:${cfg_local_port}" >&2
+    echo "       -> ${cfg_remote_host}:${cfg_remote_port}" >&2
+    local ssh_out rc
+    ssh_out=$(ssh -fNT \
+        -L "${cfg_local_port}:127.0.0.1:${cfg_remote_port}" \
+        -o ExitOnForwardFailure=yes \
+        -o ServerAliveInterval=30 \
+        -o ServerAliveCountMax=3 \
+        "${cfg_remote_host}" 2>&1)
+    rc=$?
+    [ -n "${ssh_out}" ] && echo "${ssh_out}" | sed 's/^/[adbs][ssh] /' >&2
+    if [ ${rc} -ne 0 ]; then
+        echo "[adbs] ssh tunnel setup failed (rc=${rc})" >&2
+        return 1
+    fi
+    # ssh -f 转后台需要一点时间稳定, 轮询确认进程已存活
+    local _i
+    for _i in $(seq 1 10); do
+        ssh_tunnel_alive && return 0
+        sleep 0.3
+    done
+    ssh_tunnel_alive && return 0
+    echo "[adbs] ssh tunnel process not detected after setup" >&2
+    return 1
+}
+
+# 关闭当前配置对应的 ssh 隧道进程
+function stop_ssh_tunnel()
+{
+    [ -z "${cfg_remote_host}" ] && {
+        echo "[adbs] REMOTE_HOST not set, no tunnel to stop" >&2; return 0; }
+    local pids
+    pids=$(pgrep -f \
+        "ssh.*-L ${cfg_local_port}:127.0.0.1:${cfg_remote_port}.*${cfg_remote_host}" \
+        2>/dev/null || true)
+    if [ -z "${pids}" ]; then
+        echo "[adbs] no ssh tunnel process found" >&2
+        return 0
+    fi
+    local p
+    for p in ${pids}; do kill "${p}" 2>/dev/null; done
+    echo "[adbs] ssh tunnel stopped (pid: ${pids})" >&2
 }
 
 # 将 USB Vendor ID (十六进制) 转为厂商名称, 遇到未知 VID 则原样输出
@@ -379,7 +575,7 @@ function gen_dev_info_list()
         devChipList[${i}]=${chipTmp}
         # 字段顺序: 芯片 -> TrsptID -> 对齐 serID -> 对齐 usb -> 设备树(板级名)
         selectList[${i}]=$(printf \
-            "%-7s ==> TrsptID: %-3s ==> serID: %-16s ==> usb: %-12s ==> DTS: %s" \
+            "%-7s ==> TrsptID: %-4s ==> serID: %-16s ==> usb: %-12s ==> DTS: %s" \
             "${devChipList[${i}]:--}" "${devTPIDList[${i}]}" \
             "${devSerIDList[${i}]}" "${devUsbPathList[${i}]}" "${devNameList[${i}]}")
     done
@@ -410,6 +606,12 @@ function gen_adb_cmd()
         adbCmd="adb -t ${devTPIDList[${cmd_sel_idx}]}"
     fi
 
+    # 远程模式: 前置 adb server 端口环境变量, 让回显的命令也能命中隧道。
+    # 用 env 前缀而非 VAR=val, 因为 adbCmd 会被无引号展开再执行,
+    # 裸 VAR=val 会被当作命令名; env 是独立命令, 展开执行都正确。
+    [ "${cfg_mode}" == "remote" ] && \
+        adbCmd="env ANDROID_ADB_SERVER_PORT=${cfg_local_port} ${adbCmd}"
+
     echo ${adbCmd}
 }
 
@@ -426,7 +628,14 @@ function proc_paras()
             -u)        cmd_list_usb_serial="true" ;;
             --idx)     cmd_sel_idx="$2"; shift ;;
             --soc)     cmd_soc_info="$2"; shift ;;
-            *)         cmd_orgAdbOpt=$@; return ;;
+            # ---- 模式 / 隧道配置 (修改后落盘并退出) ----
+            --mode)        cfg_mode="$2"; shift; cfg_changed="true" ;;
+            --remote-host) cfg_remote_host="$2"; shift; cfg_changed="true" ;;
+            --local-port)  cfg_local_port="$2";  shift; cfg_changed="true" ;;
+            --remote-port) cfg_remote_port="$2"; shift; cfg_changed="true" ;;
+            --show-config) show_config; exit 0 ;;
+            --stop-tunnel) stop_ssh_tunnel; exit 0 ;;
+            *)             cmd_orgAdbOpt=$@; return ;;
         esac
         shift
     done
@@ -437,10 +646,37 @@ source ${HOME}/bin/_select_node.sh
 
 function main()
 {
+    load_config
+    # 配置文件不存在则用默认值自动生成一份, 保证文件始终存在
+    ensure_config_file
     proc_paras $@
 
+    # 仅修改配置的调用: 校验 -> 落盘 -> 打印 -> 退出 (不执行 adb 命令)
+    if [ "${cfg_changed}" == "true" ]; then
+        validate_config
+        save_config
+        echo "[adbs] config updated:" >&2
+        show_config >&2
+        exit 0
+    fi
+
+    # -u 列出本机 USB 串口, 属本机硬件操作, 不走隧道, 最先处理
+    if [ "${cmd_list_usb_serial}" == "true" ]; then
+        if [ "${cfg_mode}" == "remote" ]; then
+            echo "[adbs] -u is a local hardware op, skipped in remote mode" >&2
+            exit 0
+        fi
+        list_usb_serial_devs; exit 0
+    fi
+
+    # 以下为依赖 adb 设备的操作: 远程模式需先确保 ssh 隧道就绪,
+    # 并让本进程内所有 adb 调用都连到隧道端口 (通过 export 给子进程)
+    if [ "${cfg_mode}" == "remote" ]; then
+        ensure_ssh_tunnel || exit 1
+        export ANDROID_ADB_SERVER_PORT="${cfg_local_port}"
+    fi
+
     [ "${cmd_root_remount}" == "true" ] && { root_remount_no_info_devs; exit 0; }
-    [ "${cmd_list_usb_serial}" == "true" ] && { list_usb_serial_devs; exit 0; }
 
     gen_dev_info_list
 
