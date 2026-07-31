@@ -551,9 +551,12 @@ function root_remount_no_info_devs()
 
 function gen_dev_info_list()
 {
-    devSerIDList=(`adb devices | grep device$ | awk '{print $1}'`)
-    devTPIDList=($(adb devices -l | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
-    devUsbPathList=($(adb devices -l \
+    # adb devices -l 只调一次, 复用给 serID/tpid/usb, 避免重复往返
+    local _devl
+    _devl=$(adb devices -l)
+    devSerIDList=($(echo "${_devl}" | awk '$2=="device"{print $1}'))
+    devTPIDList=($(echo "${_devl}" | awk '/transport_id/{print $(NF)}' | cut -d':' -f2))
+    devUsbPathList=($(echo "${_devl}" \
         | awk '/usb:/{for(i=1;i<=NF;i++) if($i~/^usb:/) print substr($i,5)}'))
     devNameList=()
     devChipList=()
@@ -561,11 +564,22 @@ function gen_dev_info_list()
 
     [ ${#devTPIDList[@]} -eq 0 ] && { echo "No device found!" >&2; exit 0; }
 
+    # 并行抓取每台设备的 compatible: adb over 网络往返开销大,
+    # 串行会随设备数线性累加, 并行后总耗时近似单次往返
+    local _tmpdir
+    _tmpdir=$(mktemp -d)
+    for ((i = 0; i < ${#devTPIDList[@]}; i++))
+    do
+        ( adb -t ${devTPIDList[${i}]} \
+            shell "cat /proc/device-tree/compatible" 2>/dev/null \
+            | tr '\0' '\n' > "${_tmpdir}/${i}.raw" ) &
+    done
+    wait
+
     for ((i = 0; i < ${#devTPIDList[@]}; i++))
     do
         # compatible 以 null 分隔多条, 先按 null 拆行, 取首个含 rk/rv 的条目
-        local compatRaw=`adb -t ${devTPIDList[${i}]} \
-            shell "cat /proc/device-tree/compatible" | tr '\0' '\n'`
+        local compatRaw=$(cat "${_tmpdir}/${i}.raw" 2>/dev/null)
         nameTmp=$(echo "${compatRaw}" | grep -m1 -E 'r[kv][0-9]')
         # 去掉厂商前缀(首个逗号前的部分), 如 rockchip,xxx -> xxx
         nameTmp=${nameTmp#rockchip,}
@@ -579,6 +593,7 @@ function gen_dev_info_list()
             "${devChipList[${i}]:--}" "${devTPIDList[${i}]}" \
             "${devSerIDList[${i}]}" "${devUsbPathList[${i}]}" "${devNameList[${i}]}")
     done
+    rm -rf "${_tmpdir}"
 }
 
 function gen_adb_cmd()
