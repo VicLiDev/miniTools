@@ -392,7 +392,12 @@ function gen_adb_cmd()
     if [ "${cmd_sel_idx}" == "" ]; then
         if [ ${#devTPIDList[@]} -gt 1 ]; then
             select_node "${sel_tag_adbs}" "selectList" "mSelectedDev" "device"
+            # select_node 只回传条目文本, 回查其在 selectList 中的下标
+            for ((i = 0; i < ${#selectList[@]}; i++)); do
+                [ "${selectList[${i}]}" == "${mSelectedDev}" ] && { cmd_sel_idx=${i}; break; }
+            done
         else
+            cmd_sel_idx=0
             mSelectedDev=${selectList[0]}
         fi
     else
@@ -400,9 +405,9 @@ function gen_adb_cmd()
     fi
 
     if [ "${cmd_gen_s_style}" == "true" ]; then
-        adbCmd="adb -s `echo "${mSelectedDev}" | grep -oP 'serID:\s*\K\S+'`"
+        adbCmd="adb -s ${devSerIDList[${cmd_sel_idx}]}"
     else
-        adbCmd="adb -t `echo "${mSelectedDev}" | grep -oP 'TrsptID:\s*\K\S+'`"
+        adbCmd="adb -t ${devTPIDList[${cmd_sel_idx}]}"
     fi
 
     echo ${adbCmd}
