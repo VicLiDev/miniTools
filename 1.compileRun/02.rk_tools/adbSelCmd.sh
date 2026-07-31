@@ -145,20 +145,26 @@ function query_soc_by_usb_path()
     # USB 串口的 sysfs devpath 和 adb 设备的 USB 路径不一定完全一致, 差一级 Hub 是常见情况
     # 逐步向上匹配: 先精确匹配, 失败则去掉最后一段, 再试上一级 Hub
     # 例: "usb:1-9.3.2" -> "usb:1-9.3" -> "usb:1-9", 最多尝试 3 级
+    # 唯一匹配才可信: 0 条继续往上; 多条说明已到达被多设备共享的根 Hub, 结果歧义, 放弃
     local adb_line=""
     local _try="${usb_path_prefix}"
     for _i in 1 2 3; do
-        adb_line=$(adb devices -l 2>/dev/null | grep -E "${_try}(\.|$| )" || true)
-        [ -n "${adb_line}" ] && break
+        local _matches=$(adb devices -l 2>/dev/null | grep -E "${_try}(\.|$| )" || true)
+        if [ -n "${_matches}" ]; then
+            local _cnt=$(echo "${_matches}" | grep -c .)
+            if [ "${_cnt}" -eq 1 ]; then
+                adb_line="${_matches}"
+                break
+            fi
+            # 多条匹配: 前缀已共享, 越往上只会越多, 直接放弃
+            return
+        fi
         # 去掉最后一段, 往上走一级 Hub
         local _prev="${_try}"
         _try="${_try%.*}"
         [ "${_try}" = "${_prev}" ] && break
     done
     [ -z "${adb_line}" ] && return
-
-    # 多条匹配时取第一条 (最近的 Hub)
-    adb_line=$(echo "${adb_line}" | head -1)
 
     # 提取 transport_id
     local tpid=$(echo "${adb_line}" | grep -oP 'transport_id:\K\d+')
@@ -204,7 +210,8 @@ function list_usb_serial_devs()
            "#" "DEVICE" "DRIVER" "VID:PID" "BAUD" "PRODUCT" "PLATFORM"
     # tr ' ' '-': 把空格替换为 '-', 生成与表头等宽的分隔线
     # printf 输出空字符串按列宽左对齐, 填充的空格被 tr 全部替换为 '-'
-    local _sep=$(printf '%-3s %-12s %-10s %-10s %-8s %-22s %-23s' '' '' '' '' '' '' '' | tr ' ' '-')
+    local _sep=\
+        $(printf '%-3s %-12s %-10s %-10s %-8s %-22s %-23s' '' '' '' '' '' '' '' | tr ' ' '-')
     printf "%s\n" "${_sep}"
 
     local idx=1
