@@ -380,8 +380,8 @@ function gen_dev_info_list()
         # 字段顺序: 芯片 -> TrsptID -> 对齐 serID -> 对齐 usb -> 设备树(板级名)
         selectList[${i}]=$(printf \
             "%-7s ==> TrsptID: %-3s ==> serID: %-16s ==> usb: %-12s ==> DTS: %s" \
-            "${chipTmp:--}" "${devTPIDList[${i}]}" \
-            "${devSerIDList[${i}]}" "${devUsbPathList[${i}]}" "${nameTmp}")
+            "${devChipList[${i}]:--}" "${devTPIDList[${i}]}" \
+            "${devSerIDList[${i}]}" "${devUsbPathList[${i}]}" "${devNameList[${i}]}")
     done
 }
 
