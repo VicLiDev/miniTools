@@ -211,28 +211,41 @@ function show_config()
 
 # -------------------- ssh 隧道管理 --------------------
 
-# 检查隧道是否可用: 返回 0 可用, 非 0 不可用。两级判定:
-#   1. pgrep 精确匹配本配置的 ssh 转发进程。同用户必然命中;
-#      /proc 无 hidepid 时也能命中他人进程 (跨用户复用)。
-#   2. 兜底: 本地端口已在监听。/proc 有 hidepid 时看不到他人进程,
-#      但他人隧道仍在 127.0.0.1:LOCAL_PORT 上监听, 可直接复用。
-#      ExitOnForwardFailure 保证不会与既有监听重复绑定。
+# 返回占用指定端口 (参数1, 缺省 LOCAL_PORT) 的 ssh 转发进程 pid。按端口查,
+# 与 REMOTE_HOST 无关, 换了远端主机后仍能定位到旧隧道。端口未被 ssh 占用时输出为空。
+# 同一端口可能被 ssh 同时监听 IPv4/IPv6, sort -u 已去重。
+function ssh_port_owner_pid()
+{
+    local _port="${1:-${cfg_local_port}}"
+    command -v ss > /dev/null 2>&1 || return
+    ss -tlnpH 2>/dev/null \
+        | grep -E ":${_port}\b" \
+        | grep -oE 'users:\(\("ssh",pid=[0-9]+' \
+        | grep -oE '[0-9]+$' \
+        | sort -u
+}
+
+# 检查隧道是否可用: 返回 0 可用, 非 0 不可用。隧道以 LOCAL_PORT 为唯一标识,
+# 再用 REMOTE_HOST 核对是否指向当前配置。两级判定:
+#   1. pgrep 精确匹配本配置 (端口+远端主机) 的 ssh 转发进程。
+#   2. 兜底: 本地端口在监听但看不到属主 (hidepid/跨用户), 无法核对主机, 信任复用。
+#      属主可见时: 非 ssh (本机残留 adb server 误占) 或虽是 ssh 但步骤1未命中
+#      (指向旧主机的残留隧道) 均不算可用, 由 ensure_ssh_tunnel 负责清理重建。
 function ssh_tunnel_alive()
 {
     [ -z "${cfg_remote_host}" ] && return 1
     # 1. 精确: 匹配本配置的 ssh 进程命令行
     pgrep -f "ssh.*-L ${cfg_local_port}:127.0.0.1:${cfg_remote_port}.*${cfg_remote_host}" \
         > /dev/null 2>&1 && return 0
-    # 2. 兜底: 本地端口在监听。hidepid 下看不到他人 ssh 进程,
-    #    但他人隧道仍监听该端口可复用; 若占用进程可识别且非 ssh
-    #    (典型为本机残留的 adb server 误占), 则不算隧道可用
+    # 2. 兜底: 本地端口在监听
     command -v ss > /dev/null 2>&1 || return 1
     local _ln
     _ln=$(ss -tlnpH 2>/dev/null | grep -E ":${cfg_local_port}\b")
     [ -z "${_ln}" ] && return 1
-    echo "${_ln}" | grep -q 'users:(' \
-        && ! echo "${_ln}" | grep -qE 'users:\(\("ssh' && return 1
-    return 0
+    # 看不到属主 (hidepid/跨用户) -> 可能是他人隧道, 无法核对主机, 信任复用
+    echo "${_ln}" | grep -q 'users:(' || return 0
+    # 属主可见但步骤1未命中: 非 ssh (本机残留 adb) 或指向旧主机的残留 ssh 隧道, 均不可用
+    return 1
 }
 
 # 建立后台 ssh 隧道。已存在直接复用, 不存在则建立, 失败返回非 0
@@ -248,8 +261,17 @@ function ensure_ssh_tunnel()
     }
     ssh_tunnel_alive && return 0
 
-    # 端口可能被本机残留的 adb server 误占 (之前隧道未就绪时 adb client 自启),
-    # 会导致 ssh -L 绑定失败。识别并停掉占用端口的 adb server。
+    # 端口可能被占用导致 ssh -L 绑定失败, 识别并停掉占用进程:
+    #   - 指向旧主机的残留 ssh 隧道 (换了 REMOTE_HOST 后遗留)
+    #   - 本机残留的 adb server (之前隧道未就绪时 adb client 自启)
+    local _stale
+    _stale=$(ssh_port_owner_pid)
+    if [ -n "${_stale}" ]; then
+        echo "[adbs] stopping stale ssh tunnel (pid: ${_stale}) on :${cfg_local_port}" >&2
+        local _q
+        for _q in ${_stale}; do kill "${_q}" 2>/dev/null; done
+        sleep 0.3
+    fi
     if command -v ss > /dev/null 2>&1; then
         local _adb_pid
         _adb_pid=$(ss -tlnpH 2>/dev/null | grep -E ":${cfg_local_port}\b" \
@@ -287,22 +309,25 @@ function ensure_ssh_tunnel()
     return 1
 }
 
-# 关闭当前配置对应的 ssh 隧道进程
+# 关闭占用指定端口 (参数1, 缺省 LOCAL_PORT) 的 ssh 隧道进程。按端口查,
+# 与 REMOTE_HOST 无关, 换了远端主机后仍能停掉旧隧道; 配置轮转时用旧端口调用。
 function stop_ssh_tunnel()
 {
-    [ -z "${cfg_remote_host}" ] && {
-        echo "[adbs] REMOTE_HOST not set, no tunnel to stop" >&2; return 0; }
-    local pids
-    pids=$(pgrep -f \
-        "ssh.*-L ${cfg_local_port}:127.0.0.1:${cfg_remote_port}.*${cfg_remote_host}" \
-        2>/dev/null || true)
+    local _port="${1:-${cfg_local_port}}"
+    local pids=""
+    # 1. 优先按端口找占用该端口的 ssh 进程
+    pids=$(ssh_port_owner_pid "${_port}")
+    # 2. 兜底: ss 看不到属主 (hidepid) 时, 按本地端口 pgrep 匹配
     if [ -z "${pids}" ]; then
-        echo "[adbs] no ssh tunnel process found" >&2
+        pids=$(pgrep -f "ssh.*-L ${_port}:" 2>/dev/null || true)
+    fi
+    if [ -z "${pids}" ]; then
+        echo "[adbs] no ssh tunnel process found on :${_port}" >&2
         return 0
     fi
     local p
     for p in ${pids}; do kill "${p}" 2>/dev/null; done
-    echo "[adbs] ssh tunnel stopped (pid: ${pids})" >&2
+    echo "[adbs] ssh tunnel stopped on :${_port} (pid: ${pids})" >&2
 }
 
 # 将 USB Vendor ID (十六进制) 转为厂商名称, 遇到未知 VID 则原样输出
@@ -664,6 +689,9 @@ function main()
     load_config
     # 配置文件不存在则用默认值自动生成一份, 保证文件始终存在
     ensure_config_file
+    # 快照变更前的配置, 用于检测隧道相关参数是否真正变化 (决定是否轮转隧道)
+    local _old_mode="${cfg_mode}" _old_host="${cfg_remote_host}" \
+          _old_lport="${cfg_local_port}" _old_rport="${cfg_remote_port}"
     proc_paras $@
 
     # 仅修改配置的调用: 校验 -> 落盘 -> 打印 -> 退出 (不执行 adb 命令)
@@ -672,6 +700,19 @@ function main()
         save_config
         echo "[adbs] config updated:" >&2
         show_config >&2
+        # 配置变更即作为隧道生命周期事件: 若隧道相关参数 (模式/主机/端口) 真正变化,
+        # 则停掉旧隧道 (用旧端口, 兼容 LOCAL_PORT 变更)。
+        # 随后远程模式一律确保隧道就绪: 参数变了就重建, 没变但隧道缺失就补建,
+        # 已就绪则直接复用。这样 adb 运行时只需检查, 不再被动创建/轮转。
+        local _old_sig="${_old_mode}|${_old_host}|${_old_lport}|${_old_rport}"
+        local _new_sig="${cfg_mode}|${cfg_remote_host}|${cfg_local_port}|${cfg_remote_port}"
+        if [ "${_old_sig}" != "${_new_sig}" ] && [ "${_old_mode}" == "remote" ]; then
+            stop_ssh_tunnel "${_old_lport}"
+        fi
+        if [ "${cfg_mode}" == "remote" ]; then
+            ensure_ssh_tunnel \
+                || echo "[adbs] tunnel not up yet; will retry on next adbs run" >&2
+        fi
         exit 0
     fi
 
