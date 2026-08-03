@@ -574,6 +574,12 @@ function root_remount_no_info_devs()
     sleep 1
 }
 
+# 设备表表头 (调用方决定输出到 stdout/stderr)
+function print_dev_header()
+{
+    printf "  %1s  %-8s %-4s %-18s %-12s %s\n" "#" CHIP TID SERIAL USB DTS
+}
+
 function gen_dev_info_list()
 {
     # adb devices -l 只调一次, 复用给 serID/tpid/usb, 避免重复往返
@@ -612,11 +618,12 @@ function gen_dev_info_list()
         # 芯片名称: 取板级名首个 "-" 之前的部分 (如 rk3588, rv1126b, rk3588s)
         local chipTmp=${nameTmp%%-*}
         devChipList[${i}]=${chipTmp}
-        # 字段顺序: 芯片 -> TrsptID -> 对齐 serID -> 对齐 usb -> 设备树(板级名)
+        # 字段顺序: 芯片 -> TrsptID -> serID -> usb 路径 -> 设备树(板级名)
         selectList[${i}]=$(printf \
-            "%-7s ==> TrsptID: %-4s ==> serID: %-16s ==> usb: %-12s ==> DTS: %s" \
+            "%-8s %-4s %-18s %-12s %s" \
             "${devChipList[${i}]:--}" "${devTPIDList[${i}]}" \
-            "${devSerIDList[${i}]}" "${devUsbPathList[${i}]}" "${devNameList[${i}]}")
+            "${devSerIDList[${i}]}" "${devUsbPathList[${i}]:--}" \
+            "${devNameList[${i}]:--}")
     done
     rm -rf "${_tmpdir}"
 }
@@ -627,7 +634,7 @@ function gen_adb_cmd()
 
     if [ "${cmd_sel_idx}" == "" ]; then
         if [ ${#devTPIDList[@]} -gt 1 ]; then
-            select_node "${sel_tag_adbs}" "selectList" "mSelectedDev" "device"
+            select_node "${sel_tag_adbs}" "selectList" "mSelectedDev" "device" "$(print_dev_header)"
             # select_node 只回传条目文本, 回查其在 selectList 中的下标
             for ((i = 0; i < ${#selectList[@]}; i++)); do
                 [ "${selectList[${i}]}" == "${mSelectedDev}" ] && { cmd_sel_idx=${i}; break; }
@@ -751,8 +758,9 @@ function main()
             cmd_sel_idx="${soc_match_list[0]}"
         else
             echo "Multiple devices matching '${cmd_soc_info}', using the first one:" >&2
+            print_dev_header >&2
             for idx in "${soc_match_list[@]}"; do
-                echo "  [$idx] ${selectList[${idx}]}" >&2
+                echo " [$idx] ${selectList[${idx}]}" >&2
             done
             cmd_sel_idx="${soc_match_list[0]}"
         fi
@@ -761,9 +769,10 @@ function main()
     if [ ${cmd_get_count} == "true" ]; then
         echo "${#selectList[@]}"
     elif [ "${cmd_list_devs}" == "true" ]; then
+        print_dev_header
         for ((cur_idx = 0; cur_idx < ${#selectList[@]}; cur_idx++))
         do
-            echo ${selectList[${cur_idx}]}
+            printf " %2d  %s\n" "${cur_idx}" "${selectList[${cur_idx}]}"
         done
     else
         adbCmd=`gen_adb_cmd`

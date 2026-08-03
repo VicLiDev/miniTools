@@ -16,7 +16,7 @@
 #        source ${HOME}/bin/select_node.sh
 #        or after run init_tools.sh
 #        source ${HOME}/bin/_select_node.sh
-#     2. select_node "<cache tag>" "<select list>" "<select result>" "<select tip>"
+#     2. select_node "<cache tag>" "<select list>" "<select result>" "<select tip>" ["<header>"]
 #
 # basename命令用于从文件名中剥离路径信息，只留下基本名称。
 # basename NAME [SUFFIX]
@@ -44,9 +44,11 @@ function _sn_display()
 {
     local _list_name="$1"
     local _tip="$2"
+    local _header="$3"      # 可选: 表头, 非空时显示在列表前
     local -n _list_ref="${_list_name}"
     local _i
     echo "Please select ${_tip}:" >&2
+    [ -n "${_header}" ] && echo "${_header}" >&2
     for ((_i = 0; _i < ${#_list_ref[@]}; _i++))
     do
         echo "  ${_i}. ${_list_ref[${_i}]}" >&2
@@ -89,6 +91,7 @@ function select_node()
     local _lst_name="$2"
     local _res_name="$3"
     local _tip="$4"
+    local _header="$5"      # 可选: 表头, 传给 _sn_display 显示在列表前
     local -n _lst_ref="${_lst_name}"
     local -n _sel_res="${_res_name}"
     local _def_idx _sel_idx
@@ -96,7 +99,7 @@ function select_node()
     _def_idx=$(_sn_rd_sel_cache "${_tag}" 0)
 
     echo -e "\033[0m\033[1;${_sn_display_color}m" >&2
-    _sn_display "${_lst_name}" "${_tip}"
+    _sn_display "${_lst_name}" "${_tip}" "${_header}"
 
     echo "cur dir: $(pwd)" >&2
     while true
