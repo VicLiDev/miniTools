@@ -89,12 +89,44 @@ selectList=()
 devUsbPathList=()
 
 # ===================== 远程模式 / ssh 隧道配置 =====================
-# 工作原理:
-#   本地模式: adb client 直连本机 adb server (默认 5037), 控制本机 USB 设备
-#   远程模式: 先建 ssh 隧道 localhost:LOCAL_PORT -> 远程:REMOTE_PORT,
-#             再让 adb client 连本机 LOCAL_PORT, 实际命中远程的 adb server,
-#             从而操作远程主机上插着的 USB 设备。
-#   adb client 选择 server 端口由环境变量 ANDROID_ADB_SERVER_PORT 控制。
+#
+# 【ADB client/server 架构】
+#   adb 命令 (client) 默认连【本机 5037 端口】上的 adb server (daemon),
+#   server 负责管理 USB 设备。client 与 server 不要求同一台机器:
+#     -H <host:port>  指定连哪台主机上的 adb server (默认 localhost:5037)
+#     -P <port>       只改端口 (与 -H 分开写)
+#   ANDROID_ADB_SERVER_PORT 环境变量: 只改端口, 主机固定 localhost
+#   三者等价 (都是连本机 50056 端口的 adb server):
+#     adb -P 50056 shell
+#     ANDROID_ADB_SERVER_PORT=50056 adb shell
+#     adb -H localhost:50056 shell
+#     ⚠ -H/-P 是 adb 全局选项, 必须放在命令 (shell/push/...) 之前,
+#        adb shell -P 50056 会把 -P 当作 shell 参数, 不生效
+#     ⚠ 环境变量是进程级 (影响该进程内所有 adb 调用); -H/-P 只影响本条命令
+#     ⚠ 环境变量只能连本机; 要连远程主机的 server 只能用 -H
+#
+# 【为什么 adb server 只监听 localhost, 不对外】
+#   ADB 协议无认证 —— 谁能连上谁就能控制设备 (推文件/刷机/偷数据)。
+#   若 server 监听 0.0.0.0 对外开放, 任何能到达该 IP 的机器都能直接
+#   adb -H <ip>:15037 操作所有设备。所以 server 端必须只绑 127.0.0.1,
+#   对外访问一律走 SSH 隧道, 一次拿到三样:
+#     ① 不暴露: server 继续只听 localhost, 网络层看不到 15037 端口
+#     ② 有认证: 流量必须过 SSH (key 验证), 没有 key 谁也进不来
+#     ③ 有加密: ADB 明文协议经 SSH 全程加密, 防中间人嗅探
+#   ⚠ 切勿为了省事把 server 改成监听 0.0.0.0 用 -H 直连 —— 那是安全洞
+#
+# 【本地模式】
+#   adb client 直连本机 adb server (默认 5037), 控制本机 USB 设备
+#
+# 【远程模式】
+#   先建 ssh 隧道 localhost:LOCAL_PORT -> 远程:REMOTE_PORT,
+#   再让 adb client 连本机 LOCAL_PORT, 实际命中远程的 adb server,
+#   从而操作远程主机上插着的 USB 设备。
+#   隧道在本机监听, 目标恒为 localhost:<LOCAL_PORT>, 故用环境变量
+#   ANDROID_ADB_SERVER_PORT 即可 (等价 adb -H localhost:<LOCAL_PORT>):
+#     adb client ──ANDROID_ADB_SERVER_PORT──→ 隧道端口 (本机)
+#       ──SSH (加密+key认证)──→ 远程主机 15037 ──USB──→ device
+#
 # 配置持久化到 ${ADBS_CONF_FILE}, 可手动编辑 (KEY=VALUE)。
 ADBS_CONF_DIR="${HOME}/.config/adbs"
 ADBS_CONF_FILE="${ADBS_CONF_DIR}/adbs.conf"
