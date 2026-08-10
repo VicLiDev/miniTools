@@ -219,7 +219,6 @@ function init_shell()
         echo "# export proxyMihomoBin=\${HOME}/.local/bin/mihomo"       >> ${rc_file}
         echo "# export ANDROID_ADB_SERVER_PORT=<adb_port>"              >> ${rc_file}
         echo "#-- export ADB_SERVER_SOCKET=tcp:127.0.0.1:<port>"        >> ${rc_file}
-        echo "# export SCRCPY_PORT=<scrcpy_port>"                       >> ${rc_file}
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else
@@ -241,7 +240,6 @@ function init_shell()
         echo "# export proxyMihomoBin=\${HOME}/.local/bin/mihomo"       >> ${rc_file}
         echo "# export ANDROID_ADB_SERVER_PORT=<adb_port>"              >> ${rc_file}
         echo "#-- export ADB_SERVER_SOCKET=tcp:127.0.0.1:<port>"        >> ${rc_file}
-        echo "# export SCRCPY_PORT=<scrcpy_port>"                       >> ${rc_file}
         echo "source ${source_file}"                                    >> ${rc_file}
         echo "${rc_file} init finished!"
     else

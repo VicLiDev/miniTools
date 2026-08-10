@@ -123,6 +123,7 @@ devUsbPathList=()
 #   先建 ssh 隧道 localhost:LOCAL_PORT -> 远程:REMOTE_PORT,
 #   再让 adb client 连本机 LOCAL_PORT, 实际命中远程的 adb server,
 #   从而操作远程主机上插着的 USB 设备。
+#   ssh 连接使用 SSH_PORT 配置的远端 sshd 端口 (默认 22, 即 ssh -p SSH_PORT)。
 #   隧道在本机监听, 目标恒为 localhost:<LOCAL_PORT>, 故用环境变量
 #   ANDROID_ADB_SERVER_PORT 即可 (等价 adb -H localhost:<LOCAL_PORT>):
 #     adb client ──ANDROID_ADB_SERVER_PORT──→ 隧道端口 (本机)
@@ -135,6 +136,7 @@ ADBS_CONF_FILE="${ADBS_CONF_DIR}/adbs.conf"
 # 配置项默认值 (无配置文件时使用)
 cfg_mode="local"            # 模式: local | remote
 cfg_remote_host=""          # ssh 目标, 如 user@1.2.3.4
+cfg_ssh_port="22"           # 远端 sshd 端口 (ssh -p)
 cfg_local_port="5038"       # ssh 隧道本地监听端口
 cfg_remote_port="5037"      # 远程 adb server 端口
 cfg_scrcpy_port="27183"     # scrcpy 视频隧道本地监听端口 (scrcpy 默认值)
@@ -168,11 +170,12 @@ function help_info()
     echo "           remote: use remote adb server (auto setup/reuse ssh tunnel)"
     echo "    --local-port <port>   local tunnel listen port (default 5038)"
     echo "    --remote-host <host>  ssh target, e.g. user@1.2.3.4"
+    echo "    --ssh-port <port>     ssh server port on remote host (default 22)"
     echo "    --remote-port <port>  remote adb server port (default 5037)"
     echo "    --scrcpy-port <port>  scrcpy video tunnel port (default 27183)"
-    echo "                           both ends equal (scrcpy tunnel-port single"
-    echo "                           value); error out if occupied, pick a free one"
-    echo "                           env SCRCPY_PORT overrides conf temporarily"
+    echo "                           both ends equal; auto passes --tunnel-port"
+    echo "                           and --port to scrcpy (4.x semantics)"
+    echo "                           error out if occupied, pick a free one"
     echo "    --show-config         show current config"
     echo "    --stop-tunnel         stop all ssh tunnel"
     echo "    NOTE: options above only update config then exit, no adb command runs"
@@ -193,8 +196,10 @@ function help_info()
 # -------------------- 配置读写 --------------------
 
 # 读取持久化配置文件 (KEY=VALUE), 安全逐行解析, 仅认已知键
-# 环境变量 SCRCPY_PORT 可临时覆盖配置文件 (类比 adb 的 ANDROID_ADB_SERVER_PORT),
-# 不落盘; 命令行 --scrcpy-port 仍优先 (在 proc_paras 中覆盖)
+# scrcpy 端口一律以配置为准 (配置文件 / --scrcpy-port 落盘), 无环境变量覆盖:
+#   本地模式标准 adb server 不需要换端口 (无隧道协调, 端口被占时 scrcpy 本地
+#   顺延自愈); 远程模式隧道两端必须同值, 只用配置端口
+# 命令行 --scrcpy-port 仍优先 (在 proc_paras 中覆盖)
 function load_config()
 {
     if [ -f "${ADBS_CONF_FILE}" ]; then
@@ -208,12 +213,12 @@ function load_config()
                 MODE)        cfg_mode="${v}" ;;
                 LOCAL_PORT)  cfg_local_port="${v}" ;;
                 REMOTE_HOST) cfg_remote_host="${v}" ;;
+                SSH_PORT)    cfg_ssh_port="${v}" ;;
                 REMOTE_PORT) cfg_remote_port="${v}" ;;
                 SCRCPY_PORT) cfg_scrcpy_port="${v}" ;;
             esac
         done < "${ADBS_CONF_FILE}"
     fi
-    [ -n "${SCRCPY_PORT:-}" ] && cfg_scrcpy_port="${SCRCPY_PORT}"
 }
 
 # 校验配置合法性 (端口数字/模式取值), 非法则报错退出
@@ -223,7 +228,8 @@ function validate_config()
         local|remote) ;;
         *) echo "[adbs] invalid MODE: '${cfg_mode}' (expected local|remote)" >&2; exit 1 ;;
     esac
-    local -a _ports=("${cfg_local_port}" "${cfg_remote_port}" "${cfg_scrcpy_port}")
+    local -a _ports=("${cfg_local_port}" "${cfg_remote_port}" \
+                     "${cfg_scrcpy_port}" "${cfg_ssh_port}")
     for _p in "${_ports[@]}"; do
         if ! [[ "${_p}" =~ ^[0-9]+$ ]] || [ "${_p}" -lt 1 ] || [ "${_p}" -gt 65535 ]; then
             echo "[adbs] invalid port: '${_p}' (expected 1..65535)" >&2; exit 1
@@ -245,6 +251,7 @@ function save_config()
 MODE=${cfg_mode}
 LOCAL_PORT=${cfg_local_port}
 REMOTE_HOST=${cfg_remote_host}
+SSH_PORT=${cfg_ssh_port}
 REMOTE_PORT=${cfg_remote_port}
 SCRCPY_PORT=${cfg_scrcpy_port}
 EOF
@@ -264,6 +271,7 @@ function show_config()
     echo "MODE        = ${cfg_mode}"
     echo "LOCAL_PORT  = ${cfg_local_port}"
     echo "REMOTE_HOST = ${cfg_remote_host:-(not set)}"
+    echo "SSH_PORT    = ${cfg_ssh_port}"
     echo "REMOTE_PORT = ${cfg_remote_port}"
     echo "SCRCPY_PORT = ${cfg_scrcpy_port}"
 }
@@ -315,6 +323,7 @@ function ssh_tunnel_alive()
 # 复用者: adb 隧道 (默认端口); scrcpy 视频隧道 (两端同值, 以配置端口调用本函数)。
 # 选项说明:
 #   -fNT       -f 认证后转后台; -N 不执行远端命令; -T 不分配伪终端
+#   -p PORT    连接远端 sshd 的端口 (SSH_PORT 配置, 默认 22)
 #   ExitOnForwardFailure=yes  本地端口被占用导致转发失败时, ssh 立即退出
 #   ServerAliveInterval/CountMax  连接保活, 远端失联后 ssh 自动退出 (避免僵尸隧道)
 function ensure_ssh_tunnel()
@@ -349,12 +358,13 @@ function ensure_ssh_tunnel()
     fi
 
     echo "[adbs] setting up ssh tunnel: localhost:${_lp}" >&2
-    echo "       -> ${cfg_remote_host}:${_rp}" >&2
+    echo "       via ssh -p ${cfg_ssh_port} -> ${cfg_remote_host}:${_rp}" >&2
     # ssh -f 认证后转后台, stdio 全部丢弃:
     #   - -f 后台化后本就无输出, 捕获无意义
     #   - 防止命令替换因 stdout 管道被后台进程继承而永久阻塞
     #     (真实 ssh -f 会自行关闭 stdio; 此处兜底不依赖其行为)
     ssh -fNT \
+        -p "${cfg_ssh_port}" \
         -L "${_lp}:127.0.0.1:${_rp}" \
         -o ExitOnForwardFailure=yes \
         -o ServerAliveInterval=30 \
@@ -780,8 +790,10 @@ function root_remount_no_info_devs()
 #   1. adb devices: 拦截 → 伪造单设备列表输出, 让外部程序以为只有一个设备
 #   2. adb reverse: 拦截 → 强制失败, 逼 scrcpy 4.x 走 forward 回退:
 #      部分设备 (RK adbd) 的 reverse 注册成功但设备端 socket 连不上;
-#      且 adb server 非本机 (隧道/容器) 时 reverse 宿主端在远端, scrcpy 本地
-#      连不上。forward 回退端口固定 27183, 便于做端口映射。--remove/--list 放行。
+#      且远端模式 reverse 宿主端在远端, scrcpy 本地连不上。
+#      forward 回退端口默认 27183 (自定义 --scrcpy-port 时由
+#      run_proxy_cmd 补 --port=P:P 一并传给 scrcpy), 便于做端口映射。
+#      --remove/--list 放行。
 #   3. 其他命令 (如 shell/push): 剥离 -s/--serial 参数 (避免与 -t 冲突),
 #      → 改用 adb -t <tp_id> <原始命令> 执行
 # 【实现要点】
@@ -899,36 +911,42 @@ function run_proxy_cmd()
     # Ctrl-C / 正常退出只清理临时包装脚本; scrcpy 隧道常驻, 不随退出销毁
     # (复用/轮转/手动关闭均与 adb 隧道一致, 见 ensure_ssh_tunnel 注释)
     trap 'rm -f "${_wrap}"' EXIT INT
-    if [ "${cmd_proxy_cmd}" == "scrcpy" ]; then
-        if [ "${cfg_mode}" == "remote" ]; then
-            # 远端模式视频隧道 = ensure_ssh_tunnel P P 特例 (scrcpy tunnel-port
-            # 单值, 隧道两端同值)。原理:
-            #   scrcpy 4.x 默认 adb reverse 建通道, wrapper 强制失败后回退
-            #   forward: 远端 adb server 执行 forward tcp:P localabstract:scrcpy
-            #   (监听在远端主机), scrcpy 同时连本机 127.0.0.1:P → 需 ssh -L
-            #   把本机 P 接回远端 P。forward 是 scrcpy 经 ADB 环境变量自己发的,
-            #   adbs 只建隧道 + 必要时补 --tunnel-port。
-            #   三个 P 必须相同: --tunnel-port=P 同时驱动远端 forward 监听端口
-            #   与本机连接端口, 隧道是透明管道, 远端配 Q 则流量无人监听。
-            #   端口被占/建失败 → 报错提示换 --scrcpy-port (不做自动顺延)。
-            if ! ensure_ssh_tunnel "${cfg_scrcpy_port}" "${cfg_scrcpy_port}"; then
-                echo "[adbs] scrcpy tunnel setup failed on :${cfg_scrcpy_port}," >&2
-                echo "       if the port is occupied, pick another one with --scrcpy-port <port>" >&2
-                exit 1
-            fi
-            _sport=${cfg_scrcpy_port}
-            if [ "${_sport}" != "27183" ] \
-                && [[ "${cmd_orgAdbOpt}" != *"--tunnel-port"* ]]; then
-                _extra+=(--tunnel-port="${_sport}")
-            fi
-            echo "[adbs] scrcpy video tunnel: localhost:${_sport} -> ${cfg_remote_host}:${_sport}" >&2
-        elif [ -n "${ANDROID_ADB_SERVER_PORT}" ] \
-            && [ "${ANDROID_ADB_SERVER_PORT}" != "5037" ]; then
-            # 容器等场景: adb server 非本机但无 ssh 通道, 无法自动建隧道, 打印提示
-            echo "[adbs] tip: adb server 非本机, scrcpy 隧道端口需映射:" >&2
-            echo "       ssh -L 27183:127.0.0.1:27183 <server_host>" >&2
-            echo "       (容器场景: 把容器内 27183 端口发布到宿主机)" >&2
+    if [ "${cmd_proxy_cmd}" == "scrcpy" ] && [ "${cfg_mode}" == "remote" ]; then
+        # 远端模式视频隧道 = ensure_ssh_tunnel P P 特例。原理 (scrcpy 4.x):
+        #   scrcpy 默认 adb reverse 建通道, wrapper 强制失败后回退 forward:
+        #   远端 adb server 执行 forward tcp:P <设备端 socket>, 监听端口在
+        #   远端主机; scrcpy 连本机 P → 需 ssh -L 把本机 P 接回远端 P。
+        #   ⚠ 4.x 语义: --tunnel-port 只改"本机连接端口", forward 请求端口
+        #     由 --port 决定 (默认 27183 起, 被占顺延 +1 与隧道错位),
+        #     故自定义端口必须同时给 --tunnel-port=P --port=P:P。
+        #   forward 是 scrcpy 经 ADB 环境变量自己发的, adbs 只建隧道+补参数。
+        #   端口被占/建失败 → 报错提示换 --scrcpy-port (不做自动顺延)。
+        # 预检远端 forward 端口是否可绑: 被占用 (如远端机器自己也用 adbs
+        # 建了 scrcpy 视频隧道) 时 scrcpy 顺延端口与本地隧道错位, 提前
+        # 探测并给出明确提示, 避免长串连接重试。仅 EADDRINUSE 报错,
+        # 其他失败 (如设备掉线) 交给 scrcpy 自己报。
+        local _probe_out
+        _probe_out=$("${_wrap}" forward "tcp:${cfg_scrcpy_port}" \
+                        "tcp:${cfg_scrcpy_port}" 2>&1)
+        if [ $? -eq 0 ]; then
+            "${_wrap}" forward --remove "tcp:${cfg_scrcpy_port}" >/dev/null 2>&1
+        elif [[ "${_probe_out}" == *"Address already in use"* ]]; then
+            echo "[adbs] error: 远端 :${cfg_scrcpy_port} 无法绑定 (被其他进程占用)" >&2
+            echo "       常见原因: 远端机器自己也用 adbs 建了 scrcpy 视频隧道" >&2
+            echo "       解决: 换一个空闲端口 → adbs --scrcpy-port <port> --scrcpy" >&2
+            exit 1
         fi
+        if ! ensure_ssh_tunnel "${cfg_scrcpy_port}" "${cfg_scrcpy_port}"; then
+            echo "[adbs] scrcpy tunnel setup failed on :${cfg_scrcpy_port}," >&2
+            echo "       if the port is occupied, pick another one with --scrcpy-port <port>" >&2
+            exit 1
+        fi
+        _sport=${cfg_scrcpy_port}
+        if [ "${_sport}" != "27183" ] \
+            && [[ "${cmd_orgAdbOpt}" != *"--tunnel-port"* ]]; then
+            _extra+=(--tunnel-port="${_sport}" --port="${_sport}:${_sport}")
+        fi
+        echo "[adbs] scrcpy video tunnel: localhost:${_sport} -> ${cfg_remote_host}:${_sport}" >&2
     fi
     echo "[adbs] proxying '${cmd_proxy_cmd}' via ${_wrap}" >&2
     ADB="${_wrap}" ${cmd_proxy_cmd} ${cmd_orgAdbOpt} "${_extra[@]}"
@@ -959,6 +977,7 @@ function proc_paras()
             --remote-host) cfg_remote_host="$2"; shift; cfg_changed="true" ;;
             --local-port)  cfg_local_port="$2";  shift; cfg_changed="true" ;;
             --remote-port) cfg_remote_port="$2"; shift; cfg_changed="true" ;;
+            --ssh-port)    cfg_ssh_port="$2";    shift; cfg_changed="true" ;;
             --scrcpy-port) cfg_scrcpy_port="$2"; shift; cfg_changed="true" ;;
             --show-config) show_config; exit 0 ;;
             --stop-tunnel) stop_ssh_tunnel; stop_ssh_tunnel "${cfg_scrcpy_port}"; exit 0 ;;
@@ -980,7 +999,7 @@ function main()
     # 快照变更前的配置, 用于检测隧道相关参数是否真正变化 (决定是否轮转隧道)
     local _old_mode="${cfg_mode}" _old_host="${cfg_remote_host}" \
           _old_lport="${cfg_local_port}" _old_rport="${cfg_remote_port}" \
-          _old_sport="${cfg_scrcpy_port}"
+          _old_sport="${cfg_scrcpy_port}" _old_sshp="${cfg_ssh_port}"
     proc_paras $@
 
     # 仅修改配置的调用: 校验 -> 落盘 -> 打印 -> 退出 (不执行 adb 命令)
@@ -994,8 +1013,10 @@ function main()
         # 随后远程模式一律确保隧道就绪: 参数变了就重建, 没变但隧道缺失就补建,
         # 已就绪则直接复用。adb 隧道与 scrcpy 视频隧道同步预创建,
         # 之后运行时只需检查, 不再被动创建/轮转。
-        local _old_sig="${_old_mode}|${_old_host}|${_old_lport}|${_old_rport}|${_old_sport}"
-        local _new_sig="${cfg_mode}|${cfg_remote_host}|${cfg_local_port}|${cfg_remote_port}|${cfg_scrcpy_port}"
+        local _old_sig="${_old_mode}|${_old_host}|${_old_lport}|${_old_rport}"
+        _old_sig+="|${_old_sport}|${_old_sshp}"
+        local _new_sig="${cfg_mode}|${cfg_remote_host}|${cfg_local_port}|${cfg_remote_port}"
+        _new_sig+="|${cfg_scrcpy_port}|${cfg_ssh_port}"
         if [ "${_old_sig}" != "${_new_sig}" ] && [ "${_old_mode}" == "remote" ]; then
             stop_ssh_tunnel "${_old_lport}"
             # scrcpy 视频隧道与 adb 隧道同机制 (仅端口不同, 两端同值),
