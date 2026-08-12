@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #########################################################################
 # File Name: compare_file_batch.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 28 Feb 2024 09:45:38 AM CST
 #########################################################################

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: cmod_opt.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Mon Nov 20 17:07:02 2023
 #########################################################################

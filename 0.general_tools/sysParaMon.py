@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: sysParaMon.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Fri 20 Sep 09:50:32 2024
 #########################################################################

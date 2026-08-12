@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #########################################################################
 # File Name: resolution_test.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Mon 28 Apr 2025 08:39:38 AM CST
 #########################################################################

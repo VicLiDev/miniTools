@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #########################################################################
 # File Name: rk_shell_tools.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 30 Oct 2024 04:56:07 PM CST
 #########################################################################

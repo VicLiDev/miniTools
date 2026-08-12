@@ -1,6 +1,6 @@
 #########################################################################
 # File Name: performanceTest.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Sun 16 Jan 2022 08:58:38 PM CST
 #########################################################################

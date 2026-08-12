@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #########################################################################
 # File Name: sw_codec.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 06 May 2025 05:27:16 PM CST
 #########################################################################

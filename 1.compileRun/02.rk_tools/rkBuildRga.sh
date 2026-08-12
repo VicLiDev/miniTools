@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #########################################################################
 # File Name: .prjBuild.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Mon 16 Mar 2026 05:03:30 PM CST
 #########################################################################

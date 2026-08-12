@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: diff_checker.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Sat 17 May 2025 05:00:14 PM CST
 #########################################################################

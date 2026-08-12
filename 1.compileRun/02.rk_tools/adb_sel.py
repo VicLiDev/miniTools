@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: adb_sel.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 27 May 2025 03:32:02 AM CST
 #########################################################################

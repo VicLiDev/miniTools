@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: test_mpp_migration.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Fri Oct 20 14:54:27 2023
 #########################################################################

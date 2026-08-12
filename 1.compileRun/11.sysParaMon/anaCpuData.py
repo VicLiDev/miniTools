@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: anaCpuData.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 12 Nov 2024 04:19:49 PM CST
 #########################################################################

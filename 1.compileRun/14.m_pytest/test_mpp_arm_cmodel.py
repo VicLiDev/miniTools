@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: test_mpp_arm_cmodel.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Mon Nov 20 16:12:20 2023
 #########################################################################

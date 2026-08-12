@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: decoder.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Sat 17 May 2025 04:58:55 PM CST
 #########################################################################

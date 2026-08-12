@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: sel_node.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 27 May 2025 03:44:09 AM CST
 #########################################################################

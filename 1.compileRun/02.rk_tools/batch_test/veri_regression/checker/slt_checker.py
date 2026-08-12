@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: slt_checker.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 28 May 2025 09:30:54 PM CST
 #########################################################################

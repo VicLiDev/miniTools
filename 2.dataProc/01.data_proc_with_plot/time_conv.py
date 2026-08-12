@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: time_conv.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue  9 Sep 11:16:57 2025
 #########################################################################

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: sysParaMon_run.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Fri 27 Sep 2024 06:58:51 PM CST
 #########################################################################

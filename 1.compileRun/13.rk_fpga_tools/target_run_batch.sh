@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 #########################################################################
 # File Name: target_run_batch.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 08 Jan 2025 09:35:40 AM CST
 #########################################################################

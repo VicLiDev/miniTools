@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: compareInterBs.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed May 31 14:24:21 2023
 #########################################################################

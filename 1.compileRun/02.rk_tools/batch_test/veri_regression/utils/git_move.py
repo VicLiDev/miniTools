@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: git_move.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 10 Jun 2025 11:43:57 AM CST
 #########################################################################

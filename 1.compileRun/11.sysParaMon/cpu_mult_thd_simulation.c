@@ -1,6 +1,6 @@
 /*************************************************************************
     > File Name: cpu_mult_thd_simulation.c
-    > Author: LiHongjin
+    > Author: Hongjin Li
     > Mail: 872648180@qq.com
     > Created Time: Tue 12 Nov 2024 02:29:53 PM CST
  ************************************************************************/

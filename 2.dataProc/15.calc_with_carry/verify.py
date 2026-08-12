@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: verify.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Fri 13 Sep 15:06:51 2024
 #########################################################################

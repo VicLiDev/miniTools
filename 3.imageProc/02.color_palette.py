@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: 2.color_palette.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue  2 Sep 20:35:28 2024
 #########################################################################

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: delayExec.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed Jun 21 15:24:19 2023
 #########################################################################

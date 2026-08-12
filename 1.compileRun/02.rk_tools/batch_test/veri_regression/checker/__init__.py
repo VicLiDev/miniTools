@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: __init__.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 28 May 2025 05:11:08 PM CST
 #########################################################################

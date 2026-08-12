@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: cmodel_reg_proc.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Thu 19 Mar 2026 08:17:23 PM CST
 #########################################################################

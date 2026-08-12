@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #########################################################################
 # File Name: 01.gen_cmd_cfg.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Sun 14 Dec 2025 10:18:23 AM CST
 #########################################################################

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: 08.conv_ascii.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed Jun 28 14:10:45 2023
 #########################################################################

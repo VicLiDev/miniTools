@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: 22.split_bin2frms.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Mon 21 Apr 2026 10:00:00 AM CST
 #########################################################################

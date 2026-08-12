@@ -1,6 +1,6 @@
 #########################################################################
 # File Name: compareHexMulti.sh
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 11 Jan 2022 12:58:16 AM CST
 #########################################################################

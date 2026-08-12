@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: gen_doc.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 06 May 2025 08:29:35 PM CST
 #########################################################################

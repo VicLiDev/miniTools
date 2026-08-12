@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: md5_checker.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Sat 17 May 2025 05:00:38 PM CST
 #########################################################################

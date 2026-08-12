@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: yaml_cfg.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Sat 24 May 10:30:54 2025
 #########################################################################

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #########################################################################
 # File Name: encoder.py
-# Author: LiHongjin
+# Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Tue 27 May 2025 07:58:39 PM CST
 #########################################################################
