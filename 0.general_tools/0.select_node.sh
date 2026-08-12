@@ -36,7 +36,16 @@
 
 # 使用 _sn_ 前缀避免变量名冲突，并用 readonly 保护常量
 readonly _sn_cache_file="${HOME}/bin/select.cache"
-readonly _sn_display_color=36
+# 颜色变量: 打印着色
+readonly _sn_cyan="\033[1;36m"    # 列表高亮
+readonly _sn_green="\033[1;32m"   # 成功提示
+readonly _sn_red="\033[1;31m"     # 错误提示
+readonly _sn_nc="\033[0m"
+
+# 带色打印: 每条输出独立着色, 打印完立即恢复
+function _sn_log_hl()  { echo -e "${_sn_cyan}$*${_sn_nc}" >&2; }
+function _sn_log_ok()  { echo -e "${_sn_green}$*${_sn_nc}" >&2; }
+function _sn_log_err() { echo -e "${_sn_red}$*${_sn_nc}" >&2; }
 # stdout bakfd 1001
 # stderr bakfd 1002
 
@@ -47,11 +56,11 @@ function _sn_display()
     local _header="$3"      # 可选: 表头, 非空时显示在列表前
     local -n _list_ref="${_list_name}"
     local _i
-    echo "Please select ${_tip}:" >&2
-    [ -n "${_header}" ] && echo "${_header}" >&2
+    _sn_log_hl "Please select ${_tip}:"
+    [ -n "${_header}" ] && _sn_log_hl "${_header}"
     for ((_i = 0; _i < ${#_list_ref[@]}; _i++))
     do
-        echo "  ${_i}. ${_list_ref[${_i}]}" >&2
+        _sn_log_hl "  ${_i}. ${_list_ref[${_i}]}"
     done
 }
 
@@ -98,30 +107,28 @@ function select_node()
 
     _def_idx=$(_sn_rd_sel_cache "${_tag}" 0)
 
-    echo -e "\033[0m\033[1;${_sn_display_color}m" >&2
     _sn_display "${_lst_name}" "${_tip}" "${_header}"
 
-    echo "cur dir: $(pwd)" >&2
+    _sn_log_hl "cur dir: $(pwd)"
     while true
     do
-        read -p "Please select ${_tip} or quit(q), def[${_def_idx}]:" _sel_idx >&2
+        read -p "$(echo -e "${_sn_cyan}Please select ${_tip} or quit(q), def[${_def_idx}]:${_sn_nc}")" _sel_idx >&2
         _sel_idx=${_sel_idx:-${_def_idx}}
 
         if [ "${_sel_idx}" == "q" ]; then
-            echo "======> quit <======" >&2
+            _sn_log_hl "======> quit <======"
             exit 1
         elif [[ -n ${_sel_idx} ]] \
             && [[ -z "${_sel_idx//[0-9]/}" ]] \
             && [[ "${_sel_idx}" -lt "${#_lst_ref[@]}" ]]; then
             _sel_res=${_lst_ref[${_sel_idx}]}
-            echo "--> selected index:${_sel_idx}, ${_tip}:${_sel_res}" >&2
+            _sn_log_ok "--> selected index:${_sel_idx}, ${_tip}:${_sel_res}"
             break
         else
             _sel_res=""
-            echo "--> please input num in scope 0-$((${#_lst_ref[@]} - 1))" >&2
+            _sn_log_err "--> please input num in scope 0-$((${#_lst_ref[@]} - 1))"
         fi
     done
 
     _sn_wr_sel_cache "${_tag}" "${_sel_idx}"
-    echo -e "\033[0m" >&2
 }
