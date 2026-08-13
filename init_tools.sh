@@ -172,6 +172,7 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTCore.sh         rkBtC
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTTolkit.sh       rkBt
     create_link_to_bin ${rk_tools_dir}/batch_test/veri_regression/main.py rk_r_ver
+    create_link_to_bin ${rk_tools_dir}/rk_dec_verify.sh                   rkDecVerify.sh
 
     # rga
     create_link_to_bin ${rk_tools_dir}/rkBuildRga.sh rkBuildRga.sh
