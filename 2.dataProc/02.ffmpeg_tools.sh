@@ -861,11 +861,15 @@ f_v2yuv()
     local file_size
     file_size=$(ls -lh "${cmd_input}" | awk '{print $5}')
 
-    # 解码视频到原始 YUV 数据
+    # 解码视频到原始 YUV 数据（不做修复、不隐藏错误、不跳帧）
+    # -ec 0:         关闭错误隐藏/修复算法（MPEG 系解码器，默认 guess_mvs+deblock）
+    # -enable_er 0:  关闭错误韧性/修复（H.264 解码器，默认 auto）
+    # 不加 -err_detect explode：遇到坏帧只报错并继续解码，全部帧解码完成
     # -c:v rawvideo: 使用 rawvideo 解码器输出未压缩的原始像素数据
     # -pix_fmt: 指定输出的像素格式
     # -f rawvideo: 输出格式为原始视频（无容器封装）
-    local exe_cmd=(ffmpeg -v error -i "${cmd_input}" -c:v rawvideo -pix_fmt "${cmd_fmt}" -f rawvideo)
+    local exe_cmd=(ffmpeg -v error -ec 0 -enable_er 0 -i "${cmd_input}"
+                   -c:v rawvideo -pix_fmt "${cmd_fmt}" -f rawvideo)
     if [ "${cmd_frames}" != "0" ]; then
         exe_cmd+=(-vframes "${cmd_frames}")
     fi
@@ -878,7 +882,7 @@ f_v2yuv()
     echo
 
     eval ${exe_cmd[@]}
-    [ $? -eq 0 ] && echo "done: ${cmd_out}" || echo "decode failed!"
+    [ $? -eq 0 ] && { echo "done: ${cmd_out}"; } || { echo "decode failed!"; }
 }
 
 f_playyuv()
