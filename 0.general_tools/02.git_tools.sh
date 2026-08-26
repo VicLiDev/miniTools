@@ -49,79 +49,65 @@ then
         git config --global core.sshCommand "ssh -o ProxyCommand='nc -X 5 -x ${proxyIP}:${proxyPort} %h %p'"
     fi
 
-    # <SSH 代理 - 方案二：修改 ~/.ssh/config>
+    # <SSH 代理 - 方案二：ssh config Include 独立文件>
     # 直接修改 SSH 配置文件，影响所有 SSH 操作（git/ssh/scp 等）
     # 与方案一的区别：方案一只影响 git，本方案影响所有通过 SSH 的操作
     #
-    # 分三种情况处理：
-    #   1) 已有 github.com Host 块，且已有 ProxyCommand → 更新为当前代理地址
-    #   2) 已有 github.com Host 块，但没有 ProxyCommand → 在块末尾（空行前）追加
-    #   3) 没有 github.com Host 块 → 追加一个完整的 Host 块
+    # 直接修改 ~/.ssh/config 有风险（sed 对空行/尾随换行/CRLF 敏感，曾造成误删用户配置），
+    # 改用 OpenSSH 的 Include 机制（OpenSSH ≥ 6.7）：
+    #   - 代理配置放在独立文件 ~/.ssh/config.d/personal-proxy，由本脚本全量重建
+    #   - 主 config 只维护一行 "Include <绝对路径>/personal-proxy"（放在文件开头）
+    #     注意：Include 的相对路径是相对用户家目录（不是 config 所在目录），
+    #     必须用绝对路径（实测验证：相对路径的 Include 会被 ssh 静默忽略）
+    #   - ssh 对同一参数取"最先获得的值"（first match wins），Include 在开头，
+    #     可压过主 config 里已有的旧 github.com 块，无需清理主 config
+    #   - 该规则按"参数"独立生效：config.d 只写了 ProxyCommand，所以主 config
+    #     里的 ProxyCommand 被压过；但 IdentityFile 等 config.d 没写的参数，
+    #     主 config 中首次出现仍正常生效（如密钥可放心写在主 config）
+    #   - 主 config 的其他内容（其他 Host、IdentityFile 等）完全不被触碰
+    #   命名说明：Include 行已在主 config 行首保证优先级，文件名无需数字前缀
+    #   （数字前缀仅在使用通配符批量 Include 时才参与排序）；取名 personal-proxy
+    #   表示个人机器的通用代理文件，不限定 git（其他走代理的 Host 也写这里）
+    #   Include 支持性检查：OpenSSH ≥ 6.7 支持，版本号是硬标准；手册仅参考
+    #   （man 渲染后 Include 不在行首，需 col -b 去控制符再搜）：
+    #     ssh -V                                          # 版本 ≥ 6.7 即支持
+    #     man ssh_config | col -b | grep -i -A3 include   # 手册出现 Include 即支持
+    #   Include 生效验证：ssh -G 会展开 Include（仅绝对路径有效，相对路径
+    #   被静默忽略），可直接检查解析结果：
+    #     ssh -G github.com | grep -i proxycommand        # 应看到 config.d 里的值
     if command -v nc &> /dev/null; then
         _ssh_cfg="${HOME}/.ssh/config"
+        _ssh_cfg_dir="${HOME}/.ssh/config.d"
+        _ssh_proxy_file="${_ssh_cfg_dir}/personal-proxy"
+        _ssh_include_line="Include ${_ssh_proxy_file}"
         _ssh_proxy_cfg="ProxyCommand nc -X 5 -x ${proxyIP}:${proxyPort} %h %p"
-        # 用临时文件代替 sed -i，彻底避免 GNU/BSD sed 的 -i 语法差异
-        #   GNU sed: sed -i 's/a/b/' file        ← 无需后缀
-        #   BSD sed: sed -i '' 's/a/b/' file     ← 必须传空字符串后缀
-        # 两步操作：
-        #   1) sed "$@" "${_ssh_cfg}" > "${_ssh_cfg}.tmp"
-        #      $@ 透传所有参数给 sed，调用者决定具体编辑逻辑，函数只负责"原地写入"
-        #      结果写入 .tmp 临时文件，不修改原文件
-        #   2) && mv "${_ssh_cfg}.tmp" "${_ssh_cfg}"
-        #      sed 成功（退出码 0）后，将临时文件替换原文件
-        #      && 保证 sed 失败时不会用损坏的临时文件覆盖原配置
-        _sed_inplace() {
-            sed "$@" "${_ssh_cfg}" > "${_ssh_cfg}.tmp" && mv "${_ssh_cfg}.tmp" "${_ssh_cfg}"
-        }
-        if [ -f "${_ssh_cfg}" ]; then
-            # grep -q "^Host github.com"：
-            #   ^       行首锚定，避免匹配到 "# Host github.com" 注释行
-            #   -q      quiet（静默模式），不输出匹配内容，只返回退出码（0=匹配到, 1=未匹配）
-            if grep -q "^Host github.com" "${_ssh_cfg}"; then
-                # 情况 1 或 2：已有 Host 块
-                # 先尝试替换已有的 ProxyCommand（情况 1：有则更新；情况 2：无则什么都不做）
-                # sed 命令详解：
-                #   "/^Host github.com/,/^$/"  地址范围：从 Host 行到空行（一个 Host 块）
-                #   { ... }         在该范围内执行大括号内的命令
-                #   s|ProxyCommand.*|${_ssh_proxy_cfg}|  替换整行 ProxyCommand 为新值
-                #                  使用 | 作为分隔符（因为替换内容包含 /）
-                _sed_inplace '/^Host github.com/,/^$/{ s|ProxyCommand.*|'"${_ssh_proxy_cfg}"'|; }'
-                # 替换后再次检查，如果仍然没有 ProxyCommand → 说明原本就没有，需要追加（情况 2）
-                # 用 sed 取出整个 Host 块内容（从 Host 行到空行），再 grep 查 ProxyCommand
-                # 不用 grep -A5（固定行数可能不够，块内配置多时会漏掉）
-                # sed 参数说明：
-                #   -n              默认不输出任何行（安静模式），只输出 p 命令显式匹配的行
-                #   "/^Host github.com/,/^$/p"  地址范围 + p 命令：打印从 Host 行到空行的所有内容
-                #   如果不加 -n，sed 会先打印所有行，p 命令又会重复打印匹配的行（输出两份）
-                if ! sed -n "/^Host github.com/,/^$/p" "${_ssh_cfg}" | grep -q "ProxyCommand"; then
-                    # 在 Host 块的末尾（空行之前）追加 ProxyCommand
-                    # sed i\ 命令详解：
-                    #   "/^Host github.com/,/^$/"  地址范围：从 Host 行到空行
-                    #   /^$/           匹配空行（块结尾）
-                    #   i\\             insert：在匹配行之前插入
-                    #   注意：POSIX sed 要求 \\ 后必须换行，插入内容写在下一行
-                    _sed_inplace "/^Host github.com/,/^$/{ /^$/i\\
-    ${_ssh_proxy_cfg}
-}"
-                fi
-                # 情况 4：Host github.com 是最后一个块，且文件末尾无空行
-                # 上面 /^$/ 范围无法终止（没有空行来结束范围），替换和插入都未生效
-                # 判断条件：从 Host github.com 到文件末尾没有空行（说明块直接延伸到 EOF）
-                #           且该范围内没有 ProxyCommand（避免重复追加）
-                if ! sed -n '/^Host github.com/,$p' "${_ssh_cfg}" | grep -q '^$' \
-                   && ! sed -n '/^Host github.com/,$p' "${_ssh_cfg}" | grep -q "ProxyCommand"; then
-                    printf '    %s\n' "${_ssh_proxy_cfg}" >> "${_ssh_cfg}"
-                fi
-            else
-                # 情况 3：没有 Host 块 → 追加完整块
-                printf '\nHost github.com\n    HostName github.com\n    User git\n    %s\n' "${_ssh_proxy_cfg}" >> "${_ssh_cfg}"
-            fi
-        else
-            # ~/.ssh/config 不存在 → 创建文件并写入完整配置
-            printf 'Host github.com\n    HostName github.com\n    User git\n    %s\n' "${_ssh_proxy_cfg}" > "${_ssh_cfg}"
+
+        # 1) 重建独立代理文件（原子写：tmp + mv；内容无变化则不写，mtime 保持不变）
+        mkdir -p "${_ssh_cfg_dir}"
+        {
+            printf 'Host github.com\n'
+            printf '    HostName github.com\n'
+            printf '    User git\n'
+            printf '    %s\n' "${_ssh_proxy_cfg}"
+        } > "${_ssh_proxy_file}.tmp"
+        if ! cmp -s "${_ssh_proxy_file}.tmp" "${_ssh_proxy_file}"; then
+            mv "${_ssh_proxy_file}.tmp" "${_ssh_proxy_file}"
+            chmod 600 "${_ssh_proxy_file}"
+        fi
+        rm -f "${_ssh_proxy_file}.tmp"
+
+        # 2) 主 config 只维护一行 Include（幂等：精确整行匹配已有则不动）
+        #    grep -qF：-F 固定字符串匹配，避免正则误匹配
+        #    -x：整行完全相等，避免匹配到注释行或缩进行
+        if ! grep -qxF "${_ssh_include_line}" "${_ssh_cfg}" 2>/dev/null; then
+            {
+                printf '%s\n\n' "${_ssh_include_line}"
+                [ -f "${_ssh_cfg}" ] && cat "${_ssh_cfg}"
+            } > "${_ssh_cfg}.tmp"
+            mv "${_ssh_cfg}.tmp" "${_ssh_cfg}"
             chmod 600 "${_ssh_cfg}"
         fi
-        unset -f _sed_inplace; unset _ssh_proxy_cfg _ssh_cfg
+        unset _ssh_cfg _ssh_cfg_dir _ssh_proxy_file _ssh_include_line _ssh_proxy_cfg
     fi
 fi
 
