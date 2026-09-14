@@ -195,6 +195,7 @@ function mount_smb()
     pw=${4}
     loc_dir=${5}
     loc_pfx=${6}
+    extra_opts=${9}
     # Linux
     loc_uid=""
     loc_gid=""
@@ -218,7 +219,7 @@ function mount_smb()
 
     if [[ -z "${rmt_ip}" || -z "${rmt_dir}" || -z "${usr}" || -z "${pw}" ]]
     then
-        echo "Usage: mount_smb <srv_ip> <srv_dir> <usr> <pw> <loc_dir> <loc_prefix> <loc_uid> <loc_gid>"
+        echo "Usage: mount_smb <srv_ip> <srv_dir> <usr> <pw> <loc_dir> <loc_prefix> <loc_uid> <loc_gid> [extra_mount_opts]"
         return 1
     fi
 
@@ -231,9 +232,18 @@ function mount_smb()
         chmod 755 ${loc_mtp}
         # uid 和 gid 只是说文件挂载给谁，即挂在之后，ls可以查看当前文件所属用户
         # 如果想让其他人也访问的话，可以修改file_mode/dir_mode
-        cmd="sudo mount -t cifs ${rmt_addr} ${loc_mtp} -o username=${usr},password=${pw},uid=${loc_uid},gid=${loc_gid},file_mode=0664,dir_mode=0775"
+        # 密码含引号等特殊字符时，libmount 解析 -o 会吞掉其后的选项且无法转义，
+        # 故改用凭据文件（由 mount.cifs 原样读取，需已安装 cifs-utils）
+        cred_file=$(mktemp /tmp/.smbcred.XXXXXX)
+        chmod 600 "${cred_file}"
+        printf 'username=%s\npassword=%s\n' "${usr}" "${pw}" > "${cred_file}"
+        cmd="sudo mount -t cifs ${rmt_addr} ${loc_mtp} -o credentials=${cred_file},uid=${loc_uid},gid=${loc_gid},file_mode=0664,dir_mode=0775"
+        [ -n "${extra_opts}" ] && cmd="${cmd},${extra_opts}"
         echo "cur cmd: ${cmd}"
         eval ${cmd}
+        rc=$?
+        rm -f "${cred_file}"
+        return ${rc}
     elif [ "$(uname)" = "Darwin" ]
     then
         # 构造远程SMB地址和本地挂载点
