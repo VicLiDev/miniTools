@@ -267,6 +267,79 @@ function mount_smb()
 }
 
 
+function mount_ssh()
+{
+    # Linux / macOS 通用（依赖 sshfs 走 SSH 通道，无需服务端额外配置）
+    # Linux: sudo apt-get install sshfs
+    # macOS: brew install macfuse sshfs   (需先在系统设置里允许 macFUSE 扩展)
+    # 前提：已配置好到目标主机的 SSH 免密（或能交互输密码）
+    # 卸载：sudo umount <挂载点>（三种挂载方式通用）
+    rmt_ip=${1}
+    rmt_dir=${2}
+    usr=${3}
+    loc_dir=${4}
+    loc_pfx=${5}
+    extra_opts=${6}
+
+    if [[ -z "${rmt_ip}" || -z "${rmt_dir}" || -z "${usr}" || -z "${loc_dir}" || -z "${loc_pfx}" ]]
+    then
+        echo "Usage: mount_ssh <srv_ip> <srv_dir> <usr> <loc_dir> <loc_prefix> [extra_mount_opts]"
+        return 1
+    fi
+
+    # 挂载点命名：<前缀>_<远端目录名>，如远端的 /home/lhj/mnt + 前缀 105 -> 105_mnt
+    rmt_base=$(basename "${rmt_dir%/}")
+    [ -z "${rmt_base}" ] && rmt_base="mount_point"
+    rmt_addr="${usr}@${rmt_ip}:${rmt_dir}"
+    loc_mtp="${loc_dir}/${loc_pfx}_${rmt_base}"
+    [ ! -e "${loc_mtp}" ] && mkdir -p "${loc_mtp}"
+    chmod 755 "${loc_mtp}"
+
+    # idmap=user: 本地当前用户 <-> 远端登录用户，避免权限错乱
+    opts="reconnect,ServerAliveInterval=15,ServerAliveCountMax=3,idmap=user"
+    [ -n "${extra_opts}" ] && opts="${opts},${extra_opts}"
+    cmd="sshfs ${rmt_addr} ${loc_mtp} -o ${opts}"
+    echo "cur cmd: ${cmd}"
+    eval ${cmd}
+    return $?
+}
+
+
+function mount_nfs()
+{
+    # Linux / macOS 通用（NFS 无用户密码，靠服务端 /etc/exports 授权）
+    # Linux: sudo apt-get install nfs-common
+    # macOS: 系统自带 NFS 客户端，无需安装
+    rmt_ip=${1}
+    rmt_dir=${2}
+    loc_dir=${3}
+    loc_pfx=${4}
+    extra_opts=${5}
+
+    if [[ -z "${rmt_ip}" || -z "${rmt_dir}" || -z "${loc_dir}" || -z "${loc_pfx}" ]]
+    then
+        echo "Usage: mount_nfs <srv_ip> <srv_dir> <loc_dir> <loc_prefix> [extra_mount_opts]"
+        return 1
+    fi
+
+    # 挂载点命名：<前缀>_<远端目录名>，如远端的 /home/lhj/mnt + 前缀 65 -> 65_mnt
+    rmt_base=$(basename "${rmt_dir%/}")
+    [ -z "${rmt_base}" ] && rmt_base="mount_point"
+    rmt_addr="${rmt_ip}:${rmt_dir}"
+    loc_mtp="${loc_dir}/${loc_pfx}_${rmt_base}"
+    [ ! -e "${loc_mtp}" ] && mkdir -p "${loc_mtp}"
+    chmod 755 "${loc_mtp}"
+
+    # 不写死 vers，交由客户端与服务端协商；soft/timeo 避免服务端失联时卡死
+    opts="soft,timeo=30,retrans=3"
+    [ -n "${extra_opts}" ] && opts="${opts},${extra_opts}"
+    cmd="sudo mount -t nfs ${rmt_addr} ${loc_mtp} -o ${opts}"
+    echo "cur cmd: ${cmd}"
+    eval ${cmd}
+    return $?
+}
+
+
 function _fmt_filter_files()
 {
     local allowed="$1"
