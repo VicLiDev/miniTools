@@ -213,6 +213,7 @@ function init_shell()
         echo "# =========== Personal configuration ===================" >> ${rc_file}
         echo "# ======================================================" >> ${rc_file}
         echo "# ======> my tools and config"                            >> ${rc_file}
+        echo "# export GIT_SSH_PORT=443"                                >> ${rc_file}
         echo "# proxyIP=<your_proxy_ip>"                                >> ${rc_file}
         echo "# proxyPort=<your_proxy_port>"                            >> ${rc_file}
         echo "# export proxyMihomoAddr=127.0.0.1:9090"                  >> ${rc_file}
@@ -234,6 +235,7 @@ function init_shell()
         echo "# =========== Personal configuration ===================" >> ${rc_file}
         echo "# ======================================================" >> ${rc_file}
         echo "# ======> my tools and config"                            >> ${rc_file}
+        echo "# export GIT_SSH_PORT=443"                                >> ${rc_file}
         echo "# proxyIP=<your_proxy_ip>"                                >> ${rc_file}
         echo "# proxyPort=<your_proxy_port>"                            >> ${rc_file}
         echo "# export proxyMihomoAddr=127.0.0.1:9090"                  >> ${rc_file}

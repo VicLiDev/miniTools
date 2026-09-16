@@ -48,68 +48,94 @@ then
     if command -v nc &> /dev/null; then
         git config --global core.sshCommand "ssh -o ProxyCommand='nc -X 5 -x ${proxyIP}:${proxyPort} %h %p'"
     fi
-
-    # <SSH 代理 - 方案二：ssh config Include 独立文件>
-    # 直接修改 SSH 配置文件，影响所有 SSH 操作（git/ssh/scp 等）
-    # 与方案一的区别：方案一只影响 git，本方案影响所有通过 SSH 的操作
-    #
-    # 直接修改 ~/.ssh/config 有风险（sed 对空行/尾随换行/CRLF 敏感，曾造成误删用户配置），
-    # 改用 OpenSSH 的 Include 机制（OpenSSH ≥ 6.7）：
-    #   - 代理配置放在独立文件 ~/.ssh/config.d/personal-proxy，由本脚本全量重建
-    #   - 主 config 只维护一行 "Include <绝对路径>/personal-proxy"（放在文件开头）
-    #     注意：Include 的相对路径是相对用户家目录（不是 config 所在目录），
-    #     必须用绝对路径（实测验证：相对路径的 Include 会被 ssh 静默忽略）
-    #   - ssh 对同一参数取"最先获得的值"（first match wins），Include 在开头，
-    #     可压过主 config 里已有的旧 github.com 块，无需清理主 config
-    #   - 该规则按"参数"独立生效：config.d 只写了 ProxyCommand，所以主 config
-    #     里的 ProxyCommand 被压过；但 IdentityFile 等 config.d 没写的参数，
-    #     主 config 中首次出现仍正常生效（如密钥可放心写在主 config）
-    #   - 主 config 的其他内容（其他 Host、IdentityFile 等）完全不被触碰
-    #   命名说明：Include 行已在主 config 行首保证优先级，文件名无需数字前缀
-    #   （数字前缀仅在使用通配符批量 Include 时才参与排序）；取名 personal-proxy
-    #   表示个人机器的通用代理文件，不限定 git（其他走代理的 Host 也写这里）
-    #   Include 支持性检查：OpenSSH ≥ 6.7 支持，版本号是硬标准；手册仅参考
-    #   （man 渲染后 Include 不在行首，需 col -b 去控制符再搜）：
-    #     ssh -V                                          # 版本 ≥ 6.7 即支持
-    #     man ssh_config | col -b | grep -i -A3 include   # 手册出现 Include 即支持
-    #   Include 生效验证：ssh -G 会展开 Include（仅绝对路径有效，相对路径
-    #   被静默忽略），可直接检查解析结果：
-    #     ssh -G github.com | grep -i proxycommand        # 应看到 config.d 里的值
-    if command -v nc &> /dev/null; then
-        _ssh_cfg="${HOME}/.ssh/config"
-        _ssh_cfg_dir="${HOME}/.ssh/config.d"
-        _ssh_proxy_file="${_ssh_cfg_dir}/personal-proxy"
-        _ssh_include_line="Include ${_ssh_proxy_file}"
-        _ssh_proxy_cfg="ProxyCommand nc -X 5 -x ${proxyIP}:${proxyPort} %h %p"
-
-        # 1) 重建独立代理文件（原子写：tmp + mv；内容无变化则不写，mtime 保持不变）
-        mkdir -p "${_ssh_cfg_dir}"
-        {
-            printf 'Host github.com\n'
-            printf '    HostName github.com\n'
-            printf '    User git\n'
-            printf '    %s\n' "${_ssh_proxy_cfg}"
-        } > "${_ssh_proxy_file}.tmp"
-        if ! cmp -s "${_ssh_proxy_file}.tmp" "${_ssh_proxy_file}"; then
-            mv "${_ssh_proxy_file}.tmp" "${_ssh_proxy_file}"
-            chmod 600 "${_ssh_proxy_file}"
-        fi
-        rm -f "${_ssh_proxy_file}.tmp"
-
-        # 2) 主 config 只维护一行 Include（幂等：精确整行匹配已有则不动）
-        #    grep -qF：-F 固定字符串匹配，避免正则误匹配
-        #    -x：整行完全相等，避免匹配到注释行或缩进行
-        if ! grep -qxF "${_ssh_include_line}" "${_ssh_cfg}" 2>/dev/null; then
-            {
-                printf '%s\n\n' "${_ssh_include_line}"
-                [ -f "${_ssh_cfg}" ] && cat "${_ssh_cfg}"
-            } > "${_ssh_cfg}.tmp"
-            mv "${_ssh_cfg}.tmp" "${_ssh_cfg}"
-            chmod 600 "${_ssh_cfg}"
-        fi
-        unset _ssh_cfg _ssh_cfg_dir _ssh_proxy_file _ssh_include_line _ssh_proxy_cfg
-    fi
+else
+    # 无代理配置：清理本脚本此前写入的代理项，避免残留导致 git 一直走已失效的代理
+    # （--unset-all 对不存在的 key 会返回非 0，用 || true 忽略；仅清理本脚本管辖的 key）
+    git config --global --unset-all core.sshCommand  2>/dev/null || true
+    git config --global --unset-all http.proxy       2>/dev/null || true
+    git config --global --unset-all https.proxy      2>/dev/null || true
 fi
+
+# <SSH config Include 独立文件：GitHub host + 端口选择>
+# 直接修改 SSH 配置文件，影响所有 SSH 操作（git/ssh/scp 等）
+# 与方案一的区别：方案一只影响 git，本方案影响所有通过 SSH 的操作
+#
+# 直接修改 ~/.ssh/config 有风险（sed 对空行/尾随换行/CRLF 敏感，曾造成误删用户配置），
+# 改用 OpenSSH 的 Include 机制（OpenSSH ≥ 6.7）：
+#   - 内容放在独立文件 ~/.ssh/config.d/personal-github，由本脚本全量重建
+#   - 主 config 只维护一行 "Include <绝对路径>/personal-github"（放在文件开头）
+#     注意：Include 的相对路径是相对用户家目录（不是 config 所在目录），
+#     必须用绝对路径（实测验证：相对路径的 Include 会被 ssh 静默忽略）
+#   - ssh 对同一参数取"最先获得的值"（first match wins），Include 在开头，
+#     可压过主 config 里已有的旧 github.com 块，无需清理主 config
+#   - 该规则按"参数"独立生效：本文件没写的参数（如 IdentityFile），
+#     主 config 中首次出现仍正常生效（如密钥可放心写在主 config）
+#   - 主 config 的其他内容（其他 Host、IdentityFile 等）完全不被触碰
+#
+# 本块与代理解耦：HostName/Port/User 始终写入（无代理也生效，用于选 GitHub 端口），
+# 只有 ProxyCommand 一行在"配置了代理且 nc 可用"时才追加。
+#   Include 支持性检查：OpenSSH ≥ 6.7 支持，版本号是硬标准；手册仅参考
+#   （man 渲染后 Include 不在行首，需 col -b 去控制符再搜）：
+#     ssh -V                                          # 版本 ≥ 6.7 即支持
+#     man ssh_config | col -b | grep -i -A3 include   # 手册出现 Include 即支持
+#   Include 生效验证：ssh -G 会展开 Include（仅绝对路径有效，相对路径
+#   被静默忽略），可直接检查解析结果：
+#     ssh -G github.com | grep -iE 'hostname|port|proxycommand'
+_ssh_cfg="${HOME}/.ssh/config"
+_ssh_cfg_dir="${HOME}/.ssh/config.d"
+_ssh_proxy_file="${_ssh_cfg_dir}/personal-github"
+_ssh_include_line="Include ${_ssh_proxy_file}"
+
+# <GitHub SSH 端口选择>
+# 22  -> 直连 github.com:22（默认端口，有些网络的出口防火墙会封 22）
+# 443 -> 走 GitHub 的 443 SSH 入口 ssh.github.com:443（复用 HTTPS 端口，抗封）
+#   注意：443 时必须把 HostName 一起换成 ssh.github.com；
+#   只改 Port=443 而 HostName 仍为 github.com 会连到 HTTPS 端口，握手失败
+#   （实测 github.com:443 报 kex_exchange_identification: Connection closed）
+# 可用环境变量 GIT_SSH_PORT 覆盖，默认 443
+_ssh_gh_port="${GIT_SSH_PORT:-443}"
+if [ "${_ssh_gh_port}" = "443" ]; then
+    _ssh_gh_host="ssh.github.com"
+else
+    _ssh_gh_host="github.com"
+fi
+
+# ProxyCommand 仅在配置了代理且 nc 可用时附加（否则该行省略）
+_ssh_proxy_cfg=""
+if [[ -n "${proxyIP}" && -n "${proxyPort}" ]] && command -v nc &> /dev/null; then
+    _ssh_proxy_cfg="ProxyCommand nc -X 5 -x ${proxyIP}:${proxyPort} %h %p"
+fi
+
+# 1) 重建独立文件（原子写：tmp + mv；内容无变化则不写，mtime 保持不变）
+mkdir -p "${_ssh_cfg_dir}"
+{
+    printf 'Host github.com\n'
+    printf '    HostName %s\n' "${_ssh_gh_host}"
+    printf '    Port %s\n' "${_ssh_gh_port}"
+    printf '    User git\n'
+    if [ -n "${_ssh_proxy_cfg}" ]; then
+        printf '    %s\n' "${_ssh_proxy_cfg}"
+    fi
+} > "${_ssh_proxy_file}.tmp"
+if ! cmp -s "${_ssh_proxy_file}.tmp" "${_ssh_proxy_file}"; then
+    mv "${_ssh_proxy_file}.tmp" "${_ssh_proxy_file}"
+    chmod 600 "${_ssh_proxy_file}"
+fi
+rm -f "${_ssh_proxy_file}.tmp"
+
+# 2) 主 config 只维护一行 Include（幂等：精确整行匹配已有则不动）
+#    grep -qF：-F 固定字符串匹配，避免正则误匹配
+#    -x：整行完全相等，避免匹配到注释行或缩进行
+if ! grep -qxF "${_ssh_include_line}" "${_ssh_cfg}" 2>/dev/null; then
+    {
+        printf '%s\n\n' "${_ssh_include_line}"
+        [ -f "${_ssh_cfg}" ] && cat "${_ssh_cfg}"
+    } > "${_ssh_cfg}.tmp"
+    mv "${_ssh_cfg}.tmp" "${_ssh_cfg}"
+    chmod 600 "${_ssh_cfg}"
+fi
+unset _ssh_cfg _ssh_cfg_dir _ssh_proxy_file _ssh_include_line _ssh_proxy_cfg \
+      _ssh_gh_port _ssh_gh_host
 
 # =============================================================================
 # =============================== tools =======================================
