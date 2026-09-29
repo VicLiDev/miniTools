@@ -182,6 +182,15 @@ function check_env()
     if ffmpeg -hide_banner -dn -version 2>&1 | grep -qi "unrecognized option"; then
         dn_opt=""
     fi
+
+    # 软解参考必须逐帧原样输出 (时间戳异常的片源会被默认帧率对齐丢弃)
+    # 新版 ffmpeg 用 -fps_mode passthrough, 老版回退到等价的 -vsync 0
+    fps_mode_opt=""
+    if ffmpeg -hide_banner -h full 2>/dev/null | grep -q -- "-fps_mode"; then
+        fps_mode_opt="-fps_mode passthrough"
+    elif ffmpeg -hide_banner -h full 2>/dev/null | grep -q -- "-vsync"; then
+        fps_mode_opt="-vsync 0"
+    fi
 }
 
 # ==================== 设备相关 ====================
@@ -486,7 +495,7 @@ function soft_decode()
 
     fmt=$(get_soft_pixfmt)
     ffmpeg_cmd="ffmpeg -y -threads 1 -v error -nostdin -i '${strm_file}' \
-        -an -sn ${dn_opt} -c:v rawvideo"
+        -an -sn ${dn_opt} -c:v rawvideo ${fps_mode_opt}"
     [ -n "${fmt}" ] && ffmpeg_cmd="${ffmpeg_cmd} -pix_fmt ${fmt}"
     ffmpeg_cmd="${ffmpeg_cmd} -f rawvideo '${out_yuv}'"
 
