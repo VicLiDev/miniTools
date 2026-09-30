@@ -65,7 +65,7 @@ function init_source_tools()
     echo "source ${repo_root}/0.general_tools/01.gen_cmd_cfg.sh" > ${source_file}
     echo "source ${repo_root}/0.general_tools/02.git_tools.sh" >> ${source_file}
     echo "source ${repo_root}/1.compileRun/02.rk_tools/rk_shell_tools.sh" >> ${source_file}
-    echo "source ${repo_root}/2.dataProc/02.ffmpeg_tools.sh" >> ${source_file}
+    echo "source ${repo_root}/2.dataProc/02.ffmpeg_tools/01.general.sh" >> ${source_file}
 }
 
 # =============================================================================

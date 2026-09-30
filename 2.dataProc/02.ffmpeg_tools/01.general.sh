@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 18.vcut.sh
+# File Name: 01.general.sh
 # Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Thu 28 Nov 2024 11:25:34 AM CST
 #########################################################################
-
-# add to bashrc:
-# source ${HOME}/Projects/miniTools/2.dataProc/18.ffmpeg_tools.sh
 
 alias mffmpeg=${HOME}/Projects/ffmpeg_ex/build_linux_x86/bin/ffmpeg
 alias mffplay=${HOME}/Projects/ffmpeg_ex/build_linux_x86/bin/ffplay
