@@ -81,6 +81,7 @@ function init_general_tools()
 
     create_link_to_bin ${tools_dir}/0.dir_file_opt.sh _dir_file_opt.sh
     create_link_to_bin ${tools_dir}/0.log.sh          _log.sh
+    create_link_to_bin ${tools_dir}/0.csv.sh          _csv.sh
     create_link_to_bin ${tools_dir}/0.select_node.sh  _select_node.sh
     create_link_to_bin ${tools_dir}/sel_node.py       _select_node.py
     create_link_to_bin ${tools_dir}/sysParaMon.py     _sysParaMon.py
