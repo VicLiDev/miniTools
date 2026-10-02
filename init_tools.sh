@@ -137,6 +137,7 @@ function init_data_proc_tools()
     create_link_to_bin ${tools_dir}/02.ffmpeg_tools/02.probe_stream.sh          m_probe_stream.sh
     create_link_to_bin ${tools_dir}/03.reg_opt/main.py                          m_reg_ut.py
     create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh                  m_cmp_dir.sh
+    create_link_to_bin ${tools_dir}/04.compareMulti/cmp_yuv.sh                  m_cmp_yuv.sh
     create_link_to_bin ${tools_dir}/05.split_hex_str.py                         m_split_hex_str.py
     create_link_to_bin ${tools_dir}/06.split_hex_txt.py                         m_split_hex_txt.py
     create_link_to_bin ${tools_dir}/07.conv_bit2val.py                          m_convbit2val.py
