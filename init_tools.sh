@@ -128,6 +128,7 @@ function init_data_proc_tools()
 
     create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py  m_plt.py
     create_link_to_bin ${tools_dir}/01.data_proc_with_plot/time_conv.py         m_time_conv.py
+    create_link_to_bin ${tools_dir}/02.ffmpeg_tools/02.probe_stream.sh          m_probe_stream.sh
     create_link_to_bin ${tools_dir}/03.reg_opt/main.py                          m_reg_ut.py
     create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh                  m_cmp_dir.sh
     create_link_to_bin ${tools_dir}/05.split_hex_str.py                         m_split_hex_str.py
