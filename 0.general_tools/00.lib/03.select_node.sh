@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 0.select_node.sh
+# File Name: 03.select_node.sh
 # Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Mon 15 Jul 2024 09:09:03 AM CST
 #########################################################################
 
 # usage:
-#     1. exec cmd: source $(dirname $(readlink -f $0))/../0.general_tools/0.select_node.sh
+#     1. exec cmd: source $(dirname $(readlink -f $0))/../0.general_tools/00.lib/03.select_node.sh
 #        or
 #        prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-#        source ${prj_root_dir}/0.general_tools/0.select_node.sh
+#        source ${prj_root_dir}/0.general_tools/00.lib/03.select_node.sh
 #        or
-#        ln -s ${HOME}/Projects/miniTools/0.general_tools/0.select_node.sh ${HOME}/bin/select_node.sh
+#        ln -s ${HOME}/Projects/miniTools/0.general_tools/00.lib/03.select_node.sh ${HOME}/bin/select_node.sh
 #        source ${HOME}/bin/select_node.sh
 #        or after run init_tools.sh
 #        source ${HOME}/bin/_select_node.sh

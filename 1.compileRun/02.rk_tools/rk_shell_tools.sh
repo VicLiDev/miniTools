@@ -22,7 +22,7 @@
 # zsh 在解析 ${prefix} para 形式的命令时，会只解析${prefix}，忽略后边的 para
 # 因此需要用eval，eval会将后边的参数作为新的命令来执行，并且会将其展开
 
-# 这个参数的说明，可以查看 adbSelCmd.sh
+# 这个参数的说明，可以查看 0.general_tools/03.adb_tools/01.adbSelCmd.sh
 export ADB_LIBUSB=0
 
 function clog()

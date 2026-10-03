@@ -22,8 +22,16 @@ def get_project_root(cur_file):
 
 prj_root = get_project_root(__file__)
 if prj_root not in sys.path:
-    sys.path.insert(0, prj_root + "/0.general_tools")
-    sys.path.insert(0, prj_root + "/1.compileRun/2.rk_tools")
+    sys.path.insert(0, prj_root + "/0.general_tools/03.adb_tools")
+
+# sel_node.py 带编号前缀, 不能直接 import; 用 importlib 按路径加载并注册为 sel_node
+import importlib.util
+if "sel_node" not in sys.modules:
+    _sel_path = os.path.join(prj_root, "0.general_tools", "00.lib", "04.sel_node.py")
+    _sel_spec = importlib.util.spec_from_file_location("sel_node", _sel_path)
+    _sel_mod = importlib.util.module_from_spec(_sel_spec)
+    sys.modules["sel_node"] = _sel_mod
+    _sel_spec.loader.exec_module(_sel_mod)
 
 from sel_node import *
 from adb_sel import *

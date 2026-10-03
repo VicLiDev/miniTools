@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: adbdebug.sh
+# File Name: 03.adbDebug.sh
 # Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Thu Jul 21 10:03:21 2022

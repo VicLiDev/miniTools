@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 0.log_demo.sh
+# File Name: 01.log_demo.sh
 # Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 30 Sep 2026 06:10:00 PM CST
 #########################################################################
 
-# 0.log.sh 功能验证 demo
-#   bash 0.general_tools/0.log_demo.sh
+# 01.log.sh 功能验证 demo
+#   bash 0.general_tools/00.lib/01.log_demo.sh
 # 每个场景在独立子 shell 中运行, 分别捕获 stdout / stderr / 日志文件, 再断言内容.
 
 script_dir=$(dirname "$(readlink -f "$0")")
-source "${script_dir}/0.log.sh"
+source "${script_dir}/01.log.sh"
 
 # 控制台配色: 复用库解析出的颜色; 非终端时为空, 重定向输出不会混入 ANSI
 log_refresh

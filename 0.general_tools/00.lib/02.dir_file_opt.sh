@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 0.dir_file_opt.sh
+# File Name: 02.dir_file_opt.sh
 # Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Mon 29 Jul 2024 03:23:30 PM CST
 #########################################################################
 
 # usage:
-# source $(dirname $(readlink -f $0))/../0.general_tools/0.dir_file_opt.sh
+# source $(dirname $(readlink -f $0))/../0.general_tools/00.lib/02.dir_file_opt.sh
 # or
 # prj_root_dir=$(git -C $(dirname $(readlink -f $0)) rev-parse --show-toplevel)
-# source ${prj_root_dir}/0.general_tools/0.dir_file_opt.sh
+# source ${prj_root_dir}/0.general_tools/00.lib/02.dir_file_opt.sh
 # or after run init_tools.sh
 # source ${HOME}/bin/_dir_file_opt.sh
 

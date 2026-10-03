@@ -9,10 +9,15 @@
 import sys
 import os
 
-mon_dir = os.path.dirname(__file__) + "/../../0.general_tools/"
-sys.path.insert(0, mon_dir)
+mon_path = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "../../0.general_tools/05.sysParaMon.py"))
 
-import sysParaMon
+# sysParaMon.py 带编号前缀, 不能直接 import; 用 importlib 按路径加载并注册为 sysParaMon
+import importlib.util
+_spec = importlib.util.spec_from_file_location("sysParaMon", mon_path)
+sysParaMon = importlib.util.module_from_spec(_spec)
+sys.modules["sysParaMon"] = sysParaMon
+_spec.loader.exec_module(sysParaMon)
 
 
 def mon_demo():

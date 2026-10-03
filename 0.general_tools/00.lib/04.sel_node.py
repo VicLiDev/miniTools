@@ -36,7 +36,7 @@
 # # 设置路径
 # prj_root = get_project_root(__file__)
 # if prj_root not in sys.path:
-#     sys.path.insert(0, prj_root + "/0.general_tools")
+#     sys.path.insert(0, prj_root + "/0.general_tools/00.lib")
 #     from sel_node import Selector
 
 

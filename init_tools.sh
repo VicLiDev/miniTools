@@ -79,12 +79,18 @@ function init_general_tools()
 
     tools_dir="${repo_root}/0.general_tools"
 
-    create_link_to_bin ${tools_dir}/0.dir_file_opt.sh _dir_file_opt.sh
-    create_link_to_bin ${tools_dir}/0.log.sh          _log.sh
-    create_link_to_bin ${tools_dir}/0.csv.sh          _csv.sh
-    create_link_to_bin ${tools_dir}/0.select_node.sh  _select_node.sh
-    create_link_to_bin ${tools_dir}/sel_node.py       _select_node.py
-    create_link_to_bin ${tools_dir}/sysParaMon.py     _sysParaMon.py
+    create_link_to_bin ${tools_dir}/00.lib/01.log.sh          _log.sh
+    create_link_to_bin ${tools_dir}/00.lib/02.dir_file_opt.sh _dir_file_opt.sh
+    create_link_to_bin ${tools_dir}/00.lib/03.select_node.sh  _select_node.sh
+    create_link_to_bin ${tools_dir}/00.lib/04.sel_node.py     _select_node.py
+
+    # adb tools
+    create_link_to_bin ${tools_dir}/03.adb_tools/01.adbSelCmd.sh  adbs
+    create_link_to_bin ${tools_dir}/03.adb_tools/03.adbDebug.sh   adbDebug.sh
+    create_link_to_bin ${tools_dir}/03.adb_tools/02.adb_device.sh _adb_device.sh
+
+    create_link_to_bin ${tools_dir}/04.csv.sh                 _csv.sh
+    create_link_to_bin ${tools_dir}/05.sysParaMon.py          _sysParaMon.py
 }
 
 # =============================================================================
@@ -166,9 +172,6 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/rkut.sh       rkut.sh
 
     # tools
-    create_link_to_bin ${rk_tools_dir}/adbDebug.sh   adbDebug.sh
-    create_link_to_bin ${rk_tools_dir}/adbSelCmd.sh  adbs
-    create_link_to_bin ${rk_tools_dir}/adb_device.sh _adb_device.sh
     create_link_to_bin ${rk_tools_dir}/rk_tar_mpp.sh rk_tar_mpp.sh
     create_link_to_bin ${rk_tools_dir}/rk_tar_ker.sh rk_tar_ker.sh
 

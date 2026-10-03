@@ -9,7 +9,7 @@
 # usage:
 #     d=$(dirname "$(readlink -f "$0")")
 #     prj_root_dir=$(git -C "$d" rev-parse --show-toplevel)
-#     source ${prj_root_dir}/1.compileRun/02.rk_tools/adb_device.sh
+#     source ${prj_root_dir}/0.general_tools/03.adb_tools/02.adb_device.sh
 #     or after run init_tools.sh
 #     source ${HOME}/bin/_adb_device.sh
 #

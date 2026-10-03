@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: 0.log.sh
+# File Name: 01.log.sh
 # Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 30 Sep 2026 05:30:00 PM CST
 #########################################################################
 
 # usage:
-#     1. source "$(dirname "$(readlink -f "$0")")/../0.general_tools/0.log.sh"
+#     1. source "$(dirname "$(readlink -f "$0")")/../0.general_tools/00.lib/01.log.sh"
 #        or
 #        d=$(dirname "$(readlink -f "$0")")
 #        prj_root_dir=$(git -C "$d" rev-parse --show-toplevel)
-#        source ${prj_root_dir}/0.general_tools/0.log.sh
+#        source ${prj_root_dir}/0.general_tools/00.lib/01.log.sh
 #        or after run init_tools.sh
 #        source ${HOME}/bin/_log.sh
 #     2. log_setup "<log file>" [quiet] [verbose]
