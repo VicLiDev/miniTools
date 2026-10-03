@@ -7,74 +7,112 @@
 #########################################################################
 
 # ============================================================
-# RK 硬件解码验证脚本
+# RK 硬件解码验证脚本 (三层结构)
 #
-# 功能:
-#   1. 用户给定片源列表
-#   2. 将每个片源推送到指定设备
-#   3. 设备上用 mpi_dec_test 解码得到 yuv
-#      (slt 验证模式附带生成 crc slt 数据)
-#   4. adb pull 到 PC
-#   5. 按用户选定的校验方式 (--verify-method) 验证解码 yuv 是否正确:
-#      yuv - ffmpeg 软解 + 逐帧数据比对, 定位首个差异帧
-#      md5 - ffmpeg 软解 + 整体 md5 比对
-#      slt - 与 golden slt 数据比对, 无 golden 时生成
-#   6. 删除设备上的片源和解码产物
-#   7. 按校验方式分类汇总验证结果
+# 分层:
+#   第一层 通用与编排: 片源列表解析 / 日志 / CSV / 结果汇总
+#   第二层 校验层:     与 yuv/slt 的生成方式无关
+#                      只负责"给定产物如何校验":
+#                        yuv/md5 - 软解参考 + 数据/md5 比对 (委托 cmp_yuv)
+#                        slt     - 与 golden slt 数据比对
+#   第三层 生产层:     与具体解码工具相关, 负责生成待校验的 yuv/slt
+#                      默认后端 mpi_dec_test (push 到设备解码后 pull 回 PC)
+#
+#   两层通过固定接口解耦: 生产层"产出" yuv/slt, 校验层"消费" yuv/slt.
+#   调整 / 新增 / 更换生成方式 = 增加一个 producer_<id>_* 后端
+#   并通过 --producer <id> 选用, 校验层与编排层无需改动.
+#
+# 流程:
+#   1. 读取片源列表 (每行: <编码类型> <片源路径>)
+#   2. 生产层生成待校验 yuv (slt 校验时附带生成 slt)
+#   3. 校验层按 --verify-method 对比
+#   4. 分类汇总 (PASS/WARN/FAIL), 写 result.csv
 #
 # 片源列表格式 (每行): <编码类型> <片源路径>
 #   编码类型必须准确指定:
 #   h264/h265/vp9/av1/avs2/avs/mpeg2/mpeg4/vp8/mjpeg
 #   编码类型不对或缺失时该片源直接判 FAIL
 # ============================================================
+#
+# 代码结构索引:
+#   入口      usage / parse_args / check_env
+#   第一层    parse_stream_line / write_csv_header / clean_out_dir / cleanup
+#   第二层    get_stream_info / get_soft_pixfmt / frame_size / soft_decode
+#             soft_compare / slt_compare / method_enabled / verify_run
+#   第三层    producer_dispatch / producer_* / log_env_info / detect_dec_exe
+#             check_dev_space / retry_run / producer_decode_once
+#             / producer_mpi_dec_test_*
+#   编排      verify_one / main
+# ============================================================
 
 # ==================== 全局配置 ====================
 
-# 设备端工作目录 (shell 可写, 无需 root)
-dev_work_dir="/data/tmp/rk_verify"
-
-# 设备端 mpi_dec_test 名称 (detect_dec_exe 自动探测设备端路径并回填)
-dev_exe="mpi_dec_test"
-
-# 参数
+# ---- 通用参数 ----
 cmd_list_file=""        # 片源列表文件
 cmd_out_dir=""          # 本地输出目录
-cmd_keep_dev="0"        # 保留设备文件
-cmd_save_local="0"      # 保留本地软解 yuv
 cmd_verbose="0"         # 详细输出
 cmd_quiet="0"           # 仅输出汇总
-cmd_extra_args=""       # 附加解码参数
-cmd_soft_pixfmt=""      # 覆盖软解输出格式
-cmd_no_cmp="0"          # 仅解码, 不做 md5 对比
+
+# ---- 生产层配置 ----
+cmd_producer="mpi_dec_test"          # 生产层后端 id
+dev_work_dir="/data/tmp/rk_verify"   # 设备端工作目录 (mpi_dec_test 后端)
+dev_exe="mpi_dec_test"               # 设备端可执行名 (detect 后回填完整路径)
+dev_has_timeout="0"                  # 设备端是否有 timeout 命令 (探测一次)
+cmd_extra_args=""                    # 附加解码参数
+cmd_timeout_sec="300"                # 设备端解码超时 (秒)
+cmd_keep_dev="0"                     # 保留设备文件
+cmd_adb_sel_paras=""                 # 单设备快捷选择参数 (adbs --idx/--soc)
+
+# ---- 校验层配置 ----
 cmd_verify_method="yuv" # 验证方法: yuv/md5/slt, 逗号分隔可组合, all=全部
 cmd_slt_dir=""          # slt golden 数据目录 (默认片源同目录)
-cmd_timeout_sec="300"   # 设备端解码超时 (秒)
-cmd_adb_sel_paras=""    # 单设备快捷选择参数 (adbs --idx/--soc)
+cmd_soft_pixfmt=""      # 覆盖软解输出格式
+cmd_save_local="0"      # 保留本地软解 yuv
+cmd_no_cmp="0"          # 仅解码, 不做对比
 
-adb_cmd=""
-log_file=""
+# ---- 运行时状态 ----
 result_csv=""
 ts=""
+g_producer_ready="0"    # 生产层是否已初始化成功 (控制退出清理)
+dn_opt=""               # check_env 探测: ffmpeg 是否支持 -dn
+fps_mode_opt=""         # check_env 探测: 帧率透传选项 (-fps_mode/-vsync)
+# 流信息缓存 (get_stream_info 输出, 供帧大小/软解/空间估算复用)
+info_file=""
+strm_w=""; strm_h=""; strm_pixfmt=""; strm_fps=""; strm_bpp=""; strm_dur=""
+# 跨函数输出 (函数间传递结果; 集中声明便于查阅, 亦保证 set -u 安全)
+codec_name=""; strm_path=""; parse_note=""
+hw_frames=""; sw_frames=""; first_diff=""
+prod_note=""
+dec_ret=""; dev_size=""
+sw_prepared=""          # yuv/md5 方法共享: 复用同一次软解
+verify_fail_note=""; verify_method_results=""
 
-# ==================== 编码类型映射 ====================
+# ============================================================
+# 第一层: 通用与编排
+# ============================================================
 
-# 编码名(小写) -> mpi_dec_test -t 数值
-codec_type_map="h264:7
-avc:7
-h265:16777220
-hevc:16777220
-vp9:10
-av1:16777224
-avs2:16777223
-avs:6
-mpeg2:2
-mpeg2video:2
-mpeg4:4
-vp8:9
-mjpeg:8
-jpeg:8"
+# ---- 依赖库 / 工具定位 ----
+# 均通过 init_tools.sh 部署到 ~/bin (软链), 这里直接 source / 调用
+__bom=$'\xEF\xBB\xBF'   # UTF-8 BOM, 解析片源列表时剥离
 
-# ==================== 基础工具函数 ====================
+# 日志库 (log_setup/log/log_pass/...) / CSV 写出 / adb 设备操作
+source "${HOME}/bin/_log.sh"
+source "${HOME}/bin/_csv.sh"
+source "${HOME}/bin/_adb_device.sh"
+
+# 校验层比对工具 (独立 CLI): 软解 + yuv 比对
+__cmp_yuv="${HOME}/bin/m_cmp_yuv.sh"
+
+# 生产层流信息探测工具 (独立 CLI): ffprobe 探测宽高/像素格式/帧率/位深/时长
+__probe_stream="${HOME}/bin/m_probe_stream.sh"
+
+# 追加日志的目标: 有日志文件则写之, 否则丢弃 (软解/重试等命令输出重定向用)
+function log_sink()
+{
+    printf '%s' "${_log_file:-/dev/null}"
+}
+
+# ---- 命令行 ----
 
 function usage()
 {
@@ -84,21 +122,26 @@ function usage()
     echo "verify all streams on the device."
     echo ""
     echo "Options:"
-    echo "  -l <file>           stream list file (required), each line: <codec> <stream path>"
+    echo "  -l <file>           stream list file (required)," \
+         "each line: <codec> <stream path>"
     echo "                       codec must be specified accurately (no auto-detect)"
     echo "  --idx <n>           select device by index, no interactive select"
     echo "  --soc <name>        select device by SoC name, no interactive select"
     echo "  -o <dir>            local output dir (default: rk_dec_verify_out)"
+    echo "  --producer <id>     decoder backend that produces yuv/slt," \
+         "default mpi_dec_test"
     echo "  -k                  keep stream and decoded yuv on device"
     echo "  --save              keep local soft-decoded yuv"
     echo "  -v                  verbose output"
     echo "  -q                  summary only"
     echo "  --extra <args>      extra decode args, e.g. \"-n 30\""
-    echo "  --soft-pixfmt <f>   override soft-decode output pixel format, e.g. nv12/p010le"
+    echo "  --soft-pixfmt <f>   override soft-decode output pixel format," \
+         "e.g. nv12/p010le"
     echo "  --verify-method <m> verify method: yuv/md5/slt, comma-separated, default yuv"
     echo "                       yuv: frame md5 compare with ffmpeg soft decode"
     echo "                       md5: whole-file md5 compare with ffmpeg soft decode"
-    echo "                       slt: compare with golden slt data (mpi_dec_test -slt)"
+    echo "                       slt: compare with golden slt data" \
+         "(producer must support)"
     echo "  --slt-dir <dir>     golden slt data dir (default: stream dir)"
     echo "  --timeout <sec>     device decode timeout in seconds, default 300"
     echo "  --no-cmp            decode only, skip all compare"
@@ -109,38 +152,37 @@ function usage()
     echo "Examples:"
     echo "  $0 -l streams.list"
     echo "  $0 -l streams.list --idx 2"
-    echo "  $0 -l streams.list -o ./out"
+    echo "  $0 -l streams.list -o ./out --verify-method yuv,md5"
 }
 
-# 注意: 常规日志走 stderr, 避免被 $(...) 命令替换捕获 (如 get_soft_pixfmt 内部)
-# quiet 模式下常规日志静默, log_summary 不受影响
-RED="\033[1;31m"; GREEN="\033[1;32m"; YELLOW="\033[1;33m"; NC="\033[0m"
-function q_gate()      { [ "${cmd_quiet}" = "1" ] && return 1; return 0; }
-function log_line()    { q_gate || return; echo -e "$*" | tee -a "${log_file}" >&2; }
-function log()         { q_gate || return; echo "$*" | tee -a "${log_file}" >&2; }
-function log_dbg()     { [ "${cmd_verbose}" = "1" ] && log "$*"; }
-function log_pass()    { log_line "${GREEN}[PASS] $*${NC}"; }
-function log_fail()    { log_line "${RED}[FAIL] $*${NC}"; }
-function log_warn()    { log_line "${YELLOW}[WARN] $*${NC}"; }
-function log_summary() { echo -e "$*" >>"${log_file}"; echo -e "$*"; }
+# 取选项值: 缺失时报错并退出 (防止 shift 2 在参数不足时死循环)
+function want_val()
+{
+    [ -n "${2:-}" ] || {
+        echo "Error: option $1 requires a value" >&2
+        usage >&2
+        exit 1
+    }
+}
 
 function parse_args()
 {
     while [ $# -gt 0 ]; do
         case "$1" in
-            -l|--list)       cmd_list_file="$2"; shift 2 ;;
-            --idx)           cmd_adb_sel_paras="--idx $2"; shift 2 ;;
-            --soc)           cmd_adb_sel_paras="--soc $2"; shift 2 ;;
-            -o|--outdir)     cmd_out_dir="$2"; shift 2 ;;
+            -l|--list)       want_val "$@"; cmd_list_file="$2"; shift 2 ;;
+            --idx)           want_val "$@"; cmd_adb_sel_paras="--idx $2"; shift 2 ;;
+            --soc)           want_val "$@"; cmd_adb_sel_paras="--soc $2"; shift 2 ;;
+            -o|--outdir)     want_val "$@"; cmd_out_dir="$2"; shift 2 ;;
+            --producer)      want_val "$@"; cmd_producer="$2"; shift 2 ;;
             -k|--keep)       cmd_keep_dev="1"; shift ;;
             --save)          cmd_save_local="1"; shift ;;
             -v|--verbose)    cmd_verbose="1"; shift ;;
             -q|--quiet)      cmd_quiet="1"; shift ;;
-            --extra)         cmd_extra_args="$2"; shift 2 ;;
-            --soft-pixfmt)   cmd_soft_pixfmt="$2"; shift 2 ;;
-            --verify-method) cmd_verify_method="$2"; shift 2 ;;
-            --slt-dir)       cmd_slt_dir="$2"; shift 2 ;;
-            --timeout)       cmd_timeout_sec="$2"; shift 2 ;;
+            --extra)         want_val "$@"; cmd_extra_args="$2"; shift 2 ;;
+            --soft-pixfmt)   want_val "$@"; cmd_soft_pixfmt="$2"; shift 2 ;;
+            --verify-method) want_val "$@"; cmd_verify_method="$2"; shift 2 ;;
+            --slt-dir)       want_val "$@"; cmd_slt_dir="$2"; shift 2 ;;
+            --timeout)       want_val "$@"; cmd_timeout_sec="$2"; shift 2 ;;
             --no-cmp)        cmd_no_cmp="1"; shift ;;
             -h|--help)       usage; exit 0 ;;
             *)               echo "Unknown argument: $1"; usage; exit 1 ;;
@@ -149,30 +191,49 @@ function parse_args()
 
     [ -z "${cmd_list_file}" ] \
         && { echo "Error: no stream list file specified (-l)"; usage; exit 1; }
-    [ -e "${cmd_list_file}" ] \
-        || { echo "Error: list file not found: ${cmd_list_file}"; exit 1; }
+    [ -f "${cmd_list_file}" ] \
+        || { echo "Error: list file not found or not a regular file: ${cmd_list_file}"
+             exit 1; }
     [ -z "${cmd_out_dir}" ] && cmd_out_dir="rk_dec_verify_out"
 
-    # 校验验证方法: yuv/md5/slt 逗号组合, all = 全部
-    if [ "${cmd_verify_method}" = "all" ]; then
-        cmd_verify_method="yuv,md5,slt"
-    fi
+    # 校验验证方法: yuv/md5/slt 逗号组合, all = 全部; 重复方法只保留一次
+    [ "${cmd_verify_method}" = "all" ] && cmd_verify_method="yuv,md5,slt"
     [ -z "${cmd_verify_method}" ] && cmd_verify_method="yuv"
+    local m vmethod=""
+    local -A mseen=()
     for m in ${cmd_verify_method//,/ }; do
         case "${m}" in
             yuv|md5|slt) : ;;
             *) echo "Error: invalid verify method: ${m} (yuv/md5/slt/all)"; exit 1 ;;
         esac
+        [ -n "${mseen[${m}]:-}" ] && continue
+        mseen["${m}"]=1
+        vmethod+="${vmethod:+,}${m}"
     done
+    cmd_verify_method="${vmethod}"
+
+    # 超时必须为非负整数 (作为设备端 timeout 参数)
+    case "${cmd_timeout_sec}" in
+        ''|*[!0-9]*) echo "Error: invalid timeout: ${cmd_timeout_sec}"; exit 1 ;;
+    esac
 }
 
-# ==================== 环境预检 ====================
-
+# ---- 环境预检 (校验层所需 PC 工具) ----
+# 注意: adbs 与解码器属生产层, 由生产层后端自行校验
 function check_env()
 {
-    for tool in ffmpeg ffprobe adbs md5sum dd stat awk perl diff wc; do
+    local tool ff_help
+    for tool in ffmpeg stat awk diff wc; do
         command -v "${tool}" >/dev/null 2>&1 || {
             echo "Error: missing PC tool: ${tool}"
+            exit 1
+        }
+    done
+
+    # 校验/生产层依赖的独立工具 (软解比对与流信息探测)
+    for tool in "${__cmp_yuv}" "${__probe_stream}"; do
+        [ -x "${tool}" ] || {
+            echo "Error: helper tool missing or not executable: ${tool}"
             exit 1
         }
     done
@@ -185,190 +246,157 @@ function check_env()
 
     # 软解参考必须逐帧原样输出 (时间戳异常的片源会被默认帧率对齐丢弃)
     # 新版 ffmpeg 用 -fps_mode passthrough, 老版回退到等价的 -vsync 0
+    # -h full 输出缓存一次, 供下面两条探测复用 (避免重复启动 ffmpeg)
+    ff_help=$(ffmpeg -hide_banner -h full 2>/dev/null)
     fps_mode_opt=""
-    if ffmpeg -hide_banner -h full 2>/dev/null | grep -q -- "-fps_mode"; then
+    if grep -q -- "-fps_mode" <<< "${ff_help}"; then
         fps_mode_opt="-fps_mode passthrough"
-    elif ffmpeg -hide_banner -h full 2>/dev/null | grep -q -- "-vsync"; then
+    elif grep -q -- "-vsync" <<< "${ff_help}"; then
         fps_mode_opt="-vsync 0"
     fi
 }
 
-# ==================== 设备相关 ====================
+# ---- 片源列表解析 (通用) ----
+# 每行必须 <编码类型> <片源路径>, 编码类型合法性由生产层判定
+# 说明: 空行/注释行已由调用方过滤, 此处只解析
+# 输出(全局): codec_name / strm_path / parse_note
 
-# 当前 adb_cmd 是否有可用设备
-function check_dev_valid()
+# 解析失败统一日志: $1=stream 显示值 $2=codec 显示值 $3=失败原因
+function _stream_fail()
 {
-    ${adb_cmd} devices 2>/dev/null | grep -q "device$"
+    log "========================================"
+    log "stream: $1"
+    log "codec: $2"
+    log_fail "$3"
 }
 
-# 选择设备: --idx/--soc 快捷选择, 否则弹出 adbs 交互选择
-# 返回: 0=设备可用, 1=用户取消(无输出)或设备不可用
-function init_adb()
-{
-    # 注意: 不能加 2>&1, adbs 的交互选择界面走 stderr,
-    #       吞掉后界面不显示且 adb_cmd 会被界面文本污染
-    adb_cmd=$(adbs ${cmd_adb_sel_paras})
-    [ -z "${adb_cmd}" ] && {
-        echo "Error: no device found${cmd_adb_sel_paras:+ for ${cmd_adb_sel_paras}}"
-        return 1
-    }
-    log_dbg "adb cmd: ${adb_cmd}"
-    return 0
-}
-
-# < /dev/null: 防止 adb 消费 while read 循环的 stdin
-function run_adb() { ${adb_cmd} "$@" < /dev/null; }
-
-# 执行设备 shell 命令, 返回 stdout
-function run_shell() { ${adb_cmd} shell "$@" < /dev/null; }
-
-# 记录环境信息到日志
-function log_env_info()
-{
-    soc=$(run_shell \
-        "getprop ro.board.platform 2>/dev/null; \
-        cat /proc/device-tree/compatible 2>/dev/null" 2>/dev/null \
-        | tr '\0' '\n' | tr -d '\r' | head -2 | tr '\n' ' ')
-    kernel=$(run_shell "uname -r" 2>/dev/null | tr -d '\r')
-    abi=$(run_shell "uname -m" 2>/dev/null | tr -d '\r')
-    mpp_ver=$(run_shell "strings /system/lib64/libmpp.so /system/lib/libmpp.so \
-        /usr/lib/librockchip_mpp.so /usr/lib/aarch64-linux-gnu/librockchip_mpp.so \
-        /usr/local/lib/librockchip_mpp.so 2>/dev/null \
-        | grep -m1 version" 2>/dev/null | tr -d '\r')
-    log "Device info: SoC=${soc:-unknown} kernel=${kernel:-unknown} abi=${abi:-unknown}"
-    [ -n "${mpp_ver}" ] && log "mpp version: ${mpp_ver}"
-}
-
-function detect_dec_exe()
-{
-    # 自动探测: 先试默认值 (dev_exe), 再试常见路径
-    for path in "${dev_exe}" "/system/bin/${dev_exe}" "/vendor/bin/${dev_exe}"; do
-        [ -n "${path}" ] && run_shell "command -v '${path}'" >/dev/null 2>&1 && {
-            dev_exe="${path}"
-            log_dbg "device decoder: ${dev_exe}"
-            return
-        }
-    done
-
-    # 设备端缺失: 不做编译部署相关操作, 直接报错提示用户自行部署
-    log_fail "${dev_exe} not found on device, please deploy it first"
-    exit 1
-}
-
-# 设备空间预检: $1=本地片源路径, 返回 0 空间足够
-function check_dev_space()
-{
-    strm_file="$1"
-    strm_size=$(stat -c %s "${strm_file}" 2>/dev/null)
-    [ -z "${strm_size}" ] && strm_size=0
-
-    # 预估解码 yuv 大小 (用 ffprobe 宽高和时长, get_stream_info 已缓存)
-    est_yuv=0
-    if get_stream_info "${strm_file}" 2>/dev/null; then
-        dur="${strm_dur}"
-        if [ -n "${dur}" ] && [ "${dur}" != "N/A" ]; then
-            frames=$(awk -v d="${dur}" 'BEGIN{printf "%d", d*30}')
-            [ "${frames}" -lt 2 ] && frames=2
-            est_yuv=$(( frames * strm_w * strm_h * 3 ))
-        fi
-    fi
-    [ "${est_yuv}" -lt 1 ] && est_yuv=$(( strm_size * 20 ))
-
-    need_kb=$(( (strm_size + est_yuv) / 1024 + 1024 ))
-    avail_kb=$(run_shell "df -P /data 2>/dev/null | tail -1" 2>/dev/null \
-        | awk '{print $4}' | tr -d '\r')
-    if [ -z "${avail_kb}" ] || ! echo "${avail_kb}" | grep -qE '^[0-9]+$'; then
-        log_warn "cannot get free space of device /data, skip space check"
-        return 0
-    fi
-    if [ "${avail_kb}" -lt "${need_kb}" ]; then
-        need_mb=$((need_kb / 1024))
-        avail_mb=$((avail_kb / 1024))
-        log_fail "insufficient space on device /data: need ~${need_mb} MB, have ${avail_mb} MB"
-        return 1
-    fi
-    log_dbg "device space check passed: need ~$((need_kb/1024)) MB, have $((avail_kb/1024)) MB"
-    return 0
-}
-
-# ==================== 编码类型解析 ====================
-
-# 每行必须 <编码类型> <片源路径>, 编码类型由用户准确指定, 不做 ffprobe 探测
 function parse_stream_line()
 {
-    line="$1"
+    local line="$1"
+
     parse_note=""
-    [ -z "${line}" ] && return 1
-    case "${line}" in
-        \#*|[[:space:]]*\#*|[[:space:]]*) return 1 ;;  # 空行/注释行
-        *) : ;;
-    esac
+    # 一次 read 完成拆分: $1=编码名, 其余=片源路径 (内部空格保留, 对含空格路径更准)
+    read -r codec_name strm_path <<< "${line}"
 
-    strm_name="$(echo "${line}" | awk '{print $1}')"
-    strm_path="$(echo "${line}" | awk '{$1=""; sub(/^ +/, ""); print}')"
-
-    ctype=$(echo "${codec_type_map}" | awk -F: -v n="${strm_name}" \
-            'tolower($1)==tolower(n){print $2; exit}')
-    if [ -z "${ctype}" ]; then
-        log "========================================"
-        log "stream: ${line}"
-        log "codec: -"
-        log_fail "invalid codec type: ${strm_name}"
-        log "expected: h264/h265/vp9/av1/avs2/avs/mpeg2/mpeg4/vp8/mjpeg"
-        parse_note="invalid codec type"
+    if [ -z "${codec_name}" ]; then
+        _stream_fail "${line}" "-" "missing codec type: ${line}"
+        parse_note="missing codec type"
+        strm_path="${line}"
         return 2
     fi
 
-    [ -z "${strm_path}" ] && {
-        log "========================================"
-        log "stream: ${line}"
-        log "codec: -"
-        log_fail "missing stream path: ${line}"
+    if [ -z "${strm_path}" ]; then
+        _stream_fail "${line}" "${codec_name}" "missing stream path: ${line}"
         parse_note="missing stream path"
+        strm_path="${line}"
         return 2
-    }
+    fi
 
-    [ -e "${strm_path}" ] || {
-        log "========================================"
-        log "stream: ${strm_path}"
-        log "codec: -"
-        log_fail "stream not found: ${strm_path}"
+    if [ ! -e "${strm_path}" ]; then
+        _stream_fail "${strm_path}" "${codec_name}" "stream not found: ${strm_path}"
         parse_note="stream not found"
         return 2
-    }
+    fi
     return 0
 }
 
-# ==================== 软解对比 ====================
+# ---- CSV / 输出目录清理 ----
 
-# 获取流信息: 输出到全局变量 strm_w/strm_h/strm_pixfmt/strm_bpp/strm_dur
-# 同一文件探测结果缓存 (check_dev_space/verify_one 多次调用只 probe 一次)
+function write_csv_header()
+{
+    csv_header "${result_csv}" stream codec status hw_frames sw_frames \
+        first_diff note
+}
+
+# CSV 字段转义/写出: 实现抽离到通用库 0.general_tools/04.csv.sh (csv_field/csv_row/csv_append)
+
+# 清理输出目录历史产物, 每次运行只保留本次结果
+function clean_out_dir()
+{
+    rm -f "${cmd_out_dir}"/rk_dec_verify_*.log \
+          "${cmd_out_dir}"/result.csv \
+          "${cmd_out_dir}"/*.dec.log \
+          "${cmd_out_dir}"/*.dec.logcat \
+          "${cmd_out_dir}"/*.yuv \
+          "${cmd_out_dir}"/*.slt 2>/dev/null
+}
+
+# 中断清理 (委托生产层释放设备侧资源)
+function cleanup()
+{
+    log_warn "interrupt received, cleaning device files..."
+    producer_cleanup_once
+    exit 130
+}
+
+# ============================================================
+# 第二层: 校验层 (与 yuv/slt 生成方式无关)
+#
+# yuv/md5 比对与软解委托给独立 CLI 工具 cmp_yuv (见 __cmp_yuv):
+#   软解压缩流 -> yuv, 再与待校验 yuv 逐帧比对 (整段 md5 + 二分定位差异帧)
+#
+# 入口: verify_run <src> <hw_yuv> <sw_yuv> <cur_slt> <golden_slt>
+#   src       - 压缩片源, 作为 ffmpeg 软解参考
+#   hw_yuv    - 生产层生成的待校验 yuv
+#   sw_yuv    - 校验层软解输出的临时 yuv (文件名由编排层给出)
+#   cur_slt   - 生产层生成的 slt (可为空)
+#   golden_slt- 期望的 golden slt
+# 输出(全局): hw_frames/sw_frames/first_diff/
+#             verify_fail_note/verify_method_results
+# 返回 0 一致 / 1 不一致 / 2 无法对比 / 3 帧数告警 / 4 生成 golden
+# ============================================================
+
+# 获取流信息: 输出到全局变量 strm_w/strm_h/strm_pixfmt/strm_fps/strm_bpp/strm_dur
+# 同一文件探测结果缓存 (生产/校验多次调用只 probe 一次)
+# 探测委托 probe_stream.sh (原始字段); fps 小数与位深在此按需换算/判定
 function get_stream_info()
 {
-    strm_file="$1"
+    local strm_file="$1"
+    local info k v fps_r="" fps_a=""
+
     if [ "${info_file}" = "${strm_file}" ] && [ -n "${strm_w}" ]; then
         return 0
     fi
+    # 新文件: 先清空旧值, 避免探测失败时残留上一片源的信息
+    info_file=""
+    strm_w=""; strm_h=""; strm_pixfmt=""; strm_fps=""; strm_bpp=""; strm_dur=""
 
-    info=$(ffprobe -v error -select_streams v:0 \
-        -show_entries stream=width,height,pix_fmt:format=duration \
-        -of csv=p=0 "${strm_file}" 2>/dev/null)
-    [ -z "${info}" ] && return 1
+    info=$("${__probe_stream}" "${strm_file}" 2>/dev/null) || return 1
+    while IFS='=' read -r k v; do
+        case "${k}" in
+            width)          strm_w="${v}" ;;
+            height)         strm_h="${v}" ;;
+            pix_fmt)        strm_pixfmt="${v}" ;;
+            r_frame_rate)   fps_r="${v}" ;;
+            avg_frame_rate) fps_a="${v}" ;;
+            duration)       strm_dur="${v}" ;;
+        esac
+    done <<< "${info}"
 
-    strm_w=$(echo "${info}" | sed -n '1p' | cut -d, -f1)
-    strm_h=$(echo "${info}" | sed -n '1p' | cut -d, -f2)
-    strm_pixfmt=$(echo "${info}" | sed -n '1p' | cut -d, -f3)
-    strm_dur=$(echo "${info}" | sed -n '2p')
-    [ -z "${strm_w}" ] || [ -z "${strm_h}" ] && return 1
+    if [ -z "${strm_w}" ] || [ -z "${strm_h}" ]; then
+        return 1
+    fi
 
-    # 位深: pix_fmt 后 4 字符为 10le/12le/14le/16le 则为对应位深
-    strm_bpp=8
+    # 由真实帧率分数换算小数 (优先 r_frame_rate, 否则 avg_frame_rate; 无效留空)
+    strm_fps=$(awk -v r="${fps_r}" -v a="${fps_a}" 'BEGIN{
+        for (i = 1; i <= 2; i++) {
+            cand = (i == 1) ? r : a
+            if (cand == "" || cand ~ /^0\// || cand ~ /\/0$/) continue
+            n = cand; sub(/\/.*/, "", n)
+            d = cand; sub(/^[^/]*\//, "", d)
+            if (d + 0 > 0) { printf "%.3f", n / d; exit }
+        }
+    }')
+
+    # 位深由 pix_fmt 判定 (ffprobe 的 bits_per_raw_sample 常缺失)
     case "${strm_pixfmt}" in
-        *10le) strm_bpp=10 ;;
-        *12le) strm_bpp=12 ;;
-        *14le) strm_bpp=14 ;;
-        *16le) strm_bpp=16 ;;
+        *10le|*10be) strm_bpp=10 ;;
+        *12le|*12be) strm_bpp=12 ;;
+        *14le|*14be) strm_bpp=14 ;;
+        *16le|*16be) strm_bpp=16 ;;
+        *)           strm_bpp=8 ;;
     esac
+
     info_file="${strm_file}"
     return 0
 }
@@ -384,6 +412,10 @@ function get_soft_pixfmt()
     case "${strm_pixfmt}" in
         yuv420p|yuvj420p)
             echo "nv12" ;;                       # 8bit 420 -> NV12
+        yuvj422p)
+            echo "nv16" ;;                       # full-range 8bit 422 -> NV16
+        yuvj444p)
+            echo "nv24" ;;                       # full-range 8bit 444 -> NV24
         yuv420p10le)
             echo "yuv420p10le" ;;                # 10bit 右对齐平面, 后接重排
         yuv420p12le)
@@ -396,6 +428,13 @@ function get_soft_pixfmt()
         yuv422p12le)
             log_warn "${strm_pixfmt} is 12-bit, compare with 12-bit right-aligned output"
             echo "yuv422p12le" ;;
+        yuv444p)
+            echo "nv24" ;;                       # 8bit 444 -> NV24
+        yuv444p10le)
+            echo "yuv444p10le" ;;                # 10bit 右对齐平面, 后接重排
+        yuv444p12le)
+            log_warn "${strm_pixfmt} is 12-bit, compare with 12-bit right-aligned output"
+            echo "yuv444p12le" ;;
         *)
             log_warn "unknown pixel format ${strm_pixfmt}, no format conversion, \
 md5 compare may fail"
@@ -403,221 +442,116 @@ md5 compare may fail"
     esac
 }
 
-# 帧大小 = w*h*1.5 (8bit) 或 w*h*3 (10bit+)
+# 帧大小: 按源像素格式的色度下采样计算 (每采样 >8bit 时 2 字节)
+# 4:2:0/4:2:2/4:4:4/4:1:1 覆盖率不同, 不能一律按 4:2:0 的 w*h*1.5 估算
 function frame_size()
 {
-    if [ "${strm_bpp}" -le 8 ]; then
-        echo $(( strm_w * strm_h * 3 / 2 ))
-    else
-        echo $(( strm_w * strm_h * 3 ))
-    fi
+    local w="${strm_w}" h="${strm_h}" bytes=1 us
+    [ "${strm_bpp}" -gt 8 ] && bytes=2
+    case "${strm_pixfmt}" in
+        *444*|nv24|nv42|*p410*|*p412*|*p416*) us=$(( w * h )) ;;
+        *422*|nv16|nv61|nv20*|*p210*|*p212*|*p216*) us=$(( (w / 2) * h )) ;;
+        *411*)                                 us=$(( (w / 4) * h )) ;;
+        *400*|*gray*|*mono*)                   us=0 ;;
+        *)                                     us=$(( (w / 2) * (h / 2) )) ;;
+    esac
+    echo $(( (w * h + us * 2) * bytes ))
 }
 
-# 取第 n 帧 md5
-function frame_md5()
-{
-    yuv_file="$1"
-    fsize="$2"
-    idx="$3"
-    dd if="${yuv_file}" bs="${fsize}" count=1 skip="${idx}" 2>/dev/null | md5sum | awk '{print $1}'
-}
-
-# 逐帧对比 (抽样定位 + 区间精查), 输出首个差异帧号, 无差异输出 -1
-function find_first_diff()
-{
-    hw_yuv="$1"
-    sw_yuv="$2"
-    fsize="$3"
-    frames="$4"
-
-    step=$(( frames / 100 ))
-    [ "${step}" -lt 1 ] && step=1
-
-    # 帧 0 单独检查
-    if [ "$(frame_md5 "${hw_yuv}" "${fsize}" 0)" != "$(frame_md5 "${sw_yuv}" "${fsize}" 0)" ]; then
-        echo 0
-        return
-    fi
-
-    prev=0
-    for (( i = step; i < frames; i += step )); do
-        if [ "$(frame_md5 "${hw_yuv}" "${fsize}" "${i}")" != \
-             "$(frame_md5 "${sw_yuv}" "${fsize}" "${i}")" ]; then
-            # 区间 (prev, i] 内逐帧精查
-            for (( j = prev + 1; j <= i; j++ )); do
-                if [ "$(frame_md5 "${hw_yuv}" "${fsize}" "${j}")" != \
-                     "$(frame_md5 "${sw_yuv}" "${fsize}" "${j}")" ]; then
-                    echo "${j}"
-                    return
-                fi
-            done
-        fi
-        prev="${i}"
-    done
-    # 兜底: 差异帧可能在采样点之间 (采样点均一致时), 全查所有非采样帧
-    for (( j = 1; j < frames; j++ )); do
-        [ $(( j % step )) -eq 0 ] && continue
-        if [ "$(frame_md5 "${hw_yuv}" "${fsize}" "${j}")" != \
-             "$(frame_md5 "${sw_yuv}" "${fsize}" "${j}")" ]; then
-            echo "${j}"
-            return
-        fi
-    done
-    echo -1
-}
-
-# 平面 YUV 重排为交错布局 (UV 交错), 对齐 MPP 10bit 输出
-# $1=输入平面 yuv $2=输出交错 yuv $3=Y 平面字节数 $4=U 平面字节数
-function rearrange_uv()
-{
-    perl -e '
-        my ($ys,$us)=@ARGV;
-        while(read(STDIN,$in,$ys+$us*2)) {
-            my $y=substr($in,0,$ys);
-            my $u=substr($in,$ys,$us);
-            my $v=substr($in,$ys+$us,$us);
-            print $y;
-            for(my $i=0;$i<$us;$i+=2){ print substr($u,$i,2).substr($v,$i,2); }
-        }
-    ' "$3" "$4" <"$1" >"$2"
-}
-
-# 本地软解到 yuv 文件, 供对比或参考帧数使用
+# 本地软解到 yuv 文件 (委托 cmp_yuv 工具), 供对比或参考帧数使用
 function soft_decode()
 {
-    strm_file="$1"
-    out_yuv="$2"
+    local strm_file="$1"
+    local out_yuv="$2"
+    local fmt il args=()
 
     if ! get_stream_info "${strm_file}"; then
         log_warn "ffprobe cannot get stream info"
         return 1
     fi
 
+    # 软解输出格式; 10bit+ 平面输出需交错重排 (用户显式指定格式时不重排)
     fmt=$(get_soft_pixfmt)
-    ffmpeg_cmd="ffmpeg -y -threads 1 -v error -nostdin -i '${strm_file}' \
-        -an -sn ${dn_opt} -c:v rawvideo ${fps_mode_opt}"
-    [ -n "${fmt}" ] && ffmpeg_cmd="${ffmpeg_cmd} -pix_fmt ${fmt}"
-    ffmpeg_cmd="${ffmpeg_cmd} -f rawvideo '${out_yuv}'"
+    il=""
+    if [ -z "${cmd_soft_pixfmt}" ] && [ "${strm_bpp}" -gt 8 ]; then
+        il="${fmt}"
+    fi
 
-    log_dbg "soft decode: ${ffmpeg_cmd}"
-    if eval "${ffmpeg_cmd}" >>"${log_file}" 2>&1; then
+    args=(-i "${strm_file}" -o "${out_yuv}")
+    [ -n "${fmt}" ] && args+=(-f "${fmt}")
+    [ -n "${il}" ] && args+=(--uv-interleave "${il}")
+    [ -n "${dn_opt}${fps_mode_opt}" ] && \
+        args+=(--ffmpeg-args "${dn_opt} ${fps_mode_opt}")
+
+    log_dbg "soft decode: ${__cmp_yuv} ${args[*]}"
+    if "${__cmp_yuv}" "${args[@]}" >>"$(log_sink)" 2>&1; then
         return 0
     fi
     return 1
 }
 
-# 软解并准备对比数据: 输出全局变量 hw_size/sw_size/fsize/hw_frames/sw_frames/
-# cmp_frames/hw_md5/sw_md5; 返回 0 成功 / 2 无法对比
+# 验证方法 yuv/md5: 软解 (委托 cmp_yuv) + 与 ffmpeg 软解对比
+# $4=locate (1=yuv, 逐帧二分定位首个差异帧; 0=md5, 仅整体比对)
+# $5=帧大小 (可选, 调用方已算出时复用, 省一次 frame_size)
+# 返回 0 一致 / 1 不一致 / 2 无法对比 / 3 帧数不等(公共帧一致)
 # sw_prepared=1 时复用已有软解结果 (yuv+md5 方法同一次运行只软解一次)
-function soft_prepare()
+function soft_compare()
 {
-    strm_file="$1"
-    hw_yuv="$2"
-    sw_yuv="$3"
+    local strm_file="$1"
+    local hw_yuv="$2"
+    local sw_yuv="$3"
+    local locate="$4"
+    local fsize="$5" out args r k v
 
     if [ "${sw_prepared}" != "1" ]; then
         log_dbg "ffprobe: ${strm_w}x${strm_h} ${strm_pixfmt} (${strm_bpp}bit)"
-
         if ! soft_decode "${strm_file}" "${sw_yuv}"; then
             log_warn "soft decode failed, skip compare"
             return 2
         fi
-
-        # 10bit+ 流软解输出为平面格式, 重排为与 MPP 一致的交错布局 (MPP 右对齐)
-        # --soft-pixfmt 显式指定时不做重排 (用户自行负责格式)
-        if [ -z "${cmd_soft_pixfmt}" ] && [ "${strm_bpp}" -gt 8 ]; then
-            ys=$(( strm_w * strm_h * 2 ))
-            case "${strm_pixfmt}" in
-                yuv420p10le|yuv420p12le)
-                    rearrange_uv "${sw_yuv}" "${sw_yuv}.nv12" "${ys}" $(( ys / 4 ))
-                    mv -f "${sw_yuv}.nv12" "${sw_yuv}" ;;
-                yuv422p10le|yuv422p12le)
-                    rearrange_uv "${sw_yuv}" "${sw_yuv}.nv16" "${ys}" $(( ys / 2 ))
-                    mv -f "${sw_yuv}.nv16" "${sw_yuv}" ;;
-            esac
-        fi
         sw_prepared="1"
     fi
 
-    hw_size=$(stat -c %s "${hw_yuv}")
-    sw_size=$(stat -c %s "${sw_yuv}")
-    fsize=$(frame_size)
-    hw_frames=$(( hw_size / fsize ))
-    sw_frames=$(( sw_size / fsize ))
-    log_dbg "yuv size: hw ${hw_size} (${hw_frames} frames), sw ${sw_size} (${sw_frames} frames)"
+    [ -n "${fsize}" ] || fsize=$(frame_size)
+    args=("${hw_yuv}" "${sw_yuv}" -z "${fsize}")
+    [ "${locate}" != "1" ] && args+=(--no-locate)
 
-    if [ "${hw_frames}" -ne "${sw_frames}" ]; then
-        log_warn "frame count mismatch: hw ${hw_frames} frames, sw ${sw_frames} frames"
-    fi
+    out=$("${__cmp_yuv}" "${args[@]}" 2>>"$(log_sink)")
+    r=$?
 
-    cmp_frames=${hw_frames}
-    [ "${sw_frames}" -lt "${cmp_frames}" ] && cmp_frames=${sw_frames}
-    [ "${cmp_frames}" -lt 1 ] && { log_warn "no frames to compare, skip"; return 2; }
+    while IFS='=' read -r k v; do
+        case "${k}" in
+            yuv1_frames) hw_frames="${v}" ;;
+            yuv2_frames) sw_frames="${v}" ;;
+            first_diff)  first_diff="${v}" ;;
+        esac
+    done <<< "${out}"
+    [ -n "${out}" ] && log_dbg "cmp_yuv: $(tr '\n' ' ' <<< "${out}")"
 
-    # 公共部分整段 md5 快速预检
-    hw_md5=$(head -c $(( cmp_frames * fsize )) "${hw_yuv}" | md5sum | awk '{print $1}')
-    sw_md5=$(head -c $(( cmp_frames * fsize )) "${sw_yuv}" | md5sum | awk '{print $1}')
-    log_dbg "hw md5: ${hw_md5}"
-    log_dbg "sw md5: ${sw_md5}"
-    return 0
+    case "${r}" in
+        0) return 0 ;;
+        1)
+            if [ "${locate}" = "1" ] && [ -n "${first_diff}" ] && \
+               [ "${first_diff}" != "-" ]; then
+                log "first diff frame: ${first_diff} \
+(frame $(( first_diff + 1 )), 1-based)"
+            else
+                log_fail "overall md5 mismatch"
+            fi
+            return 1 ;;
+        3) return 3 ;;
+        *) return 2 ;;
+    esac
 }
 
-# 验证方法 yuv: 软解 + 逐帧 md5 对比
-# 返回 0 一致 / 1 不一致 / 2 无法对比 / 3 帧数不等(公共帧一致)
-function soft_compare()
-{
-    strm_file="$1"
-    hw_yuv="$2"
-    sw_yuv="$3"
-
-    if ! soft_prepare "${strm_file}" "${hw_yuv}" "${sw_yuv}"; then
-        return 2
-    fi
-
-    if [ "${hw_md5}" = "${sw_md5}" ]; then
-        # 公共部分一致, 仅可能帧数不等
-        if [ "${hw_frames}" -ne "${sw_frames}" ]; then
-            return 3
-        fi
-        return 0
-    fi
-
-    # 逐帧定位首个差异帧
-    log "overall md5 mismatch, locating first diff frame..."
-    first_diff=$(find_first_diff "${hw_yuv}" "${sw_yuv}" "${fsize}" "${cmp_frames}")
-    log "first diff frame: ${first_diff} (frame $(( first_diff + 1 )), 1-based)"
-    return 1
-}
-
-# 验证方法 md5: 软解 + 整文件 md5 对比 (轻量, 不逐帧定位)
-# 返回 0 一致 / 1 不一致 / 2 无法对比 / 3 帧数不等(公共帧一致)
-function soft_md5_compare()
-{
-    strm_file="$1"
-    hw_yuv="$2"
-    sw_yuv="$3"
-
-    if ! soft_prepare "${strm_file}" "${hw_yuv}" "${sw_yuv}"; then
-        return 2
-    fi
-
-    if [ "${hw_md5}" = "${sw_md5}" ]; then
-        if [ "${hw_frames}" -ne "${sw_frames}" ]; then
-            return 3
-        fi
-        return 0
-    fi
-    log_fail "overall md5 mismatch: hw ${hw_md5} vs sw ${sw_md5}"
-    return 1
-}
-
-# 验证方法 slt: 设备端生成的 slt (每帧一行 crc) 与 golden slt 对比
+# 验证方法 slt: 生产层生成的 slt (每帧一行 crc) 与 golden slt 对比
 # $1=本地 slt 文件 $2=golden slt 路径
 # 返回 0 一致 / 1 不一致 / 2 无法对比 / 4 新 golden 已生成
 function slt_compare()
 {
-    cur_slt="$1"
-    golden_slt="$2"
+    local cur_slt="$1"
+    local golden_slt="$2"
+    local cur_cnt gol_cnt
 
     if [ ! -s "${cur_slt}" ]; then
         log_warn "no slt data generated by decoder"
@@ -645,217 +579,58 @@ function slt_compare()
 # 验证方法是否启用: $1=方法名 (yuv/md5/slt)
 function method_enabled()
 {
+    local m
     for m in ${cmd_verify_method//,/ }; do
         [ "${m}" = "$1" ] && return 0
     done
     return 1
 }
 
-# ==================== 单个片源验证 ====================
-
-# 重试执行: $1=描述, 其余为命令; 成功返回 0
-function retry_run()
+# 校验层入口: 对生产层产物做校验, 见本层头部说明
+function verify_run()
 {
-    desc="$1"
-    shift
-    local tries=3 attempt=1
-    while [ "${attempt}" -le "${tries}" ]; do
-        if "$@" >>"${log_file}" 2>&1; then
-            return 0
-        fi
-        if [ "${attempt}" -lt "${tries}" ]; then
-            log_warn "${desc} failed (attempt ${attempt}), retrying..."
-            sleep 2
-        fi
-        attempt=$(( attempt + 1 ))
-    done
-    return 1
-}
+    local strm_path="$1"
+    local hw_yuv="$2"
+    local sw_yuv="$3"
+    local cur_slt="$4"
+    local golden_slt="$5"
+    local cmp_fail cmp_warn cmp_skip slt_gen fsz
+    local m r m_pass m_fail m_note
 
-# 执行一次设备端解码 (含 logcat 采集), 输出全局 dec_ret/dev_size
-function run_decode_once()
-{
-    # 清空 logcat, 保证 dump 的日志仅为本次解码期间产生 (best-effort)
-    run_shell "logcat -c" >/dev/null 2>&1
-    run_shell "${shell_cmd}" >"${dec_log}" 2>&1
-    dec_ret=$?
-    # dump 解码期间设备日志到本地文件
-    run_shell "logcat -d" >"${dec_logcat}" 2>&1
-    dev_size=$(run_shell "wc -c < '${dev_yuv}'" 2>/dev/null | tr -d ' \r')
-}
-
-function verify_one()
-{
-    strm_path="$1"
-    strm_type="$2"
-    name=$(basename "${strm_path}")
     verify_fail_note=""
-    dev_slt=""
     verify_method_results=""
-    log "========================================"
-    log "stream: ${strm_path}"
-    log "codec: ${strm_type}"
-
-    dev_strm="${dev_work_dir}/${name}"
-    dev_yuv="${dev_work_dir}/${name}.yuv"
-    hw_yuv="${cmd_out_dir}/${name}.yuv"
-    sw_yuv="${cmd_out_dir}/${name}.sw.yuv"
-    dec_log="${cmd_out_dir}/${name}.dec.log"
-    dec_logcat="${cmd_out_dir}/${name}.dec.logcat"
-
-    # slt 验证方法是否启用 (解码时生成 slt + pull + 对比)
-    slt_enabled="0"
-    [ "${cmd_no_cmp}" = "0" ] && method_enabled slt && slt_enabled="1"
-
-    # 空间预检
-    if ! check_dev_space "${strm_path}"; then
-        verify_fail_note="insufficient device space"
-        return 1
-    fi
-
-    # 2. push 片源到设备 (带重试)
-    log_dbg "push ${strm_path} -> ${dev_strm}"
-    if ! retry_run "push" run_adb push "${strm_path}" "${dev_strm}"; then
-        log_fail "push failed: ${strm_path}"
-        if ! check_dev_valid; then
-            # 设备掉线: 后续片源必然全部失败, 快速终止整个运行
-            verify_fail_note="device disconnected"
-            return 9
-        fi
-        verify_fail_note="push failed"
-        return 1
-    fi
-
-    # 3. mpi_dec_test 解码 (带超时/重试)
-    dec_cmd="cd ${dev_work_dir} && ${dev_exe} -i ${name} -o ${name}.yuv"
-    [ -n "${strm_type}" ] && dec_cmd="${dec_cmd} -t ${strm_type}"
-    [ -n "${cmd_extra_args}" ] && dec_cmd="${dec_cmd} ${cmd_extra_args}"
-    # slt 验证方法: 解码时同时生成 slt 数据 (每帧一行 crc)
-    if [ "${slt_enabled}" = "1" ]; then
-        dev_slt="${dev_work_dir}/${name}.slt"
-        dec_cmd="${dec_cmd} -slt ${name}.slt"
-    fi
-    log_dbg "device decode: ${dec_cmd}"
-    if run_shell "command -v timeout" >/dev/null 2>&1; then
-        shell_cmd="timeout ${cmd_timeout_sec} sh -c '${dec_cmd}'"
-    else
-        shell_cmd="${dec_cmd}"
-    fi
-
-    run_decode_once
-    if [ "${dec_ret}" -ne 0 ] || [ -z "${dev_size}" ] || [ "${dev_size}" -le 0 ]; then
-        # 解码失败重试一次 (可能为瞬时失败)
-        log_warn "decode failed (ret=${dec_ret}), retrying once..."
-        sleep 2
-        run_shell "rm -f '${dev_yuv}' '${dev_slt}'" >/dev/null 2>&1
-        run_decode_once
-    fi
-    if [ "${dec_ret}" -ne 0 ] || [ -z "${dev_size}" ] || [ "${dev_size}" -le 0 ]; then
-        log_fail "decode failed (ret=${dec_ret})"
-        log_dbg "tail of decode log:"
-        log_dbg "$(tail -n 5 "${dec_log}")"
-        # 设备解码失败, 仍本地软解获取参考帧数
-        if soft_decode "${strm_path}" "${sw_yuv}"; then
-            fsize=$(frame_size)
-            sw_frames=$(( $(stat -c %s "${sw_yuv}") / fsize ))
-            log "soft decode done: ${sw_frames} frames (reference)"
-        else
-            log_warn "soft decode also failed, no frame info"
-        fi
-        if [ "${cmd_save_local}" = "0" ]; then
-            rm -f "${sw_yuv}"
-        fi
-        verify_fail_note="decode failed ret=${dec_ret}"
-        return 1
-    fi
-    dec_frames=$(grep -oE "decoded +[0-9]+ +frame" "${dec_log}" | tail -1 | grep -oE "[0-9]+")
-    # Android 平台 mpp 日志走 logcat, 从已保存的 logcat 文件中提取帧数
-    if [ -z "${dec_frames}" ]; then
-        dec_exe_name=$(basename "${dev_exe}")
-        dec_frames=$(grep -E "${dec_exe_name}.*decode" "${dec_logcat}" | \
-            tail -1 | grep -oE "decode [0-9]+" | awk '{print $2}')
-    fi
-    [ -z "${dec_frames}" ] && dec_frames="-"
-    log "decode done: ${dev_size} bytes, decode log frames ${dec_frames}"
-
-    # 4. pull 到 PC (带重试)
-    log_dbg "pull ${dev_yuv} -> ${hw_yuv}"
-    if ! retry_run "pull" run_adb pull "${dev_yuv}" "${hw_yuv}"; then
-        log_fail "pull failed"
-        verify_fail_note="pull failed"
-        return 1
-    fi
-
-    # pull 完整性校验
-    pull_size=$(stat -c %s "${hw_yuv}" 2>/dev/null)
-    if [ "${pull_size}" != "${dev_size}" ]; then
-        log_fail "pull integrity check failed: device ${dev_size}, local ${pull_size}"
-        verify_fail_note="pull integrity check failed"
-        return 1
-    fi
-
-    # slt 验证方法: pull 设备端生成的 slt 数据
-    if [ "${slt_enabled}" = "1" ]; then
-        slt_new="${cmd_out_dir}/${name}.slt"
-        log_dbg "pull ${dev_slt} -> ${slt_new}"
-        if ! retry_run "pull slt" run_adb pull "${dev_slt}" "${slt_new}"; then
-            log_fail "pull slt failed"
-            verify_fail_note="pull slt failed"
-            return 1
-        fi
-    fi
-
-    # 6. 删除设备上的片源和解码 yuv
-    if [ "${cmd_keep_dev}" = "0" ]; then
-        run_shell "rm -f '${dev_strm}' '${dev_yuv}' '${dev_slt}'" >/dev/null 2>&1
-    fi
-
-    # 5. 分析解码 yuv 是否正确
-    if [ "${cmd_no_cmp}" = "1" ]; then
-        log_pass "decode done (no compare)"
-        return 0
-    fi
 
     if ! get_stream_info "${strm_path}"; then
-        log_warn "ffprobe cannot get stream info, skip md5 compare"
+        log_warn "ffprobe cannot get stream info, skip compare"
         return 2
     fi
 
-    # 帧数交叉核对: yuv 实际帧数 vs 解码日志帧数
-    fsize=$(frame_size)
-    hw_frames=$(( pull_size / fsize ))
-    if [ "${dec_frames}" != "-" ] && [ "${hw_frames}" != "${dec_frames}" ]; then
-        log_warn "frame count mismatch: yuv actual ${hw_frames} frames, \
-decode log ${dec_frames} frames"
-    fi
+    # 帧数以 yuv 实际数据为准 (由文件大小 / 每帧字节数算出)
+    fsz=$(frame_size)
+    hw_frames=$(( $(stat -c %s "${hw_yuv}") / fsz ))
 
-    # 5. 按验证方法逐个执行对比, 任一方法失败则整体失败
+    # 按验证方法逐个执行对比, 任一方法失败则整体失败
     cmp_fail=0
     cmp_warn=0
     cmp_skip=0
     slt_gen=""
-    sw_prepared=""
-    verify_method_results=""
-    golden_slt="$(dirname "${strm_path}")/${name}.slt"
-    [ -n "${cmd_slt_dir}" ] && golden_slt="${cmd_slt_dir}/${name}.slt"
+    sw_prepared=""   # 与 soft_compare 共享的全局: yuv+md5 复用同一次软解
     for m in ${cmd_verify_method//,/ }; do
-        case "${m}" in
-            yuv) soft_compare "${strm_path}" "${hw_yuv}" "${sw_yuv}" ;;
-            md5) soft_md5_compare "${strm_path}" "${hw_yuv}" "${sw_yuv}" ;;
-            slt) slt_compare "${slt_new}" "${golden_slt}" ;;
-        esac
-        r=$?
         case "${m}" in
             yuv) m_pass="yuv compare: hw decoded yuv matches soft decode"
                  m_fail="yuv compare: hw decoded yuv differs from soft decode"
-                 m_note="yuv md5 mismatch" ;;
+                 m_note="yuv md5 mismatch"
+                 soft_compare "${strm_path}" "${hw_yuv}" "${sw_yuv}" 1 "${fsz}" ;;
             md5) m_pass="md5 compare: hw yuv md5 matches soft decode"
                  m_fail="md5 compare: hw yuv md5 differs from soft decode"
-                 m_note="md5 mismatch" ;;
+                 m_note="md5 mismatch"
+                 soft_compare "${strm_path}" "${hw_yuv}" "${sw_yuv}" 0 "${fsz}" ;;
             slt) m_pass="slt compare: hw slt data matches golden slt"
                  m_fail="slt compare: hw slt data differs from golden slt"
-                 m_note="slt mismatch" ;;
+                 m_note="slt mismatch"
+                 slt_compare "${cur_slt}" "${golden_slt}" ;;
         esac
+        r=$?
         case "${r}" in
             0) log_pass "${m_pass}"; verify_method_results+="${m}=pass," ;;
             1) log_fail "${m_fail}"; verify_fail_note="${m_note}"; cmp_fail=1
@@ -884,142 +659,477 @@ decode log ${dec_frames} frames"
     return 0
 }
 
-# ==================== 主流程 ====================
+# ============================================================
+# 第三层: 生产层 (decoder backend; 默认 mpi_dec_test)
+#
+# 后端接口 (由 producer_<id>_* 实现, 通过 producer_* 分派):
+#   producer_<id>_init                一次初始化 (选设备/探测/建目录)
+#   producer_<id>_codec_token <name>  编码名 -> 后端 token (非法返回空)
+#   producer_<id>_supports_slt        是否支持生成 slt (0=支持)
+#   producer_<id>_produce <src> <token> <out_yuv> <out_slt> <want_slt>
+#         成功 0 / 失败 1 / 设备掉线 9
+#         输出(全局): prod_note
+#   producer_<id>_cleanup             释放设备侧资源
+# ============================================================
 
-# 中断清理
-function cleanup()
+# ---- 后端分派 ----
+
+function producer_dispatch()
 {
-    echo ""
-    echo "interrupt received, cleaning device files..."
-    if [ -n "${adb_cmd}" ] && [ "${cmd_keep_dev}" = "0" ]; then
-        run_shell "rm -rf '${dev_work_dir}'" >/dev/null 2>&1
+    local fn="producer_${cmd_producer}_$1"
+    shift
+    if ! declare -F "${fn}" >/dev/null 2>&1; then
+        log_fail "producer backend '${cmd_producer}' missing function: ${fn}"
+        return 1
     fi
-    exit 130
+    "${fn}" "$@"
 }
 
-function write_csv_header()
+function producer_init()
 {
-    echo "stream,codec,status,hw_frames,sw_frames,first_diff,note" >"${result_csv}"
+    producer_dispatch init "$@" || return 1
+    g_producer_ready="1"
 }
 
-# CSV 字段转义: 含逗号/引号/换行时双引号包裹, 引号翻倍
-function csv_field()
+function producer_codec_token()   { producer_dispatch codec_token "$@"; }
+function producer_supports_slt()  { producer_dispatch supports_slt "$@"; }
+function producer_produce()       { producer_dispatch produce "$@"; }
+function producer_cleanup()       { producer_dispatch cleanup "$@"; }
+
+# 退出清理: 仅当生产层已初始化且尚未清理时执行一次 (幂等)
+function producer_cleanup_once()
 {
-    case "$1" in
-        *,*|*\"*|*$'\n'*)
-            echo "\"$(echo "$1" | sed 's/"/""/g')\"" ;;
-        *)
-            echo "$1" ;;
+    [ "${g_producer_ready}" = "1" ] || return 0
+    g_producer_ready="0"
+    producer_cleanup
+}
+
+# ---- 设备与工具 (mpi_dec_test 后端共用) ----
+# 设备 I/O 底层实现抽离到通用库 0.general_tools/03.adb_tools/02.adb_device.sh:
+#   adev_select/adev_valid/adev_run/adev_shell/adev_push/adev_pull/
+#   adev_find_exe/adev_file_size/adev_free_kb/adev_run_capture
+#   (选中设备后走 adev_adb)
+
+# 记录环境信息到日志
+function log_env_info()
+{
+    local soc kernel abi mpp_ver
+    soc=$(adev_shell \
+        "getprop ro.board.platform 2>/dev/null; \
+        cat /proc/device-tree/compatible 2>/dev/null" 2>/dev/null \
+        | tr '\0' '\n' | tr -d '\r' | head -2 | tr '\n' ' ')
+    kernel=$(adev_shell "uname -r" 2>/dev/null | tr -d '\r')
+    abi=$(adev_shell "uname -m" 2>/dev/null | tr -d '\r')
+    mpp_ver=$(adev_shell "strings /system/lib64/libmpp.so /system/lib/libmpp.so \
+        /usr/lib/librockchip_mpp.so /usr/lib/aarch64-linux-gnu/librockchip_mpp.so \
+        /usr/local/lib/librockchip_mpp.so 2>/dev/null \
+        | grep -m1 version" 2>/dev/null | tr -d '\r')
+    log "Device info: SoC=${soc:-unknown} kernel=${kernel:-unknown} abi=${abi:-unknown}"
+    if [ -n "${mpp_ver}" ]; then
+        log "mpp version: ${mpp_ver}"
+    fi
+}
+
+function detect_dec_exe()
+{
+    # 自动探测: 先试默认值 (dev_exe), 再试常见路径
+    local found
+    found=$(adev_find_exe "${dev_exe}") || {
+        # 设备端缺失: 不做编译部署相关操作, 直接报错提示用户自行部署
+        log_fail "${dev_exe} not found on device, please deploy it first"
+        exit 1
+    }
+    dev_exe="${found}"
+    log_dbg "device decoder: ${dev_exe}"
+
+    # timeout 命令探测 (只需一次), 用于设备端解码超时保护
+    adev_shell "command -v timeout" >/dev/null 2>&1 && dev_has_timeout="1"
+    return 0
+}
+
+# 设备空间预检: $1=本地片源路径, 返回 0 空间足够
+function check_dev_space()
+{
+    local strm_file="$1"
+    local strm_size est_yuv dur frames fsz need_kb avail_kb need_mb avail_mb
+
+    strm_size=$(stat -c %s "${strm_file}" 2>/dev/null)
+    [ -z "${strm_size}" ] && strm_size=0
+
+    # 预估解码 yuv 大小 (ffprobe 宽高/帧率/时长, get_stream_info 已缓存)
+    est_yuv=0
+    if get_stream_info "${strm_file}" 2>/dev/null; then
+        dur="${strm_dur}"
+        fsz=$(frame_size)
+        # 仅在有时长且能拿到真实帧率时按帧率估算, 不用默认帧率兜底
+        if [ -n "${dur}" ] && [ "${dur}" != "N/A" ] && [ -n "${strm_fps}" ]; then
+            frames=$(awk -v d="${dur}" -v f="${strm_fps}" \
+                'BEGIN{printf "%d", d*f}')
+            [ "${frames}" -lt 2 ] && frames=2
+            est_yuv=$(( frames * fsz ))
+        fi
+    fi
+    [ "${est_yuv}" -lt 1 ] && est_yuv=$(( strm_size * 20 ))
+
+    need_kb=$(( (strm_size + est_yuv) / 1024 + 1024 ))
+    # adev_free_kb 已校验数字, 失败时返回非 0 且不输出
+    if ! avail_kb=$(adev_free_kb "/data"); then
+        log_warn "cannot get free space of device /data, skip space check"
+        return 0
+    fi
+    if [ "${avail_kb}" -lt "${need_kb}" ]; then
+        need_mb=$((need_kb / 1024))
+        avail_mb=$((avail_kb / 1024))
+        log_fail "insufficient space on device /data:" \
+            "need ~${need_mb} MB, have ${avail_mb} MB"
+        return 1
+    fi
+    log_dbg "device space check passed: need ~$((need_kb/1024)) MB," \
+        "have $((avail_kb/1024)) MB"
+    return 0
+}
+
+# ---- 解码执行与重试 ----
+
+# 重试执行: $1=描述, 其余为命令; 成功返回 0
+function retry_run()
+{
+    local desc="$1"
+    shift
+    local tries=3 attempt=1
+    while [ "${attempt}" -le "${tries}" ]; do
+        if "$@" >>"$(log_sink)" 2>&1; then
+            return 0
+        fi
+        if [ "${attempt}" -lt "${tries}" ]; then
+            log_warn "${desc} failed (attempt ${attempt}), retrying..."
+            sleep 2
+        fi
+        attempt=$(( attempt + 1 ))
+    done
+    return 1
+}
+
+# 执行一次设备端解码 (含 logcat 采集)
+# $1=shell 命令 $2=解码日志(cmd_out) $3=logcat 日志 $4=设备端 yuv 路径
+# 输出(全局): dec_ret, dev_size
+function producer_decode_once()
+{
+    local shell_cmd="$1" dec_log="$2" logcat_log="$3" dev_yuv="$4"
+    adev_run_capture "${shell_cmd}" "${dec_log}" "${logcat_log}"
+    dec_ret="${adev_ret}"
+    dev_size=$(adev_file_size "${dev_yuv}")
+}
+
+# 失败收尾: 设备掉线则置 prod_note 并返回 9 (调用方据此终止整个运行),
+# 否则置 $1 并返回 1; 供 produce 的各失败分支复用
+function _fail_or_disconnect()
+{
+    if ! adev_valid; then
+        prod_note="device disconnected"
+        return 9
+    fi
+    prod_note="$1"
+    return 1
+}
+
+# ---- mpi_dec_test 后端 ----
+
+function producer_mpi_dec_test_init()
+{
+    adev_select ${cmd_adb_sel_paras} || return 1
+    log "device selected: ${adev_adb}"
+    log_env_info
+    detect_dec_exe
+    adev_shell "mkdir -p '${dev_work_dir}'" >/dev/null 2>&1
+    return 0
+}
+
+# 编码名(小写) -> mpi_dec_test -t 数值 (后端私有)
+function producer_mpi_dec_test_codec_token()
+{
+    case "${1,,}" in
+        h264|avc)         echo 7 ;;
+        h265|hevc)        echo 16777220 ;;
+        vp9)              echo 10 ;;
+        av1)              echo 16777224 ;;
+        avs2)             echo 16777223 ;;
+        avs)              echo 6 ;;
+        mpeg2|mpeg2video) echo 2 ;;
+        mpeg4)            echo 4 ;;
+        vp8)              echo 9 ;;
+        mjpeg|jpeg)       echo 8 ;;
+        *)                : ;;
     esac
 }
 
-function append_csv_line()
+function producer_mpi_dec_test_supports_slt()
 {
-    echo "$(csv_field "$1"),$(csv_field "$2"),$(csv_field "$3"),$(csv_field "$4"),\
-$(csv_field "$5"),$(csv_field "$6"),$(csv_field "$7")" >>"${result_csv}"
+    return 0
 }
 
-# 清理输出目录历史产物, 每次运行只保留本次结果
-function clean_out_dir()
+# 生成 yuv (want_slt=1 时附带生成 slt)
+function producer_mpi_dec_test_produce()
 {
-    rm -f "${cmd_out_dir}"/rk_dec_verify_*.log \
-          "${cmd_out_dir}"/result.csv \
-          "${cmd_out_dir}"/*.dec.log \
-          "${cmd_out_dir}"/*.dec.logcat \
-          "${cmd_out_dir}"/*.yuv \
-          "${cmd_out_dir}"/*.slt 2>/dev/null
+    local src="$1"
+    local ctype="$2"
+    local out_yuv="$3"
+    local out_slt="$4"
+    local want_slt="$5"
+    local name dev_name dev_strm dev_yuv dev_slt dec_log dec_logcat
+    local dec_cmd shell_cmd pull_size
+
+    prod_note=""
+    name=$(basename "${src}")
+    # 设备端文件名清洗, 避免空格/引号/斜杠破坏远端 shell 命令
+    dev_name=$(printf '%s' "${name}" | tr -c 'A-Za-z0-9._-' '_')
+    dev_strm="${dev_work_dir}/${dev_name}"
+    dev_yuv="${dev_work_dir}/${dev_name}.yuv"
+    dev_slt=""
+    dec_log="${cmd_out_dir}/${name}.dec.log"
+    dec_logcat="${cmd_out_dir}/${name}.dec.logcat"
+
+    # 空间预检
+    if ! check_dev_space "${src}"; then
+        prod_note="insufficient device space"
+        return 1
+    fi
+
+    # push 片源到设备 (带重试)
+    log_dbg "push ${src} -> ${dev_strm}"
+    if ! retry_run "push" adev_push "${src}" "${dev_strm}"; then
+        log_fail "push failed: ${src}"
+        _fail_or_disconnect "push failed"
+        return $?
+    fi
+
+    # 构建设备端解码命令
+    dec_cmd="cd ${dev_work_dir} && ${dev_exe} -i ${dev_name} -o ${dev_name}.yuv"
+    [ -n "${ctype}" ] && dec_cmd="${dec_cmd} -t ${ctype}"
+    [ -n "${cmd_extra_args}" ] && dec_cmd="${dec_cmd} ${cmd_extra_args}"
+    if [ "${want_slt}" = "1" ]; then
+        dev_slt="${dev_work_dir}/${dev_name}.slt"
+        dec_cmd="${dec_cmd} -slt ${dev_name}.slt"
+    fi
+    log_dbg "device decode: ${dec_cmd}"
+    if [ "${dev_has_timeout}" = "1" ]; then
+        # 内层命令嵌入 sh -c '...' 前转义单引号, 避免 --extra 含引号时截断/注入
+        shell_cmd="timeout ${cmd_timeout_sec} sh -c $(adev_quote "${dec_cmd}")"
+    else
+        shell_cmd="${dec_cmd}"
+    fi
+
+    # 解码 (失败重试一次, 可能为瞬时失败)
+    producer_decode_once "${shell_cmd}" "${dec_log}" "${dec_logcat}" "${dev_yuv}"
+    if [ "${dec_ret}" -ne 0 ] || [ -z "${dev_size}" ] || [ "${dev_size}" -le 0 ]; then
+        log_warn "decode failed (ret=${dec_ret}), retrying once..."
+        sleep 2
+        adev_shell "rm -f '${dev_yuv}' '${dev_slt}'" >/dev/null 2>&1
+        producer_decode_once "${shell_cmd}" "${dec_log}" "${dec_logcat}" "${dev_yuv}"
+    fi
+    if [ "${dec_ret}" -ne 0 ] || [ -z "${dev_size}" ] || [ "${dev_size}" -le 0 ]; then
+        log_fail "decode failed (ret=${dec_ret})"
+        log_dbg "tail of decode log:"
+        log_dbg "$(tail -n 5 "${dec_log}")"
+        _fail_or_disconnect "decode failed ret=${dec_ret}"
+        return $?
+    fi
+
+    # 帧数一律以产出的 yuv 为准 (不再解析解码日志)
+    log "decode done: ${dev_size} bytes"
+
+    # pull yuv 到 PC (带重试)
+    log_dbg "pull ${dev_yuv} -> ${out_yuv}"
+    if ! retry_run "pull" adev_pull "${dev_yuv}" "${out_yuv}"; then
+        log_fail "pull failed"
+        _fail_or_disconnect "pull failed"
+        return $?
+    fi
+
+    # pull 完整性校验
+    pull_size=$(stat -c %s "${out_yuv}" 2>/dev/null)
+    if [ "${pull_size}" != "${dev_size}" ]; then
+        log_fail "pull integrity check failed: device ${dev_size}, local ${pull_size}"
+        prod_note="pull integrity check failed"
+        return 1
+    fi
+
+    # pull slt
+    if [ "${want_slt}" = "1" ]; then
+        log_dbg "pull ${dev_slt} -> ${out_slt}"
+        if ! retry_run "pull slt" adev_pull "${dev_slt}" "${out_slt}"; then
+            log_fail "pull slt failed"
+            _fail_or_disconnect "pull slt failed"
+            return $?
+        fi
+    fi
+
+    # 删除设备上的片源和解码产物
+    if [ "${cmd_keep_dev}" = "0" ]; then
+        adev_shell "rm -f '${dev_strm}' '${dev_yuv}' '${dev_slt}'" >/dev/null 2>&1
+    fi
+    return 0
+}
+
+function producer_mpi_dec_test_cleanup()
+{
+    if [ -n "${adev_adb}" ] && [ "${cmd_keep_dev}" = "0" ]; then
+        adev_shell "rm -rf '${dev_work_dir}'" >/dev/null 2>&1
+    fi
+}
+
+# ============================================================
+# 编排入口 (组合生产层与校验层)
+# ============================================================
+
+# 单个片源验证: $1=片源路径 $2=编码名
+# 输出(全局, 供 main 汇总): hw_frames/sw_frames/first_diff/
+#                           verify_fail_note/verify_method_results
+function verify_one()
+{
+    local strm_path="$1"
+    local codec_name="$2"
+    local name hw_yuv sw_yuv slt_file golden_slt want_slt ctype pstat fsize
+
+    name=$(basename "${strm_path}")
+    hw_yuv="${cmd_out_dir}/${name}.yuv"
+    sw_yuv="${cmd_out_dir}/${name}.sw.yuv"
+    slt_file="${cmd_out_dir}/${name}.slt"
+
+    verify_fail_note=""
+    verify_method_results=""
+    log "========================================"
+    log "stream: ${strm_path}"
+    log "codec: ${codec_name}"
+
+    # 编码合法性由生产层判定
+    ctype=$(producer_codec_token "${codec_name}")
+    if [ -z "${ctype}" ]; then
+        log_fail "invalid codec type: ${codec_name}"
+        verify_fail_note="invalid codec type"
+        return 1
+    fi
+
+    # 是否需要生成 slt 产物 (校验层启用 slt 且生产层支持)
+    want_slt="0"
+    if [ "${cmd_no_cmp}" = "0" ] && method_enabled slt; then
+        if producer_supports_slt; then
+            want_slt="1"
+        else
+            log_warn "producer ${cmd_producer} does not support slt, slt verify skipped"
+        fi
+    fi
+
+    # ---- 生产层: 生成 yuv (及可选 slt) ----
+    producer_produce "${strm_path}" "${ctype}" "${hw_yuv}" "${slt_file}" "${want_slt}"
+    pstat=$?
+    if [ "${pstat}" != "0" ]; then
+        if [ "${pstat}" = "9" ]; then
+            verify_fail_note="${prod_note:-device disconnected}"
+            return 9
+        fi
+        # 生产失败: 可选软解提供参考帧数
+        if soft_decode "${strm_path}" "${sw_yuv}"; then
+            fsize=$(frame_size)
+            sw_frames=$(( $(stat -c %s "${sw_yuv}") / fsize ))
+            log "soft decode done: ${sw_frames} frames (reference)"
+        fi
+        [ "${cmd_save_local}" = "0" ] && rm -f "${sw_yuv}"
+        verify_fail_note="${prod_note:-decode failed}"
+        return 1
+    fi
+
+    # 仅解码不比对
+    if [ "${cmd_no_cmp}" = "1" ]; then
+        log_pass "decode done (no compare)"
+        return 0
+    fi
+
+    # ---- 校验层: 对比产物 ----
+    golden_slt="$(dirname "${strm_path}")/${name}.slt"
+    [ -n "${cmd_slt_dir}" ] && golden_slt="${cmd_slt_dir}/${name}.slt"
+    verify_run "${strm_path}" "${hw_yuv}" "${sw_yuv}" "${slt_file}" \
+        "${golden_slt}"
+    return $?
 }
 
 function main()
 {
+    local line ret i m st diff_v note_v vret kv v key trimmed
+    local m_pass m_warn m_fail m_gen m_skip m_fail_list m_warn_list
+    local total=0 abort_run="0" pass=0 warn=0 fail=0 has_method="0"
+    local -A seen=()
+    local -a result_stream=() result_status=() result_note=() result_methods=()
+
     parse_args "$@"
     check_env
+    trap producer_cleanup_once EXIT
     trap cleanup INT TERM
 
     # 实例锁: 防止多个实例并行写同一输出目录 (结果会互相污染)
+    # flock 缺失时降级: 告警并继续, 不加锁
     mkdir -p "${cmd_out_dir}"
-    exec 9>"${cmd_out_dir}/.rk_verify.lock"
-    if ! flock -n 9; then
-        echo "Error: another rk_dec_verify instance is running"
-        echo "       (lock file: ${cmd_out_dir}/.rk_verify.lock)"
-        exit 1
+    if command -v flock >/dev/null 2>&1; then
+        exec 9>"${cmd_out_dir}/.rk_verify.lock"
+        if ! flock -n 9; then
+            echo "Error: another rk_dec_verify instance is running"
+            echo "       (lock file: ${cmd_out_dir}/.rk_verify.lock)"
+            exit 1
+        fi
+    else
+        echo "Warning: flock not found, skip instance lock" >&2
     fi
-    # 清理历史结果 (含上次多设备模式的 dev_N 子目录)
+    # 清理历史结果
     clean_out_dir
-    rm -rf "${cmd_out_dir}"/dev_* 2>/dev/null
 
-    # ===== 选择单台设备并本进程验证 =====
-    init_adb || exit 1
-    echo "device selected: ${adb_cmd}"
-
-    # ===== 单设备验证全流程 =====
-    mkdir -p "${cmd_out_dir}" || { echo "Error: cannot create output dir ${cmd_out_dir}"; exit 1; }
-    # 清理上次运行产物, 避免旧结果/旧文件污染本次验证
-    clean_out_dir
     ts=$(date +%Y%m%d_%H%M%S)
-    log_file="${cmd_out_dir}/rk_dec_verify_${ts}.log"
+    log_setup "${cmd_out_dir}/rk_dec_verify_${ts}.log" "${cmd_quiet}" "${cmd_verbose}"
     result_csv="${cmd_out_dir}/result.csv"
-    : >"${log_file}"
+    : >"$(log_sink)"
     write_csv_header
 
     log_summary "==== RK decode verify started: $(date) ===="
     log_summary "list file: ${cmd_list_file}"
-    log_env_info
-    detect_dec_exe
-    run_shell "mkdir -p '${dev_work_dir}'" >/dev/null 2>&1
+    log_summary "producer: ${cmd_producer}"
 
-    total=0
-    abort_run="0"
-    pass=0
-    warn=0
-    fail=0
-    result_stream=()
-    result_codec=()
-    result_status=()
-    result_hw_frames=()
-    result_sw_frames=()
-    result_diff=()
-    result_note=()
-    result_methods=()
-    declare -a done_paths=()
+    # 生产层初始化 (选设备 / 探测工具 / 建工作目录)
+    producer_init || exit 1
 
     while IFS= read -r line <&3 || [ -n "${line}" ]; do
-        # 空行/纯空白行/注释行跳过 (容忍行首空白)
-        case "${line}" in
-            \#*|[[:space:]]*\#*|[[:space:]]*) continue ;;
-            *) : ;;
+        # 容忍 Windows(CRLF) 换行与文件开头 BOM
+        line="${line%$'\r'}"
+        line="${line#"${__bom}"}"
+        # 去掉行首空白后再判断: 仅空白行/注释行跳过 (容忍行首空白)
+        trimmed="${line#"${line%%[![:space:]]*}"}"
+        case "${trimmed}" in
+            ''|\#*) continue ;;
         esac
 
         parse_stream_line "${line}"
         ret=$?
-        [ "${ret}" = "1" ] && continue    # 空行/注释
 
-        strm_path="${strm_path:-${line}}"
-
-        # 列表去重: 同一片源只处理一次
-        dup=0
-        for p in "${done_paths[@]}"; do
-            [ "${p}" = "${strm_path}" ] && { dup=1; break; }
-        done
-        if [ "${dup}" = "1" ]; then
-            log_warn "duplicate stream in list, skip: ${strm_path}"
-            continue
+        # 列表去重: 同一片源只处理一次 (关联数组 O(1))
+        # 键按绝对路径归一, 使 ./a 与 a 视为同一片源
+        if [ -n "${strm_path}" ]; then
+            key="${strm_path}"
+            [ -e "${strm_path}" ] && key=$(readlink -f "${strm_path}")
+            if [[ -n "${seen[${key}]:-}" ]]; then
+                log_warn "duplicate stream in list, skip: ${strm_path}"
+                continue
+            fi
+            seen["${key}"]=1
         fi
-        done_paths+=("${strm_path}")
 
         total=$(( total + 1 ))
         if [ "${ret}" = "2" ]; then
             fail=$(( fail + 1 ))
+            note_v="${parse_note:-invalid stream/codec}"
             result_stream+=("${strm_path}")
-            result_codec+=("-")
             result_status+=("FAIL")
-            result_hw_frames+=("-")
-            result_sw_frames+=("-")
-            result_diff+=("-")
-            result_note+=("${parse_note:-invalid stream/codec}")
+            result_note+=("${note_v}")
             result_methods+=("-")
-            append_csv_line "${strm_path}" "-" "FAIL" "-" "-" "-" \
-                "${parse_note:-invalid stream/codec}"
+            csv_append "${result_csv}" "${strm_path}" "${codec_name:--}" "FAIL" \
+                "-" "-" "-" "${note_v}"
             continue
         fi
 
@@ -1027,13 +1137,11 @@ function main()
         hw_frames=""
         sw_frames=""
         first_diff=""
-        dec_frames=""
 
-        verify_one "${strm_path}" "${ctype}"
+        verify_one "${strm_path}" "${codec_name}"
         vret=$?
 
         result_stream+=("${strm_path}")
-        result_codec+=("${strm_name}")
         case "${vret}" in
             0) pass=$(( pass + 1 )); st="PASS"; diff_v="-"; note_v="" ;;
             4) pass=$(( pass + 1 )); st="PASS"; diff_v="-"
@@ -1045,49 +1153,56 @@ function main()
             9) fail=$(( fail + 1 )); st="FAIL"; diff_v="-"
                note_v="device disconnected, abort remaining streams"
                abort_run="1" ;;
-            *) fail=$(( fail + 1 )); st="FAIL"; diff_v="${first_diff:-?}"
+            *) fail=$(( fail + 1 )); st="FAIL"; diff_v="${first_diff:--}"
                note_v="${verify_fail_note:-md5 mismatch}" ;;
         esac
         result_status+=("${st}")
-        result_diff+=("${diff_v}")
         result_note+=("${note_v}")
         result_methods+=("${verify_method_results}")
-        result_hw_frames+=("${hw_frames:-${dec_frames:--}}")
-        result_sw_frames+=("${sw_frames:--}")
-        append_csv_line "${strm_path}" "${strm_name}" "${st}" \
-            "${hw_frames:-${dec_frames:--}}" "${sw_frames:--}" \
+        [ -n "${verify_method_results}" ] && has_method="1"
+        csv_append "${result_csv}" "${strm_path}" "${codec_name}" "${st}" \
+            "${hw_frames:--}" "${sw_frames:--}" \
             "${diff_v}" "${note_v}"
-        # 设备掉线: 剩余片源全部跳过, 直接结束循环
-        [ "${abort_run}" = "1" ] && {
-            log_warn "device disconnected, skip remaining streams"
+        # 设备掉线: 剩余片源全部跳过, 直接结束循环 (note 已记录在 result)
+        if [ "${abort_run}" = "1" ]; then
             break
-        }
+        fi
     done 3<"${cmd_list_file}"
 
     # 汇报验证结果
     log_summary ""
     log_summary "========================================"
-    log_summary "verify summary (${total} streams, PASS ${pass}, WARN ${warn}, FAIL ${fail})"
+    log_summary "verify summary (${total} streams, PASS ${pass}," \
+        "WARN ${warn}, FAIL ${fail})"
     log_summary "========================================"
+    # 刷新导出颜色变量, 使其匹配当前 TTY 状态(log_summary 会为文件/非终端自动去色)
+    log_refresh
     for (( i = 0; i < total; i++ )); do
         st="${result_status[$i]}"
         if [ "${st}" = "PASS" ]; then
-            log_summary "  ${GREEN}[PASS] ${result_stream[$i]}${NC}"
+            log_summary "  ${_log_green}[PASS] ${result_stream[$i]}${_log_nc}"
         elif [ "${st}" = "WARN" ] || [ "${st}" = "SKIP" ]; then
-            log_summary "  ${YELLOW}[${st}] ${result_stream[$i]} (${result_note[$i]})${NC}"
+            log_summary "  ${_log_yellow}[${st}] ${result_stream[$i]}" \
+                "(${result_note[$i]})${_log_nc}"
         else
-            log_summary "  ${RED}[FAIL] ${result_stream[$i]} (${result_note[$i]})${NC}"
+            log_summary "  ${_log_red}[FAIL] ${result_stream[$i]}" \
+                "(${result_note[$i]})${_log_nc}"
         fi
     done
 
-    # 按校验方式分类汇总
-    if [ "${cmd_no_cmp}" = "0" ] && [ "${total}" -gt 0 ]; then
+    # 按校验方式分类汇总 (无任何片源进入校验时跳过)
+    if [ "${cmd_no_cmp}" = "0" ] && [ "${total}" -gt 0 ] && \
+       [ "${has_method}" = "1" ]; then
         log_summary ""
         log_summary "==== per-method summary ===="
         for m in ${cmd_verify_method//,/ }; do
             m_pass=0; m_warn=0; m_fail=0; m_gen=0; m_skip=0
             m_fail_list=""; m_warn_list=""
             for (( i = 0; i < total; i++ )); do
+                # 未进入校验的片源 (parse 失败 / 非法 codec / 掉线) 不参与 per-method 统计
+                case "${result_methods[$i]}" in
+                    ''|-) continue ;;
+                esac
                 v=""
                 for kv in ${result_methods[$i]//,/ }; do
                     case "${kv}" in
@@ -1107,18 +1222,18 @@ function main()
             log_summary "  [${m}] PASS ${m_pass}, WARN ${m_warn}, FAIL ${m_fail}, \
 GEN ${m_gen}, SKIP ${m_skip}"
             [ "${m_fail}" -gt 0 ] && \
-                log_summary "    FAIL:${m_fail_list}"
+                log_summary "    FAIL:${m_fail_list%,}"
             [ "${m_warn}" -gt 0 ] && \
-                log_summary "    WARN:${m_warn_list}"
+                log_summary "    WARN:${m_warn_list%,}"
         done
     fi
 
     log_summary "result CSV: ${result_csv}"
-    log_summary "detail log: ${log_file}"
+    log_summary "detail log: ${_log_file:-<disabled>}"
 
+    # 设备侧资源由 EXIT trap (producer_cleanup_once) 释放
     [ "${fail}" -gt 0 ] && exit 1
     exit 0
 }
 
 main "$@"
-
