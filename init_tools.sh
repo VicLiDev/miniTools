@@ -114,6 +114,7 @@ function init_build_run_tools()
     create_link_to_bin ${tools_dir}/06.stress_test.py  m_stree_test.py
     create_link_to_bin ${tools_dir}/16.usbinfo.sh      m_usbinfo.sh
     create_link_to_bin ${tools_dir}/17.proxy_mihomo.sh m_proxy_mihomo
+    create_link_to_bin ${tools_dir}/18.net_tools.sh    m_net_tools.sh
 
     echo "build/run tools: for prj usage"
     echo '  ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
