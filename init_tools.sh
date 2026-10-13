@@ -54,72 +54,39 @@ function compile_tool_to_bin()
 
 
 # =============================================================================
-#  source tools
+#  libs
 # =============================================================================
 
-function init_source_tools()
+function init_libs()
 {
     echo
+    echo "==> Installing libs"
+
+    libs_dir="${repo_root}/00.libs"
+
+    create_link_to_bin ${libs_dir}/01.log.sh          _log.sh
+    create_link_to_bin ${libs_dir}/02.dir_file_opt.sh _dir_file_opt.sh
+    create_link_to_bin ${libs_dir}/03.select_node.sh  _select_node.sh
+    create_link_to_bin ${libs_dir}/03.sel_node.py     _select_node.py
+    create_link_to_bin ${libs_dir}/05.csv.sh          _csv.sh
+}
+
+# =============================================================================
+#  shell env (source loaded)
+# =============================================================================
+
+function init_shell_env()
+{
+    echo
+    echo "==> Installing shell env (source loaded)"
     echo "==> Generating ${source_file}"
 
-    echo "source ${repo_root}/0.general_tools/01.gen_cmd_cfg.sh" > ${source_file}
-    echo "source ${repo_root}/0.general_tools/02.git_tools.sh" >> ${source_file}
-    echo "source ${repo_root}/1.compileRun/02.rk_tools/rk_shell_tools.sh" >> ${source_file}
-    echo "source ${repo_root}/2.dataProc/02.ffmpeg_tools/01.general.sh" >> ${source_file}
-}
+    shell_env_dir="${repo_root}/01.shell_env"
 
-# =============================================================================
-#  General tools
-# =============================================================================
-
-function init_general_tools()
-{
-    echo
-    echo "==> Installing general tools"
-
-    tools_dir="${repo_root}/0.general_tools"
-
-    create_link_to_bin ${tools_dir}/00.lib/01.log.sh          _log.sh
-    create_link_to_bin ${tools_dir}/00.lib/02.dir_file_opt.sh _dir_file_opt.sh
-    create_link_to_bin ${tools_dir}/00.lib/03.select_node.sh  _select_node.sh
-    create_link_to_bin ${tools_dir}/00.lib/04.sel_node.py     _select_node.py
-
-    # adb tools
-    create_link_to_bin ${tools_dir}/03.adb_tools/01.adbSelCmd.sh  adbs
-    create_link_to_bin ${tools_dir}/03.adb_tools/03.adbDebug.sh   adbDebug.sh
-    create_link_to_bin ${tools_dir}/03.adb_tools/02.adb_device.sh _adb_device.sh
-
-    create_link_to_bin ${tools_dir}/04.csv.sh                 _csv.sh
-    create_link_to_bin ${tools_dir}/05.sysParaMon.py          _sysParaMon.py
-}
-
-# =============================================================================
-#  build/run tools
-# =============================================================================
-
-function init_build_run_tools()
-{
-    echo
-    echo "==> Installing build/run tools"
-
-    tools_dir="${repo_root}/1.compileRun"
-
-    create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build_all.sh  m_ffmpeg_bd.sh
-    create_link_to_bin ${tools_dir}/01.ffmpeg_build/ffmpeg_build_smp.sh  m_ffmpeg_smp.sh
-
-    create_link_to_bin ${tools_dir}/03.codec_tools/01.sw_codec_eval/sw_codec.sh  m_sw_codec_eval.sh
-    create_link_to_bin ${tools_dir}/03.codec_tools/02.spec_build/specBuild.sh    m_spec_build.sh
-    create_link_to_bin ${tools_dir}/03.codec_tools/02.spec_build/specDebug.sh    m_spec_debug.sh
-
-    create_link_to_bin ${tools_dir}/06.stress_test.py  m_stree_test.py
-    create_link_to_bin ${tools_dir}/16.usbinfo.sh      m_usbinfo.sh
-    create_link_to_bin ${tools_dir}/17.proxy_mihomo.sh m_proxy_mihomo
-    create_link_to_bin ${tools_dir}/18.net_tools.sh    m_net_tools.sh
-
-    echo "build/run tools: for prj usage"
-    echo '  ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
-    echo '  ln -s ${HOME}/bin/m_spec_build.sh .prjBuild.sh'
-    echo '  ln -s ${HOME}/bin/m_spec_debug.sh .prjDebug.sh'
+    echo "source ${shell_env_dir}/01.gen_cmd_cfg.sh" > ${source_file}
+    echo "source ${shell_env_dir}/02.git_tools.sh" >> ${source_file}
+    echo "source ${repo_root}/02.gen_tools/03.data_proc/03.ffmpeg_tools/01.general.sh" >> ${source_file}
+    echo "source ${repo_root}/04.spec_tools/01.rk_tools/01.rk_tools/rk_shell_tools.sh" >> ${source_file}
 }
 
 # =============================================================================
@@ -131,12 +98,11 @@ function init_data_proc_tools()
     echo
     echo "==> Installing data processing tools"
 
-    tools_dir="${repo_root}/2.dataProc"
+    tools_dir="${repo_root}/02.gen_tools/03.data_proc"
 
-    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/data_process_gen.py  m_plt.py
-    create_link_to_bin ${tools_dir}/01.data_proc_with_plot/time_conv.py         m_time_conv.py
-    create_link_to_bin ${tools_dir}/02.ffmpeg_tools/02.probe_stream.sh          m_probe_stream.sh
-    create_link_to_bin ${tools_dir}/03.reg_opt/main.py                          m_reg_ut.py
+    create_link_to_bin ${tools_dir}/02.data_proc_with_plot/data_process_gen.py  m_plt.py
+    create_link_to_bin ${tools_dir}/02.data_proc_with_plot/time_conv.py         m_time_conv.py
+    create_link_to_bin ${tools_dir}/03.ffmpeg_tools/02.probe_stream.sh          m_probe_stream.sh
     create_link_to_bin ${tools_dir}/04.compareMulti/cmp_dir.sh                  m_cmp_dir.sh
     create_link_to_bin ${tools_dir}/04.compareMulti/cmp_yuv.sh                  m_cmp_yuv.sh
     create_link_to_bin ${tools_dir}/05.split_hex_str.py                         m_split_hex_str.py
@@ -145,12 +111,64 @@ function init_data_proc_tools()
     create_link_to_bin ${tools_dir}/08.conv_ascii.py                            m_conv_ascii.py
     create_link_to_bin ${tools_dir}/10.data_cut.sh                              m_data_cut.sh
     create_link_to_bin ${tools_dir}/11.pip_display.py                           m_pip_display.py
-    create_link_to_bin ${tools_dir}/21.hex_data_ana.py                          m_hex_data_ana.py
-    create_link_to_bin ${tools_dir}/22.split_bin2frms.py                        m_split_bin2frms.py
-    create_link_to_bin ${tools_dir}/24.xml_fmt.py                               m_xml_fmt.py
+    create_link_to_bin ${tools_dir}/16.hex_data_ana.py                          m_hex_data_ana.py
+    create_link_to_bin ${tools_dir}/17.split_bin2frms.py                        m_split_bin2frms.py
+    create_link_to_bin ${tools_dir}/19.xml_fmt.py                               m_xml_fmt.py
 
     compile_tool_to_bin gcc ${tools_dir}/09.conv_str_bin.c       m_conv_str_bin
     compile_tool_to_bin gcc ${tools_dir}/12.map_raster_zorder.c  m_map_raster_zorder
+}
+
+# =============================================================================
+#  general tools
+# =============================================================================
+
+function init_gen_tools()
+{
+    echo
+    echo "==> Installing general tools"
+
+    gen_tools_dir="${repo_root}/02.gen_tools"
+
+    # dev tools
+    create_link_to_bin ${gen_tools_dir}/01.dev_tools/01.adb_tools/01.adbSelCmd.sh  adbs
+    create_link_to_bin ${gen_tools_dir}/01.dev_tools/01.adb_tools/03.adbDebug.sh   adbDebug.sh
+    create_link_to_bin ${gen_tools_dir}/01.dev_tools/01.adb_tools/02.adb_device.sh _adb_device.sh
+
+    create_link_to_bin ${gen_tools_dir}/01.dev_tools/03.sysParaMon.py      _sysParaMon.py
+    create_link_to_bin ${gen_tools_dir}/01.dev_tools/04.usbinfo.sh         m_usbinfo.sh
+    create_link_to_bin ${gen_tools_dir}/01.dev_tools/06.stress_test.py     m_stree_test.py
+
+    # net tools
+    create_link_to_bin ${gen_tools_dir}/02.net_tools/01.net_test.sh     m_net_test.sh
+    create_link_to_bin ${gen_tools_dir}/02.net_tools/02.proxy_mihomo.sh m_proxy_mihomo
+
+    # data proc tools
+    init_data_proc_tools
+}
+
+# =============================================================================
+#  build tools
+# =============================================================================
+
+function init_build()
+{
+    echo
+    echo "==> Installing build tools"
+
+    build_dir="${repo_root}/03.build"
+
+    create_link_to_bin ${build_dir}/01.ffmpeg_build/ffmpeg_build_all.sh  m_ffmpeg_bd.sh
+    create_link_to_bin ${build_dir}/01.ffmpeg_build/ffmpeg_build_smp.sh  m_ffmpeg_smp.sh
+
+    create_link_to_bin ${build_dir}/02.codec_tools/01.sw_codec_eval/sw_codec.sh  m_sw_codec_eval.sh
+    create_link_to_bin ${build_dir}/02.codec_tools/02.spec_build/specBuild.sh    m_spec_build.sh
+    create_link_to_bin ${build_dir}/02.codec_tools/02.spec_build/specDebug.sh    m_spec_debug.sh
+
+    echo "build tools: for prj usage"
+    echo '  ln -s ${HOME}/bin/m_ffmpeg_smp.sh .prjBuild.sh'
+    echo '  ln -s ${HOME}/bin/m_spec_build.sh .prjBuild.sh'
+    echo '  ln -s ${HOME}/bin/m_spec_debug.sh .prjDebug.sh'
 }
 
 # =============================================================================
@@ -162,7 +180,7 @@ function init_rk_tools()
     echo
     echo "==> Installing RK tools"
 
-    rk_tools_dir="${repo_root}/1.compileRun/02.rk_tools"
+    rk_tools_dir="${repo_root}/04.spec_tools/01.rk_tools/01.rk_tools"
 
     # mpp
     create_link_to_bin ${rk_tools_dir}/rkBuildMpp.sh rkBuildMpp.sh
@@ -195,13 +213,19 @@ function init_rk_tools()
     echo
 
 
-    rk_tools_dir="${repo_root}/1.compileRun/04.cmodel_tools"
+    rk_tools_dir="${repo_root}/04.spec_tools/01.rk_tools/02.cmodel_tools"
 
     # cmodel tools
     create_link_to_bin ${rk_tools_dir}/cmodel_reg_proc.py   rk_cmod_reg_proc.py
 
 
-    rk_tools_dir="${repo_root}/1.compileRun/13.rk_fpga_tools"
+    rk_tools_dir="${repo_root}/04.spec_tools/01.rk_tools/07.reg_opt"
+
+    # reg opt tools
+    create_link_to_bin ${rk_tools_dir}/main.py   m_reg_ut.py
+
+
+    rk_tools_dir="${repo_root}/04.spec_tools/01.rk_tools/04.rk_fpga_tools"
 
     # fpga tools
     create_link_to_bin ${rk_tools_dir}/link.sh   rk_fpga_tools_init.sh
@@ -262,10 +286,10 @@ function init_shell()
 function main()
 {
     get_repo_root
-    init_source_tools
-    init_general_tools
-    init_build_run_tools
-    init_data_proc_tools
+    init_libs
+    init_shell_env
+    init_gen_tools
+    init_build
     init_rk_tools
     init_shell
 }
