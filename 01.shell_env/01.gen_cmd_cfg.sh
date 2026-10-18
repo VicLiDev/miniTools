@@ -53,6 +53,9 @@ then
     export http_proxy=http://${proxyIP}:${proxyPort}
     export https_proxy=http://${proxyIP}:${proxyPort}
     export all_proxy=socks5://${proxyIP}:${proxyPort}
+    # 本机回环流量必须直连，否则 opencode v2 / clash 等本地服务调用会被代理拦截
+    export no_proxy="127.0.0.1,localhost,::1"
+    export NO_PROXY="${no_proxy}"
 fi
 
 # -------------------------
