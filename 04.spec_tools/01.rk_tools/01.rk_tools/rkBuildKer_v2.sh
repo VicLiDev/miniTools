@@ -12,11 +12,8 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # ---- 全局参数(命令行可覆盖) ----
 arg_ini=""
-arg_ini_dir=""
 arg_dir=""
 arg_env="false"
 arg_list="false"
@@ -25,84 +22,119 @@ arg_kernel="false"
 arg_dry="false"
 arg_jobs=""
 
+# 平台 ini 目录固定为 ~/bin/rk_ker_bd_ini
+ini_dir="${HOME}/bin/rk_ker_bd_ini"
+
+# ---- 运行时状态(跨函数共享) ----
+# 平台选择结果(select_platform)
+tgt_ini=""
+tgt_name=""
+tgt_arch=""
+
+# 内核版本(read_kernel_version)
+KERNEL_VER=""
+VERSION=0
+
+# 平台配置(load_platform_config, 来自 ini)
+tc_raw=""
+tc_lt6=""
+make_val=""
+android_config=""
+config_raw=""
+target_raw=""
+mode=""
+build_mode_list=("build_kmod" "build_kernel")
+kmod_dir=""
+kmod_ko=""
+flash_method="auto"
+boot_img=""
+flash_reset="true"
+push_dir=""
+
+# 工具链与编译命令(setup_toolchain / build_commands)
+toolchain=""
+config_cmd=()
+build_cmd=()
+kmod_cmd=()
+
+# 平台列表(load_platform_list)
+plt_names=()
+plt_files=()
+
+# ini 内容缓存(ini_load / ini_read), key: file|section|key
+declare -A INI_CACHE=()
+
 function usage()
 {
     cat <<EOF
-用法: rkBuildKer_v2.sh [选项]
+Usage: rkBuildKer_v2.sh [options]
 
-  --ini <name|path>   指定平台(ini 文件名/平台名/唯一子串), 不指定则交互选择
-  --ini-dir <dir>     平台 ini 目录(默认取 RK_KER_BD_INI_DIR >
-                      脚本同目录 rk_ker_bd_ini)
-  --dir <kernel_path> 切到内核源码目录(默认当前目录)
-  --mod               强制按 build_kmod(单编模块)执行
-  --kernel            强制按 build_kernel(整编内核)执行
-  --env               只初始化环境并打印命令, 不编译
-  --list              列出所有可用平台后退出
-  --dry               只打印命令, 不真正执行
-  --jobs <n>          并行度(默认 nproc+1)
-  -h|--help           显示本帮助
+  --ini <file>        Select platform by ini file (path, or filename under
+                      ~/bin/rk_ker_bd_ini); interactive selection if omitted
+  --dir <kernel_path> Change to kernel source directory (default: current dir)
+  --mod               Force build_kmod (build module only)
+  --kernel            Force build_kernel (build full kernel)
+  --env               Only initialize environment and print commands, no build
+  --list              List all available platforms and exit
+  --dry               Only print commands, do not execute
+  --jobs <n>          Parallelism (default: nproc+1)
+  -h|--help           Show this help
 EOF
 }
 
 function parse_args()
 {
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --ini)      arg_ini="$2"; shift ;;
-            --ini-dir)  arg_ini_dir="$2"; shift ;;
-            --dir)      arg_dir="$2"; shift ;;
+    while [[ ${#} -gt 0 ]]; do
+        case "${1}" in
+            --ini)      arg_ini="${2}"; shift ;;
+            --dir)      arg_dir="${2}"; shift ;;
             --env)      arg_env="true" ;;
             --list)     arg_list="true" ;;
             --mod)      arg_mod="true" ;;
             --kernel)   arg_kernel="true" ;;
             --dry)      arg_dry="true" ;;
-            --jobs)     arg_jobs="$2"; shift ;;
+            --jobs)     arg_jobs="${2}"; shift ;;
             -h|--help)  usage; exit 0 ;;
-            *) echo "未知参数: $1"; usage; exit 1 ;;
+            *) echo "Unknown option: ${1}"; usage; exit 1 ;;
         esac
         shift
     done
 }
 
-# ---- ini 解析(不引入外部工具, 纯 awk) ----
-# ini_get <file> <section> <key>  -> 打印值(取该节最后一个匹配)
-function ini_get()
+# ---- ini 解析(复用 00.libs/05.cfg.sh 配置模块) ----
+# 每个 ini 只调用一次模块(ini entries), 之后查关联数组, 避免反复启动 python.
+
+function ini_load()
 {
-    awk -v sec="$2" -v key="$3" '
-        /^[[:space:]]*\[/ {
-            line=$0; sub(/^[[:space:]]*\[/,"",line); sub(/\].*$/,"",line)
-            cur=line; next
-        }
-        {
-            line=$0
-            if (line ~ /^[[:space:]]*#/ || line ~ /^[[:space:]]*$/) next
-            k=line; sub(/[[:space:]]*=.*/,"",k); gsub(/[[:space:]]/,"",k)
-            if (cur==sec && k==key) {
-                v=line; sub(/^[^=]*=[[:space:]]*/,"",v); sub(/[[:space:]]*$/,"",v)
-                print v
-            }
-        }
-    ' "$1"
+    local file="${1}" section key value
+    [ -n "${INI_CACHE["${file}|loaded"]+x}" ] && return 0
+    [ -f "${file}" ] || { echo "error: ini not found: ${file}" >&2; exit 1; }
+
+    while IFS=$'\t' read -r section key value; do
+        INI_CACHE["${file}|${section}|${key}"]="${value}"
+    done < <(ini_entries "${file}")
+
+    INI_CACHE["${file}|loaded"]=1
+}
+
+# ini_read <file> <section> <key> [default] -> 打印值(取该节最后一个匹配)
+function ini_read()
+{
+    local file="${1}" section="${2}" key="${3}" default="${4:-}"
+    local cache_key="${file}|${section}|${key}"
+    ini_load "${file}"
+    if [ -n "${INI_CACHE["${cache_key}"]+x}" ]; then
+        printf '%s\n' "${INI_CACHE["${cache_key}"]}"
+    else
+        printf '%s\n' "${default}"
+    fi
 }
 
 # ini_patches <file> -> 按数值键序打印 "键<TAB>sed表达式"
 function ini_patches()
 {
-    awk -v sec="config_patch" '
-        /^[[:space:]]*\[/ {
-            line=$0; sub(/^[[:space:]]*\[/,"",line); sub(/\].*$/,"",line)
-            cur=line; next
-        }
-        {
-            line=$0
-            if (line ~ /^[[:space:]]*#/ || line ~ /^[[:space:]]*$/) next
-            k=line; sub(/[[:space:]]*=.*/,"",k); gsub(/[[:space:]]/,"",k)
-            if (cur==sec && k ~ /^[0-9]+$/) {
-                v=line; sub(/^[^=]*=[[:space:]]*/,"",v); sub(/[[:space:]]*$/,"",v)
-                printf "%s\t%s\n", k, v
-            }
-        }
-    ' "$1" | sort -n -k1,1
+    [ -f "${1}" ] || return 0
+    ini_numbered "${1}" config_patch 2>/dev/null || true
 }
 
 # 展开 ~ 并处理 | 分隔的多候选路径: 输出所有"存在"的目录(空格分隔)。
@@ -110,24 +142,34 @@ function ini_patches()
 # 若候选都不存在, 回退为全部展开后的目录。
 function resolve_toolchain()
 {
-    local raw="$1" c
+    local raw="${1}" c
     local -a cands out
-    IFS='|' read -r -a cands <<< "$raw"
+    IFS='|' read -r -a cands <<< "${raw}"
     for c in "${cands[@]}"; do
-        c="${c/#\~/$HOME}"
-        [ -d "$c" ] && out+=("$c")
+        c="${c/#\~/${HOME}}"
+        [ -d "${c}" ] && out+=("${c}")
     done
     if [ "${#out[@]}" -eq 0 ]; then
         for c in "${cands[@]}"; do
-            out+=("${c/#\~/$HOME}")
+            out+=("${c/#\~/${HOME}}")
         done
     fi
     echo "${out[@]}"
 }
 
+# 平台名是否 Android: 只有 Android 平台需要自动选择 android-N.config
+function is_android_platform()
+{
+    case "${1}" in
+        *android*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# android/fpga 平台可能使用 clang 工具链(path_android_lt6)
 function is_android_like()
 {
-    case "$1" in
+    case "${1}" in
         *android*|*fpga*) return 0 ;;
         *) return 1 ;;
     esac
@@ -138,79 +180,67 @@ function detect_android_config()
 {
     local best="" bestn=0 n f
     while IFS= read -r f; do
-        n="$(basename "$f" | sed -E 's/^android-([0-9]+)\.config$/\1/')"
-        case "$n" in ''|*[!0-9]*) continue ;; esac
-        if [ "$n" -gt "$bestn" ]; then
-            bestn="$n"; best="$(basename "$f")"
+        n="$(basename "${f}" | sed -E 's/^android-([0-9]+)\.config$/\1/')"
+        case "${n}" in ''|*[!0-9]*) continue ;; esac
+        if [ "${n}" -gt "${bestn}" ]; then
+            bestn="${n}"; best="$(basename "${f}")"
         fi
     done < <(find . -name 'android-*.config' 2>/dev/null | grep -E 'android-[0-9]+\.config$')
-    echo "$best"
+    echo "${best}"
 }
 
-# mode=auto 时: 若 mpp 的 Makefile 里有 obj-m, 则默认单编模块
+# mpp Makefile 有 obj-m 时, 可单编模块, 由用户选择构建方式
 function detect_kmod_default()
 {
     local mk="drivers/video/rockchip/mpp/Makefile"
-    [ -f "$mk" ] && grep -qE '^[[:space:]]*obj-m' "$mk"
+    [ -f "${mk}" ] && grep -qE '^[[:space:]]*obj-m' "${mk}"
 }
 
 # ---- 平台枚举 / 选择 ----
 function load_platform_list()
 {
     local f n
+    [ "${#plt_files[@]}" -gt 0 ] && return 0
     plt_names=(); plt_files=()
-    for f in "$ini_dir"/*.ini; do
-        [ -e "$f" ] || continue
-        n="$(ini_get "$f" platform name)"
-        [ -z "$n" ] && n="$(basename "$f" .ini)"
-        plt_names+=("$n")
-        plt_files+=("$f")
+    for f in "${ini_dir}"/*.ini; do
+        [ -e "${f}" ] || continue
+        n="$(ini_read "${f}" platform name)"
+        [ -z "${n}" ] && n="$(basename "${f}" .ini)"
+        plt_names+=("${n}")
+        plt_files+=("${f}")
     done
 }
 
-function resolve_ini()
+# 查找命令行传入的 ini 文件: 依次尝试当前/指定路径、补 .ini、ini 目录.
+# 命中时输出绝对路径; 未命中返回 1.
+function find_ini_file()
 {
-    local v="$1" i match="" cnt=0 base
-    [ -f "$v" ] && { echo "$v"; return 0; }
-    [ -f "$ini_dir/$v" ] && { echo "$ini_dir/$v"; return 0; }
-    [ -f "$ini_dir/$v.ini" ] && { echo "$ini_dir/$v.ini"; return 0; }
-
-    for i in "${!plt_names[@]}"; do
-        base="$(basename "${plt_files[$i]}" .ini)"
-        if [ "${plt_names[$i]}" = "$v" ] || [ "$base" = "$v" ] \
-           || [ "$(basename "${plt_files[$i]}")" = "$v" ]; then
-            match="${plt_files[$i]}"; cnt=$((cnt+1))
-        fi
+    local v="${1}" p
+    [ -n "${v}" ] || return 1
+    for p in "${v}" "${v}.ini" "${ini_dir}/${v}" "${ini_dir}/${v}.ini"; do
+        [ -f "${p}" ] || continue
+        readlink -f "${p}"
+        return 0
     done
-    [ "$cnt" -eq 1 ] && { echo "$match"; return 0; }
-    [ "$cnt" -gt 1 ] && { echo "多个平台匹配 '$v'" >&2; return 1; }
-
-    for i in "${!plt_names[@]}"; do
-        case "${plt_names[$i]}" in
-            *"$v"*) match="${plt_files[$i]}"; cnt=$((cnt+1)) ;;
-        esac
-    done
-    [ "$cnt" -eq 1 ] && { echo "$match"; return 0; }
-    echo "无法匹配平台: $v" >&2
     return 1
 }
 
 # ---- 编译命令执行 ----
 function run()
 {
-    echo; echo "==> $*"
-    [ "$arg_dry" = "true" ] && return 0
-    "$@"
+    echo; echo "==> ${*}"
+    [ "${arg_dry}" = "true" ] && return 0
+    "${@}"
 }
 
 function apply_config_patch()
 {
     local idx expr patched
     while IFS=$'\t' read -r idx expr; do
-        [ -z "$expr" ] && continue
-        echo "config_patch[$idx]: $expr"
-        sed -i "$expr" .config
-    done < <(ini_patches "$ini")
+        [ -z "${expr}" ] && continue
+        echo "config_patch[${idx}]: ${expr}"
+        sed -i "${expr}" .config
+    done < <(ini_patches "${tgt_ini}")
 }
 
 function build_kernel()
@@ -231,204 +261,266 @@ function build_kmod()
 
 function do_flash()
 {
-    if [ "$flash_method" = "rkut" ]; then
+    if [ "${arg_dry}" = "true" ]; then
+        echo
+        echo "==> dry-run: skip flash (${flash_method})"
+        return 0
+    fi
+    if [ "${flash_method}" = "rkut" ]; then
         echo; echo "======> copy ${boot_img} to ~/test <======"
-        cp "$boot_img" "$HOME/test"
+        cp "${boot_img}" "${HOME}/test"
         echo "======> download ${boot_img} <======"
         rkut.sh -di -b
-        [ "$flash_reset" = "true" ] && rkut.sh -rd
-    elif [ "$flash_method" = "adb" ]; then
+        [ "${flash_reset}" = "true" ] && rkut.sh -rd
+    elif [ "${flash_method}" = "adb" ]; then
         echo; echo "======> reload ${kmod_ko} <======"
         local adbCmd
         adbCmd="$(adbs)"
-        [ -z "$adbCmd" ] && return 0
-        "$adbCmd" push "${kmod_dir}/${kmod_ko}" "$push_dir"
-        if "$adbCmd" shell lsmod | grep -q "$(basename "$kmod_ko" .ko)"; then
-            echo "rmmod old $(basename "$kmod_ko" .ko)"
-            "$adbCmd" shell rmmod "$(basename "$kmod_ko" .ko)"
+        [ -z "${adbCmd}" ] && return 0
+        ${adbCmd} push "${kmod_dir}/${kmod_ko}" "${push_dir}"
+        if ${adbCmd} shell lsmod | grep -q "$(basename "${kmod_ko}" .ko)"; then
+            echo "rmmod old $(basename "${kmod_ko}" .ko)"
+            ${adbCmd} shell rmmod "$(basename "${kmod_ko}" .ko)"
         fi
-        echo "insmod $(basename "$kmod_ko" .ko)"
-        "$adbCmd" shell insmod "${push_dir}/${kmod_ko}"
+        echo "insmod $(basename "${kmod_ko}" .ko)"
+        ${adbCmd} shell insmod "${push_dir}/${kmod_ko}"
+    fi
+}
+
+# ---- 主流程各阶段 ----
+function show_platform_list()
+{
+    local i
+    for i in "${!plt_names[@]}"; do
+        printf "%2d. %-20s (%s)\n" "${i}" "${plt_names[${i}]}" "$(basename "${plt_files[${i}]}")"
+    done
+}
+
+# 选择平台: --ini 指定则解析, 否则交互选择; 结果写入 tgt_ini
+function select_platform()
+{
+    local i
+    if [ -n "${arg_ini}" ]; then
+        # --ini 只按 ini 文件名/路径查找, 统一转绝对路径, 避免 cd 后失效.
+        tgt_ini="$(find_ini_file "${arg_ini}")" || {
+            echo "Cannot find ini file: ${arg_ini} (searched current dir and ${ini_dir})" >&2
+            exit 1
+        }
+    else
+        source "${HOME}/bin/_select_node.sh"
+        local sel_name=""
+        select_node "rk_kernel_b: " "plt_names" "sel_name" "platform"
+        for i in "${!plt_names[@]}"; do
+            [ "${plt_names[${i}]}" = "${sel_name}" ] && tgt_ini="${plt_files[${i}]}"
+        done
+    fi
+    [ -z "${tgt_ini}" ] && { echo "No platform selected" >&2; exit 1; }
+    return 0
+}
+
+function enter_kernel_dir()
+{
+    [ -n "${arg_dir}" ] && cd "${arg_dir}"
+    [ -f "Makefile" ] || { echo "Warning: no Makefile in current directory (not a kernel tree?): $(pwd)" >&2; }
+}
+
+# 探测内核版本: KERNEL_VER 为完整版本, VERSION 为主版本号
+function read_kernel_version()
+{
+    VERSION=0
+    KERNEL_VER=""
+    if KERNEL_VER="$(make kernelversion 2>/dev/null)" && [ -n "${KERNEL_VER}" ]; then
+        VERSION="${KERNEL_VER%%.*}"
+    fi
+    echo "KERNEL_VER = ${KERNEL_VER}"
+    echo "VERSION    = ${VERSION}"
+}
+
+# 读取 ini 中的平台/构建/模块/烧录字段, 带默认值
+function load_platform_config()
+{
+    # 先在当前 shell 载入缓存; ini_read 的 $(...) 在子 shell 中执行时可直接复用
+    ini_load "${tgt_ini}"
+    tgt_name="$(ini_read "${tgt_ini}" platform name)"
+    tgt_arch="$(ini_read "${tgt_ini}" platform arch)"
+    tc_raw="$(ini_read "${tgt_ini}" toolchain path)"
+    tc_lt6="$(ini_read "${tgt_ini}" toolchain path_android_lt6)"
+    make_val="$(ini_read "${tgt_ini}" toolchain make)"
+
+    [ -z "${tgt_arch}" ] && { echo "Missing platform.arch" >&2; exit 1; }
+    [ -z "${make_val}" ] && { echo "Missing toolchain.make" >&2; exit 1; }
+
+    # android config 解析
+    android_config=""
+    local ac_val
+    ac_val="$(ini_read "${tgt_ini}" build android_config)"
+    if [ -n "${ac_val}" ]; then
+        if [ "${ac_val}" = "auto" ]; then
+            is_android_platform "${tgt_name}" && android_config="$(detect_android_config)"
+        else
+            android_config="${ac_val}"
+        fi
+    fi
+    echo "android_config = ${android_config:-<none>}"
+
+    # build 字段
+    config_raw="$(ini_read "${tgt_ini}" build config)"
+    target_raw="$(ini_read "${tgt_ini}" build target)"
+
+    # kmod 字段
+    kmod_dir="$(ini_read "${tgt_ini}" kmod dir)"; kmod_dir="${kmod_dir:-drivers/video/rockchip/mpp}"
+    kmod_ko="$(ini_read "${tgt_ini}" kmod ko)"; kmod_ko="${kmod_ko:-rk_vcodec.ko}"
+
+    # flash 字段
+    flash_method="$(ini_read "${tgt_ini}" flash method)"; flash_method="${flash_method:-auto}"
+    boot_img="$(ini_read "${tgt_ini}" flash boot_img)"; boot_img="${boot_img:-boot.img}"
+    flash_reset="$(ini_read "${tgt_ini}" flash reset)"; flash_reset="${flash_reset:-true}"
+    push_dir="$(ini_read "${tgt_ini}" flash push_dir)"; push_dir="${push_dir:-/data}"
+}
+
+# 工具链选择 + PATH 注入 + [toolchain] env 环境变量
+function setup_toolchain()
+{
+    ini_load "${tgt_ini}"
+    # 优先级链: android/fpga 且内核 < 6 时使用 path_android_lt6
+    local path_val
+    if is_android_like "${tgt_name}" && [ -n "${tc_lt6}" ] \
+       && [ "${VERSION}" -ge 1 ] && [ "${VERSION}" -lt 6 ]; then
+        path_val="${tc_lt6}"
+    else
+        path_val="${tc_raw}"
+    fi
+    toolchain="$(resolve_toolchain "${path_val}")"
+
+    # 所有存在的工具链目录按顺序 prepend 到 PATH(支持 rust/bindgen 等多目录)
+    local -a tc_dirs
+    read -r -a tc_dirs <<< "${toolchain}"
+    local d path_prefix=""
+    for d in "${tc_dirs[@]}"; do
+        path_prefix="${path_prefix}${path_prefix:+:}${d}"
+    done
+    [ -n "${path_prefix}" ] && export PATH="${path_prefix}:${PATH}"
+
+    # [toolchain] env: 额外环境变量(KEY=value, | 分隔), 如 Rust 的
+    # RUSTC / BINDGEN / LIBCLANG_PATH / KBUILD_GENDWARFKSYMS_STABLE
+    local env_raw env_val k v
+    env_raw="$(ini_read "${tgt_ini}" toolchain env)"
+    if [ -n "${env_raw}" ]; then
+        local -a env_toks
+        IFS='|' read -r -a env_toks <<< "${env_raw}"
+        for env_val in "${env_toks[@]}"; do
+            [ -z "${env_val}" ] && continue
+            k="${env_val%%=*}"; v="${env_val#*=}"
+            # 值中任意位置的 ~ 都展开(如 HOSTCFLAGS=-I~/...)
+            v="${v//\~/${HOME}}"
+            # LD_LIBRARY_PATH 追加到已有值后面, 不覆盖系统已有路径
+            if [ "${k}" = "LD_LIBRARY_PATH" ] && [ -n "${LD_LIBRARY_PATH:-}" ]; then
+                v="${v}:${LD_LIBRARY_PATH}"
+            fi
+            echo "export ${k}=${v}"
+            export "${k}=${v}"
+        done
+    fi
+}
+
+# 决定 build_kmod / build_kernel 及烧录方式
+function resolve_build_mode()
+{
+    if [ "${arg_kernel}" = "true" ] && [ "${arg_mod}" = "true" ]; then
+        echo "--kernel and --mod cannot be used together" >&2; exit 1
+    fi
+    if [ "${arg_kernel}" = "true" ]; then
+        mode="build_kernel"
+    elif [ "${arg_mod}" = "true" ]; then
+        mode="build_kmod"
+    elif detect_kmod_default; then
+        # 和 v1 一致: mpp 可单编时, 由用户选择整核还是单编模块
+        if ! declare -F select_node >/dev/null 2>&1; then
+            source "${HOME}/bin/_select_node.sh"
+        fi
+        select_node "rk_kernel_b_m: " "build_mode_list" "mode" "build method"
+    else
+        mode="build_kernel"
+    fi
+    [ "${flash_method}" = "auto" ] && flash_method=$([ "${mode}" = "build_kmod" ] && echo adb || echo rkut)
+    return 0
+}
+
+# 拼接命令(数组, 避免字符串拼装的 word-splitting 隐患)
+function build_commands()
+{
+    local -a make_arr
+    read -r -a make_arr <<< "${make_val}"
+
+    local jobs
+    jobs="${arg_jobs:-$(( $(nproc) + 1 ))}"
+    local -a config_toks target_toks
+    config_raw="${config_raw//\$\{android_config\}/${android_config}}"
+    read -r -a config_toks <<< "${config_raw}"
+    read -r -a target_toks <<< "${target_raw}"
+
+    config_cmd=( "${make_arr[@]}" ARCH="${tgt_arch}" "${config_toks[@]}" )
+    build_cmd=( "${make_arr[@]}" ARCH="${tgt_arch}" "${target_toks[@]}" -j"${jobs}" )
+    kmod_cmd=( "${make_arr[@]}" ARCH="${tgt_arch}" -C "${PWD}" M="${PWD}/${kmod_dir}" modules -j"${jobs}" )
+}
+
+function print_summary()
+{
+    echo
+    printf '%-11s %s\n' "platform:"    "${tgt_name}"
+    printf '%-11s %s\n' "arch:"        "${tgt_arch}"
+    printf '%-11s %s\n' "toolchains:"  "${toolchain}"
+    printf '%-11s %s\n' "mode:"        "${mode}"
+    printf '%-11s %s\n' "m_make:"      "${make_val}"
+    printf '%-11s %s\n' "config cmd:"  "${config_cmd[*]}"
+    printf '%-11s %s\n' "build cmd:"   "${build_cmd[*]}"
+    printf '%-11s %s\n' "kmod cmd:"    "${kmod_cmd[*]}"
+}
+
+function run_build()
+{
+    if [ "${mode}" = "build_kmod" ]; then
+        build_kmod
+    else
+        build_kernel
     fi
 }
 
 # ---- 主流程 ----
 function main()
 {
-    parse_args "$@"
+    parse_args "${@}"
 
-    # 定位 ini 目录
-    if [ -n "$arg_ini_dir" ]; then
-        ini_dir="$arg_ini_dir"
-    elif [ -n "$RK_KER_BD_INI_DIR" ]; then
-        ini_dir="$RK_KER_BD_INI_DIR"
-    elif [ -d "$SCRIPT_DIR/rk_ker_bd_ini" ]; then
-        ini_dir="$SCRIPT_DIR/rk_ker_bd_ini"
-    else
-        ini_dir="$HOME/bin/rk_ker_bd_ini"
+    # 加载 ini 模块(05.cfg.sh), 已加载则跳过
+    if ! declare -F ini_entries >/dev/null 2>&1; then
+        source "${HOME}/bin/_cfg.sh" 2>/dev/null ||
+            { echo "error: ${HOME}/bin/_cfg.sh not found, run init_tools.sh" >&2; exit 1; }
     fi
 
-    load_platform_list
-    [ "${#plt_files[@]}" -eq 0 ] && { echo "ini 目录无平台配置: $ini_dir" >&2; exit 1; }
-
-    if [ "$arg_list" = "true" ]; then
-        local i
-        for i in "${!plt_names[@]}"; do
-            printf "%2d. %-20s (%s)\n" "$i" "${plt_names[$i]}" "$(basename "${plt_files[$i]}")"
-        done
-        exit 0
+    # --list / 交互选择需要扫描平台列表; --ini 直接给文件则不扫描.
+    if [ "${arg_list}" = "true" ] || [ -z "${arg_ini}" ]; then
+        load_platform_list
+        [ "${#plt_files[@]}" -eq 0 ] && {
+            echo "No platform ini found in: ${ini_dir}" >&2
+            exit 1
+        }
     fi
 
-    # 选择平台
-    if [ -n "$arg_ini" ]; then
-        ini="$(resolve_ini "$arg_ini")" || exit 1
-        sel_name="$(ini_get "$ini" platform name)"
-    else
-        source "$HOME/bin/_select_node.sh"
-        local sel_name=""
-        select_node "rk_kernel_b: " "plt_names" "sel_name" "platform"
-        local i
-        for i in "${!plt_names[@]}"; do
-            [ "${plt_names[$i]}" = "$sel_name" ] && ini="${plt_files[$i]}"
-        done
-    fi
-    [ -z "$ini" ] && { echo "未选择平台" >&2; exit 1; }
+    if [ "${arg_list}" = "true" ]; then show_platform_list; exit 0; fi
 
-    # 进入内核目录
-    [ -n "$arg_dir" ] && cd "$arg_dir"
-    [ -f "Makefile" ] || { echo "警告: 当前目录无 Makefile(非内核树?): $(pwd)" >&2; }
+    select_platform
+    enter_kernel_dir
+    read_kernel_version
+    load_platform_config
+    setup_toolchain
+    resolve_build_mode
+    build_commands
+    print_summary
 
-    # 内核版本
-    local VERSION=0 KERNEL_VER=""
-    if KERNEL_VER="$(make kernelversion 2>/dev/null)" && [ -n "$KERNEL_VER" ]; then
-        VERSION="${KERNEL_VER%%.*}"
-    fi
-    echo "KERNEL_VER = ${KERNEL_VER}"
-    echo "VERSION    = ${VERSION}"
+    [ "${arg_env}" = "true" ] && exit 0
 
-    # 读取 ini 字段
-    local arch name make_val tc_raw tc_lt6 toolchain
-    name="$(ini_get "$ini" platform name)"
-    arch="$(ini_get "$ini" platform arch)"
-    tc_raw="$(ini_get "$ini" toolchain path)"
-    tc_lt6="$(ini_get "$ini" toolchain path_android_lt6)"
-    make_val="$(ini_get "$ini" toolchain make)"
-
-    [ -z "$arch" ] && { echo "缺少 platform.arch" >&2; exit 1; }
-    [ -z "$make_val" ] && { echo "缺少 toolchain.make" >&2; exit 1; }
-
-    # 工具链选择(优先级链, 对齐 SDK kernel-helper 思路)
-    local path_val
-    if is_android_like "$name" && [ -n "$tc_lt6" ] \
-       && [ "$VERSION" -ge 1 ] && [ "$VERSION" -lt 6 ]; then
-        path_val="$tc_lt6"
-    else
-        path_val="$tc_raw"
-    fi
-    toolchain="$(resolve_toolchain "$path_val")"
-
-    # 所有存在的工具链目录按顺序 prepend 到 PATH(支持 rust/bindgen 等多目录)
-    local -a tc_dirs
-    read -r -a tc_dirs <<< "$toolchain"
-    local path_prefix=""
-    for d in "${tc_dirs[@]}"; do
-        path_prefix="${path_prefix}${path_prefix:+:}${d}"
-    done
-    [ -n "$path_prefix" ] && export PATH="${path_prefix}:${PATH}"
-
-    # [toolchain] env: 额外环境变量(KEY=value, | 分隔), 如 Rust 的
-    # RUSTC / BINDGEN / LIBCLANG_PATH / KBUILD_GENDWARFKSYMS_STABLE
-    local env_raw env_val k v
-    env_raw="$(ini_get "$ini" toolchain env)"
-    if [ -n "$env_raw" ]; then
-        local -a env_toks
-        IFS='|' read -r -a env_toks <<< "$env_raw"
-        for env_val in "${env_toks[@]}"; do
-            [ -z "$env_val" ] && continue
-            k="${env_val%%=*}"; v="${env_val#*=}"
-            v="${v/#\~/$HOME}"
-            echo "export ${k}=${v}"
-            export "${k}=${v}"
-        done
-    fi
-
-    # 拆分 make 模板
-    local -a make_arr
-    read -r -a make_arr <<< "$make_val"
-
-    # android config 解析
-    local android_config=""
-    local ac_val; ac_val="$(ini_get "$ini" build android_config)"
-    if [ -n "$ac_val" ]; then
-        if [ "$ac_val" = "auto" ]; then
-            is_android_like "$name" && android_config="$(detect_android_config)"
-        else
-            android_config="$ac_val"
-        fi
-    fi
-    echo "android_config = ${android_config:-<none>}"
-
-    # build 字段
-    local config_raw target_raw mode
-    config_raw="$(ini_get "$ini" build config)"
-    target_raw="$(ini_get "$ini" build target)"
-    mode="$(ini_get "$ini" build mode)"; mode="${mode:-auto}"
-
-    # kmod 字段
-    local kmod_dir kmod_ko
-    kmod_dir="$(ini_get "$ini" kmod dir)"; kmod_dir="${kmod_dir:-drivers/video/rockchip/mpp}"
-    kmod_ko="$(ini_get "$ini" kmod ko)"; kmod_ko="${kmod_ko:-rk_vcodec.ko}"
-
-    # flash 字段
-    local flash_method boot_img flash_reset push_dir
-    flash_method="$(ini_get "$ini" flash method)"; flash_method="${flash_method:-auto}"
-    boot_img="$(ini_get "$ini" flash boot_img)"; boot_img="${boot_img:-boot.img}"
-    flash_reset="$(ini_get "$ini" flash reset)"; flash_reset="${flash_reset:-true}"
-    push_dir="$(ini_get "$ini" flash push_dir)"; push_dir="${push_dir:-/data}"
-
-    # 构建模式
-    if [ "$arg_kernel" = "true" ] && [ "$arg_mod" = "true" ]; then
-        echo "--kernel 与 --mod 不能同时指定" >&2; exit 1
-    fi
-    [ "$arg_kernel" = "true" ] && mode="build_kernel"
-    [ "$arg_mod" = "true" ] && mode="build_kmod"
-    if [ "$mode" = "auto" ]; then
-        if detect_kmod_default; then mode="build_kmod"; else mode="build_kernel"; fi
-    fi
-    [ "$flash_method" = "auto" ] && flash_method=$([ "$mode" = "build_kmod" ] && echo adb || echo rkut)
-
-    # 拼接命令(数组, 避免字符串拼装的 word-splitting 隐患)
-    local jobs
-    jobs="${arg_jobs:-$(( $(nproc) + 1 ))}"
-    local -a config_toks target_toks
-    config_raw="${config_raw//\$\{android_config\}/$android_config}"
-    read -r -a config_toks <<< "$config_raw"
-    read -r -a target_toks <<< "$target_raw"
-
-    local -a config_cmd build_cmd kmod_cmd
-    config_cmd=( "${make_arr[@]}" ARCH="$arch" "${config_toks[@]}" )
-    build_cmd=( "${make_arr[@]}" ARCH="$arch" "${target_toks[@]}" -j"$jobs" )
-    kmod_cmd=( "${make_arr[@]}" ARCH="$arch" -C "$PWD" M="$PWD/$kmod_dir" modules -j"$jobs" )
-
-    # 打印摘要
-    echo
-    echo "platform    = ${name}"
-    echo "arch        = ${arch}"
-    echo "toolchain   = ${toolchain}"
-    echo "mode        = ${mode}"
-    echo "m_make      = ${make_val}"
-    echo "config cmd  = ${config_cmd[*]}"
-    echo "build  cmd  = ${build_cmd[*]}"
-    echo "kmod   cmd  = ${kmod_cmd[*]}"
-
-    [ "$arg_env" = "true" ] && exit 0
-
-    if [ "$mode" = "build_kmod" ]; then
-        build_kmod
-    else
-        build_kernel
-    fi
+    run_build
     do_flash
 }
 
-main "$@"
+main "${@}"

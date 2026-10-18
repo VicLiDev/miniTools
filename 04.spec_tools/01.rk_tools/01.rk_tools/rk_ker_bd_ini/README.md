@@ -6,9 +6,9 @@
 ## 部署
 
 - git 仓库内: `04.spec_tools/01.rk_tools/01.rk_tools/rk_ker_bd_ini/`
-- 运行 `miniTools/init_tools.sh` 后, 软链到 `~/bin/rk_ker_bd_ini`
-- rkBuildKer.sh 默认找脚本同目录的 `rk_ker_bd_ini`, 也可用 `--ini-dir <dir>`
-  或环境变量 `RK_KER_BD_INI_DIR` 指定
+- 运行 `miniTools/init_tools.sh` 会软链本目录到 `~/bin/rk_ker_bd_ini`
+- 安装后的命令名为 `rkBuildKer.sh` (仓库内实现是 `rkBuildKer_v2.sh`)
+- 固定从 `~/bin/rk_ker_bd_ini` 读取, 也可用 `--ini <path>` 直接指定单个 ini
 
 ## 字段说明
 
@@ -23,31 +23,34 @@
 |------------------|------|-------------------------------------------------------------------|
 | path             | 是   | 工具链 bin 目录, 多个候选用 `\| ` 分隔; **所有存在的都加入 PATH** |
 | path_android_lt6 | 否   | android 平台且内核 VERSION `< 6` 时使用的工具链                   |
-| env              | 否   | 额外环境变量, `KEY=value` 用 `\| ` 分隔 (值支持 `~` 前缀)         |
+| env              | 否   | 额外环境变量, `KEY=value` 用 `\| ` 分隔 (值支持 `~`)               |
 | make             | 是   | 编译命令模板, 如 `make CROSS_COMPILE=... LLVM=1`                  |
 
-> Rust-for-Linux(Android 16 / kernel 6.12)示例见 `3588_android16.ini`:
+> Rust-for-Linux(Android 16 / kernel 6.12)示例见 `rk3588_android16.ini`:
 > `path` 多目录(clang + rust + bindgen + kernel-build-tools) +
-> `env`(RUSTC/BINDGEN/LIBCLANG_PATH/KBUILD_GENDWARFKSYMS_STABLE)。
+> `env`(RUSTC/BINDGEN/LIBCLANG_PATH/KBUILD_GENDWARFKSYMS_STABLE,
+> 以及 kernel-build-tools 的 LD_LIBRARY_PATH/HOSTCFLAGS/HOSTLDFLAGS)。
 
 ### [build]
 | key            | 必填 | 说明                                                                       |
 |----------------|------|----------------------------------------------------------------------------|
-| mode           | 否   | build_kernel / build_kmod / auto(检测 mpp Makefile 是否 obj-m, 默认)       |
 | config         | 是   | defconfig 列表, 空格分隔; 可含 `${android_config}` 占位符                  |
 | target         | 是   | make 目标, 可含 BOOT_IMG=/BOOT_ITS= 等                                     |
 | android_config | 否   | android 平台: auto(自动检测 android-*.config) 或直接写如 android-12.config |
 
+> 构建方式(build_kernel / build_kmod)不属于平台配置: 默认检测 mpp Makefile
+> 是否有 obj-m, 有则交互选择, 也可用 `--kernel` / `--mod` 强制。
+
 ### [kmod]
 | key | 必填 | 说明                                        |
 |-----|------|---------------------------------------------|
-| dir | 否   | mode=build_kmod 时模块目录 (相对 kernel 根) |
+| dir | 否   | 单编模块时模块目录 (相对 kernel 根)         |
 | ko  | 否   | 生成的 .ko 文件名                           |
 
 ### [flash]
 | key      | 必填 | 说明                                                          |
 |----------|------|---------------------------------------------------------------|
-| method   | 否   | 编译后动作: rkut(烧录) / adb(insmod) / none, 默认按 mode 推断 |
+| method   | 否   | 编译后动作: rkut(烧录) / adb(insmod) / none, 默认按构建方式推断 |
 | boot_img | 否   | rkut 时烧录的镜像名 (默认 boot.img)                           |
 | reset    | 否   | rkut 烧录后是否复位设备 (true/false)                          |
 | push_dir | 否   | adb 时 ko 推送目录 (默认 /data)                               |
@@ -76,14 +79,14 @@
 ## 使用
 
 ```
-rkBuildKer_v2.sh                # 交互选择平台 ini
-rkBuildKer_v2.sh --ini 3588_android
-rkBuildKer_v2.sh --ini /path/to/xxx.ini
-rkBuildKer_v2.sh --list         # 列出所有可用 ini
-rkBuildKer_v2.sh --env          # 只初始化环境并打印命令, 不编译
-rkBuildKer_v2.sh --dir <kernel_path>
-rkBuildKer_v2.sh --kernel       # 强制整编内核(默认按 mode/检测)
-rkBuildKer_v2.sh --mod          # 强制单编模块
-rkBuildKer_v2.sh --dry          # 只打印命令不执行
-rkBuildKer_v2.sh --jobs <n>     # 并行度
+rkBuildKer.sh                   # 交互选择平台 ini
+rkBuildKer.sh --ini rk3588_android
+rkBuildKer.sh --ini /path/to/xxx.ini
+rkBuildKer.sh --list         # 列出所有可用 ini
+rkBuildKer.sh --env          # 只初始化环境并打印命令, 不编译
+rkBuildKer.sh --dir <kernel_path>
+rkBuildKer.sh --kernel       # 强制整编内核(默认按 mpp obj-m 检测/交互选择)
+rkBuildKer.sh --mod          # 强制单编模块
+rkBuildKer.sh --dry          # 只打印命令不执行
+rkBuildKer.sh --jobs <n>     # 并行度
 ```

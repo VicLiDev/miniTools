@@ -28,7 +28,7 @@ function create_link_to_bin()
 
     [ ! -d "${HOME}/bin" ] && mkdir -p ${HOME}/bin
 
-    [ ! -f "${src_tool}" ] && { echo "tool: ${src_tool} not exist!"; return 1; }
+    [ ! -e "${src_tool}" ] && { echo "tool: ${src_tool} not exist!"; return 1; }
     [ -L ${target_t} ] && { rm ${target_t}; }
     ln -s ${src_tool} ${target_t}
 }
@@ -193,9 +193,10 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/rkDebugMpp.sh rkDebugMpp.sh
 
     # kernel
-    create_link_to_bin ${rk_tools_dir}/rkBuildKer.sh rkBuildKer.sh
-    create_link_to_bin ${rk_tools_dir}/rkDebugKer.sh rkDebugKer.sh
-    create_link_to_bin ${rk_tools_dir}/rkut.sh       rkut.sh
+    create_link_to_bin ${rk_tools_dir}/rk_ker_bd_ini     rk_ker_bd_ini
+    create_link_to_bin ${rk_tools_dir}/rkBuildKer_v2.sh  rkBuildKer.sh
+    create_link_to_bin ${rk_tools_dir}/rkDebugKer.sh     rkDebugKer.sh
+    create_link_to_bin ${rk_tools_dir}/rkut.sh           rkut.sh
 
     # tools
     create_link_to_bin ${rk_tools_dir}/rk_tar_mpp.sh rk_tar_mpp.sh
