@@ -532,6 +532,7 @@ function gupdate()
         rk_mpp_framework
         SmartHome
         vimcfg
+        archLinux
     )
 
     for prj in ${repos[@]}
