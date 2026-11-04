@@ -308,7 +308,7 @@ function write_csv_header()
         first_diff note
 }
 
-# CSV 字段转义/写出: 实现抽离到通用库 00.libs/05.csv.sh (csv_field/csv_row/csv_append)
+# CSV 字段转义/写出: 实现抽离到通用库 00.libs/04.csv.sh (csv_field/csv_row/csv_append)
 
 # 清理输出目录历史产物, 每次运行只保留本次结果
 function clean_out_dir()
