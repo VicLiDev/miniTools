@@ -69,6 +69,8 @@ function init_libs()
     create_link_to_bin ${libs_dir}/03.select_node.sh  _select_node.sh
     create_link_to_bin ${libs_dir}/03.sel_node.py     _select_node.py
     create_link_to_bin ${libs_dir}/04.csv.sh          _csv.sh
+    create_link_to_bin ${libs_dir}/05.cfg.sh          _cfg.sh
+    create_link_to_bin ${libs_dir}/05.cfg.py          _cfg.py
 }
 
 # =============================================================================
