@@ -20,6 +20,7 @@ plt_lst=(
     "lib_android_64"
     "lib_linux_32"
     "lib_linux_64"
+    "lib_linux_riscv64"
     "lib_linux_x86_64"
     "ko_kmpp_develop_mkf_arm32_one_ko"
     "ko_kmpp_develop_mkf_arm32_multi_ko"
@@ -202,6 +203,47 @@ function build_lib_linux_64()
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib64
         push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.1 /usr/lib64
         push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /usr/lib64
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
+        push_bins_to_device "${adbCmd}" test /usr/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
+
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.1 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /oem/usr/lib
+        push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /oem/usr/bin
+        push_bins_to_device "${adbCmd}" test /oem/usr/bin
+        push_bins_to_device "${adbCmd}" mpp/base/test /oem/usr/bin
+    else
+        echo "======> build mpp failed! <======"
+        return 1
+    fi
+}
+
+function build_lib_linux_riscv64()
+{
+    echo "======> selected ${m_sel} <======"
+    linux_riscv64_tc_dir="${linux_toolchain_dir}/toolchains/riscv_1860sdk/riscv64/Xuantie-900-gcc-linux-6.6.36-musl64-x86_64-V3.3.0"
+    linux_riscv64_tc="${linux_riscv64_tc_dir}/bin/riscv64-unknown-linux-musl-"
+    echo "toolchain: ${linux_riscv64_tc}"
+    cd `git rev-parse --show-toplevel` \
+        && cd build/linux/riscv64 \
+        && ./make-Makefiles.bash --toolchain "${linux_riscv64_tc}" \
+        && make -j
+    echo "toolchain: ${linux_riscv64_tc}"
+
+    if [ $? -eq 0 ]; then
+        [ "${cmd_install}" == "false" ] && return
+
+        echo "======> push lib and demo to dev <======"
+        adbCmd=""
+        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        [ -z "${adbCmd}" ] && exit 0
+
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.0 /usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so   /usr/lib
+        push_bins_to_device "${adbCmd}" mpp/librockchip_mpp.so.1 /usr/lib
+        push_bins_to_device "${adbCmd}" mpp/legacy/librockchip_vpu.so.0 /usr/lib
         push_bins_to_device "${adbCmd}" mpp/vproc/iep2/test/iep2_test /usr/bin
         push_bins_to_device "${adbCmd}" test /usr/bin
         push_bins_to_device "${adbCmd}" mpp/base/test /usr/bin
