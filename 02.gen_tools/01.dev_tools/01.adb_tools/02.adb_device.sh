@@ -82,6 +82,10 @@ function adev_select()
 
 # ---------- 基本执行 ----------
 
+# 注意 < /dev/null: adb shell 会把本地 stdin 转发给设备端 (未加 -T 时还会
+# 分配 pty), 在 "while read ...; do adb ...; done < list" 这类循环里会抢走
+# 循环的输入, 导致只处理第一行. 接 /dev/null 让 adb 的 stdin 恒为空.
+# 需要向设备喂数据时 (如 echo x | adb shell 'cat > f') 不要用本封装.
 function adev_shell()
 {
     _adev_need || return 1
@@ -96,7 +100,7 @@ function adev_valid()
     adev_shell "true" >/dev/null 2>&1
 }
 
-# < /dev/null: 防止 adb 消费 while read 循环的 stdin
+# < /dev/null: 同 adev_shell, 防止 adb 消费调用者的 stdin (push/pull 也走这里)
 # 注意: ${adev_adb} 故意不加引号, 以便 "adb -s <serial>" 按空格分词
 function adev_run()
 {
@@ -116,32 +120,28 @@ function adev_pull()
 
 # ---------- 工具 ----------
 
-# shell 单引号转义: 把参数包成单引号串并转义其中单引号, 安全嵌入设备端命令.
+# adev_quote: 把任意字符串包成设备端 sh 的单个字面量 (安全传参)
 #
-# 为什么需要: 这里有“两层 shell”. 本地 shell 负责拼接字符串; adb shell 会把
-# 整串再交给设备端 sh 解析执行一次. 若把变量值直接拼入命令, 值里的空格/引号/
-# ;|>$ 会被设备端 sh “二次解析”, 导致拆词、语法错误甚至命令注入.
-# adev_quote 把值包装成设备端 sh 眼中的单个字面词.
+# 两层 shell: 本地 bash 拼串, adb shell 再交给设备端 sh 解析一次.
+# 直接拼变量会被设备端二次解释, 例如:
+#   path="/data/my dir/a.h264"
+#   adev_shell "rm -f ${path}"     # 设备端拆成 rm -f /data/my dir/a.h264
+# 用单引号包住即可 (引号内不展开、不拆词):
+#   adev_quote "${path}"  ->  '/data/my dir/a.h264'
 #
-# 核心一行 s="${s//\'/\'\\\'\'}" 拆解:
-#   ${s//A/B}    参数替换, 把所有 A 换成 B.
-#   A = \'       在 ${...} 内反斜杠转义下一字符, 故 \' 即字面单引号 ' ;
-#                若写裸 ' 会被 bash 误判引号配对而报 unexpected EOF, 故须转义.
-#   B = \'\\\'\' 逐段解析(每个 \x 去掉反斜杠): \'->' , \\->\ , \'->' , \'->'
-#                合起来 = '\'' (4 字符: 收尾单引号 + 字面单引号 + 重开单引号).
-#   所以 a b'c -> a b'\''c, 再经 printf "'%s'" 外层包裹 -> 'a b'\''c'
+# 值里有单引号时用 '\'' 表示 (收尾 + 转义的单引号 + 重新开始):
+#   a b'c  ->  'a b'\''c'
 #
-# 例: name="a b'c"
-#   不转义: sh -c "rm -f ${name}"          -> 拆成 rm -f a b'c, 引号错乱报错
-#   转义后: adev_quote 输出 'a b'\''c', 设备端 sh 还原成单个参数 a b'c
+# 实现: s="${s//\'/\'\\\'\'}"
+#   \' 是字面单引号 (${...} 里不能直接写 ')
+#   \\ 是字面反斜杠
+#   所以替换串 \'\\\'\' 解析后是 ' \ ' ' , 即 '\''
+#   最后 printf "'%s'" 再补外层单引号
 #
-# 用法1 (普通参数, 如设备路径可能带空格):
-#   adev_shell "rm -f $(adev_quote "${dev_path}")"
-# 用法2 (整条命令交给 sh -c, 如配合 timeout):
-#   adev_run_capture "timeout 300 sh -c $(adev_quote "${dec_cmd}")" \
-#       dec.log dec.logcat
-# 边界: adev_quote 只保护“这段文本”作为设备端 sh 的单个词/整条命令; 若文本
-#       本身是 shell 命令(如 dec_cmd), 其内部引号仍需调用方自己写对.
+# 用法:
+#   adev_shell "rm -f $(adev_quote "${path}")"
+#   adev_run_capture "timeout 300 sh -c $(adev_quote "${cmd}")" out.log out.logcat
+# 注意: 只保证一个值是一个词; 值是整条命令时, 其内部引号仍需自己写对.
 function adev_quote()
 {
     local s="${1:-}"
@@ -199,5 +199,90 @@ function adev_run_capture()
     # logcat -d: dump and exit, 打印当前日志缓冲区内容后立即退出, 不像默认的
     #            `adb logcat` 那样阻塞等待新日志; 输出存到本地 logcat_out 文件.
     adev_shell "logcat -d" >"${logcat_out}" 2>&1
+}
+
+# 带命名输出的执行: 日志写到 <outdir>/<name>.log 与 <outdir>/<name>.logcat
+#   adev_run_capture_named <cmd> <outdir> <name>
+function adev_run_capture_named()
+{
+    local cmd="${1:-}" dir="${2:-}" name="${3:-}"
+
+    [ -d "${dir}" ] || mkdir -p "${dir}" || return 1
+    adev_run_capture "${cmd}" "${dir}/${name}.log" "${dir}/${name}.logcat"
+}
+
+# 在指定设备上执行命令, 输出保存为带时间戳的日志
+#
+#   adev_run_cmd <soc|id> <cmd> <log_dir>
+#
+#     soc|id   设备: soc 名 (如 rk3588, 按设备树 compatible 子串匹配)
+#              或设备列表中的 idx (纯数字, 即 adbs -l 第一列)
+#     cmd      设备端命令 (整串交给设备 sh 执行)
+#     log_dir  日志目录, 不存在会自动创建
+#
+# 日志: <log_dir>/<YYYYmmdd_HHMMSS>.log
+#   文件头记录: 设备 (adb 选择串), 命令, 开始时间
+#   正文: 命令的 stdout+stderr; 设备有 logcat 时末尾追加 logcat -d
+#   路径同时写入全局 adev_log, 返回码写入 adev_ret
+#
+# 例:
+#   adev_run_cmd rk3588 'cat /proc/meminfo' /tmp/devlog
+#   adev_run_cmd 0 'dmesg | tail -50' /tmp/devlog
+function adev_run_cmd()
+{
+    local dev="${1:-}" cmd="${2:-}" dir="${3:-}"
+    local sel=() ts log dev_name lcf
+
+    if [ -z "${dev}" ] || [ -z "${cmd}" ] || [ -z "${dir}" ]; then
+        echo "usage: adev_run_cmd <soc|id> <cmd> <log_dir>" >&2
+        return 2
+    fi
+
+    case "${dev}" in
+        *[!0-9]*) sel=(--soc "${dev}") ;;
+        *)        sel=(--idx "${dev}") ;;
+    esac
+    if ! adev_select "${sel[@]}"; then
+        return 1
+    fi
+
+    if ! mkdir -p "${dir}"; then
+        return 1
+    fi
+
+    ts=$(date +%Y%m%d_%H%M%S)
+    log="${dir}/${ts}.log"
+    [ -e "${log}" ] && log="${dir}/${ts}_$$.log"
+    adev_log="${log}"
+
+    dev_name=$(adev_shell "cat /proc/device-tree/compatible 2>/dev/null" 2>/dev/null \
+        | tr '\0' ' ' | tr -s ' ')
+
+    {
+        echo "# device: ${adev_adb}"
+        [ -n "${dev_name}" ] && echo "# model : ${dev_name}"
+        echo "# cmd   : ${cmd}"
+        echo "# start : $(date '+%F %T')"
+        echo "========================================"
+    } > "${log}"
+
+    adev_shell "logcat -c" >/dev/null 2>&1
+    adev_shell "${cmd}" >> "${log}" 2>&1
+    adev_ret=$?
+
+    lcf="${log}.logcat.tmp"
+    if adev_shell "command -v logcat" >/dev/null 2>&1 &&
+       adev_shell "logcat -d" >"${lcf}" 2>/dev/null && [ -s "${lcf}" ]; then
+        {
+            echo "========================================"
+            echo "# logcat"
+            echo "========================================"
+            cat "${lcf}"
+        } >> "${log}"
+    fi
+    rm -f "${lcf}"
+
+    echo "${log}"
+    return "${adev_ret}"
 }
 
