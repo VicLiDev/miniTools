@@ -182,7 +182,11 @@ function init_rk_tools()
     echo
     echo "==> Installing RK tools"
 
+    rk_libs_dir="${repo_root}/04.spec_tools/01.rk_tools/00.libs"
     rk_tools_dir="${repo_root}/04.spec_tools/01.rk_tools/01.rk_tools"
+
+    # libs
+    create_link_to_bin ${rk_libs_dir}/01.mpp.sh _mpp.sh
 
     # mpp
     create_link_to_bin ${rk_tools_dir}/rkBuildMpp.sh rkBuildMpp.sh
@@ -202,6 +206,7 @@ function init_rk_tools()
     create_link_to_bin ${rk_tools_dir}/batch_test/rkBatchTTolkit.sh       rkBt
     create_link_to_bin ${rk_tools_dir}/batch_test/veri_regression/main.py rk_r_ver
     create_link_to_bin ${rk_tools_dir}/rk_dec_verify.sh                   rkDecVerify.sh
+    create_link_to_bin ${rk_tools_dir}/rk_dec_perf.sh                     rkDecPerf.sh
 
     # rga
     create_link_to_bin ${rk_tools_dir}/rkBuildRga.sh rkBuildRga.sh
