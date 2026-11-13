@@ -29,6 +29,12 @@ cmd_list_file=""
 cmd_out_dir="rk_dec_perf_out"
 cmd_extra_args=""
 cmd_frames=""      # 固定解码帧数 (-n); 空 = 解完整码流
+cmd_hw_stat="0"    # 1 = 统计内核硬件解码时间 (mpp_dev_debug)
+hw_rows=()         # 硬件统计: spec name cnt avg_us min_us max_us avg_fps max_fps min_fps
+hw_dbg_old=""      # 原始 mpp_dev_debug 值, 退出时恢复
+hw_csv=""
+hw_cnt=0; hw_avg_us=0; hw_min_us=0; hw_max_us=0
+hw_avg_fps="-"; hw_max_fps="-"; hw_min_fps="-"
 cmd_reader_buf="1048576"
 cmd_envs=""          # 额外环境变量 (K=V ...)  # reader_buf_size; 空 = mpi_dec_test 默认 4KB
 cmd_timeout_sec="300"
@@ -70,6 +76,7 @@ Usage: $0 -l <list> [options]
   -o <dir>         output dir (default: ${cmd_out_dir})
   --extra <args>   extra mpi_dec_test args, e.g. "-o out.yuv"
   --frames <n>     decode fixed frame count (mpi_dec_test -n); short
+  --hw               analyze hardware decode time (mpp_dev_debug=260, needs root)
   --reader-buf <n>  reader_buf_size for mpi_dec_test (default 1048576)
   --env "K=V ..."   extra env for the test binary (e.g. mpp_dec_debug=0x2)
                    streams loop to reach n, default 0 = whole stream
@@ -104,6 +111,7 @@ function parse_args()
             -o|--outdir)  need_val "$@"; cmd_out_dir="$2"; shift 2 ;;
             --extra)      need_val "$@"; cmd_extra_args="$2"; shift 2 ;;
             --frames)     need_val "$@"; cmd_frames="$2"; shift 2 ;;
+            --hw)         cmd_hw_stat="1"; shift ;;
             --reader-buf) need_val "$@"; cmd_reader_buf="$2"; shift 2 ;;
             --env)        need_val "$@"; cmd_envs="$2"; shift 2 ;;
             --timeout)    need_val "$@"; cmd_timeout_sec="$2"; shift 2 ;;
@@ -261,6 +269,45 @@ function pick_work_dir()
     return 0
 }
 
+# 解析 dmesg 中 rkvdec 每任务硬件耗时 (us), 计算硬件帧率
+function hw_parse_dmesg()
+{
+    local out
+
+    hw_cnt=0; hw_avg_us=0; hw_min_us=0; hw_max_us=0
+    hw_avg_fps="-"; hw_max_fps="-"; hw_min_fps="-"
+    out=$(LC_ALL=C awk '
+        /rkvdec/ && /time:/ {
+            for (i = 1; i <= NF; i++) {
+                if ($i != "hw") continue
+                v = $(i + 1) + 0
+                if (v <= 0) continue
+                if (c == 0 || v < mn) mn = v
+                if (v > mx) mx = v
+                s += v
+                c++
+            }
+        }
+        END {
+            if (c > 0) printf "%d %.0f %d %d\n", c, s / c, mn, mx
+            else       print "0 0 0 0"
+        }
+    ' "$1" 2>/dev/null)
+    read -r hw_cnt hw_avg_us hw_min_us hw_max_us <<< "${out}"
+    [ "${hw_cnt}" -gt 0 ] 2>/dev/null || return 0
+    hw_avg_fps=$(LC_ALL=C awk -v u="${hw_avg_us}" 'BEGIN { printf "%.2f", 1000000 / u }')
+    hw_max_fps=$(LC_ALL=C awk -v u="${hw_min_us}" 'BEGIN { printf "%.2f", 1000000 / u }')
+    hw_min_fps=$(LC_ALL=C awk -v u="${hw_max_us}" 'BEGIN { printf "%.2f", 1000000 / u }')
+}
+
+# 恢复 mpp_dev_debug 原始值
+function hw_restore()
+{
+    [ -n "${hw_dbg_old}" ] || return 0
+    adev_shell "echo ${hw_dbg_old} > /sys/module/rk_vcodec/parameters/mpp_dev_debug" >/dev/null 2>&1
+    hw_dbg_old=""
+}
+
 function device_init()
 {
     local free=""
@@ -282,12 +329,27 @@ function device_init()
     log "device work dir: ${dev_work_dir}${free}"
 
     adev_shell "command -v timeout" >/dev/null 2>&1 && dev_has_timeout="1"
+
+    if [ "${cmd_hw_stat}" = "1" ]; then
+        if ! adev_shell "test -e /sys/module/rk_vcodec/parameters/mpp_dev_debug" >/dev/null 2>&1; then
+            log_warn "mpp_dev_debug not found, --hw disabled"
+            cmd_hw_stat="0"
+        else
+            hw_dbg_old=$(adev_shell "cat /sys/module/rk_vcodec/parameters/mpp_dev_debug" 2>/dev/null | tr -d ' \r')
+            if ! adev_shell "echo 260 > /sys/module/rk_vcodec/parameters/mpp_dev_debug" >/dev/null 2>&1; then
+                log_warn "failed to enable mpp_dev_debug, --hw disabled"
+                cmd_hw_stat="0"
+            fi
+        fi
+    fi
+
     return 0
 }
 
 function cleanup()
 {
     log_warn "interrupt received, cleaning device files..."
+    hw_restore
     if [ "${g_dev_ready}" = "1" ] && [ "${cmd_keep_dev}" = "0" ]; then
         adev_shell "rm -rf $(adev_quote "${dev_work_dir}")" >/dev/null 2>&1
     fi
@@ -408,9 +470,16 @@ function perf_one()
             "${run_frames}" "-v qf${cmd_extra_args:+ ${cmd_extra_args}}" \
             "${dev_has_timeout:+${cmd_timeout_sec}}" "${dec_envs}")
 
+        [ "${cmd_hw_stat}" = "1" ] && adev_shell "dmesg -c >/dev/null 2>&1" >/dev/null 2>&1
+
         log_dbg "device decode: ${shell_cmd}"
         adev_run_capture_named "${shell_cmd}" "${cmd_out_dir}" "${g_idx}_${name}.perf"
         ret=$adev_ret
+
+        if [ "${cmd_hw_stat}" = "1" ]; then
+            adev_shell "dmesg" > "${cmd_out_dir}/${g_idx}_${name}.dmesg" 2>/dev/null
+            hw_parse_dmesg "${cmd_out_dir}/${g_idx}_${name}.dmesg"
+        fi
 
         # stdout 与 logcat 都看, 兼容 Linux/Android 两套日志去向
         mpp_fps_parse "${dec_log}" "${dec_logcat}"
@@ -466,6 +535,13 @@ function perf_one()
     note=""
     [ "${looped}" = "1" ] && note="looped -n ${run_frames}"
     _record "${spec}" "${src}" "PASS" "${note}"
+
+    if [ "${cmd_hw_stat}" = "1" ] && [ "${hw_cnt}" -gt 0 ] 2>/dev/null; then
+        hw_rows+=("${spec}"$'\t'"${name}"$'\t'"${hw_cnt}"$'\t'"${hw_avg_us}"$'\t'"${hw_min_us}"$'\t'"${hw_max_us}"$'\t'"${hw_avg_fps}"$'\t'"${hw_max_fps}"$'\t'"${hw_min_fps}")
+        csv_append "${hw_csv}" "${spec}" "${name}" "${hw_cnt}" "${hw_avg_us}" \
+            "${hw_min_us}" "${hw_max_us}" "${hw_avg_fps}" "${hw_max_fps}" "${hw_min_fps}"
+        log "hw: avg ${hw_avg_fps} fps (max ${hw_max_fps}, min ${hw_min_fps})"
+    fi
     log "result: avg ${g_avg} fps, max ${g_max}, min ${g_min}" \
         "(frames ${g_frames}, time ${g_time} ms)"
     return 0
@@ -573,7 +649,8 @@ function main()
 
     # 清理历史产物, 只保留本次结果
     rm -f "${cmd_out_dir}"/rk_dec_perf_*.log "${cmd_out_dir}"/perf_result.csv \
-          "${cmd_out_dir}"/*.perf.log "${cmd_out_dir}"/*.perf.logcat 2>/dev/null
+          "${cmd_out_dir}"/hw_result.csv "${cmd_out_dir}"/*.perf.log \
+          "${cmd_out_dir}"/*.perf.logcat "${cmd_out_dir}"/*.dmesg 2>/dev/null
 
     ts=$(date +%Y%m%d_%H%M%S)
     log_setup "${cmd_out_dir}/rk_dec_perf_${ts}.log" "${cmd_quiet}" "${cmd_verbose}"
@@ -581,6 +658,12 @@ function main()
     result_csv="${cmd_out_dir}/perf_result.csv"
     csv_header "${result_csv}" spec "max/min fps" "avg fps" resolution \
         bitrate stream frames time_ms status note
+
+    if [ "${cmd_hw_stat}" = "1" ]; then
+        hw_csv="${cmd_out_dir}/hw_result.csv"
+        csv_header "${hw_csv}" spec stream tasks avg_hw_us min_hw_us max_hw_us \
+            avg_fps max_fps min_fps
+    fi
 
     log_summary "==== RK decode performance started: $(date) ===="
     log_summary "list file: ${cmd_list_file}"
@@ -631,6 +714,7 @@ function main()
         adev_shell "rm -rf $(adev_quote "${dev_work_dir}")" >/dev/null 2>&1
     fi
     g_dev_ready="0"
+    hw_restore
 
     n_pass=${#stat_lines[@]}
     n_fail=${#fail_rows[@]}
@@ -639,6 +723,17 @@ function main()
     log_summary ""
     log_summary "==== decode performance ($((n_pass + n_fail)) streams, PASS ${n_pass}, FAIL ${n_fail}) ===="
     print_table
+
+    if [ "${#hw_rows[@]}" -gt 0 ]; then
+        log_summary ""
+        log_summary "==== hardware decode stats (kernel mpp_dev_debug) ===="
+        log_summary "spec  hw max/min fps  hw avg fps  name"
+        for r in "${hw_rows[@]}"; do
+            IFS=$'\t' read -r f0 f1 f2 f3 f4 f5 f6 f7 f8 <<< "${r}"
+            log_summary "$(printf '%-5s %-14s %-9s %s' \
+                "${f0}" "${f7}/${f8}" "${f6}" "${f1}")"
+        done
+    fi
     [ "${est_seen}" = "1" ] && log_summary \
         "注: ~ 为估算码率 (裸流无码率元数据, 按 文件大小*帧率/帧数 计算)"
 
