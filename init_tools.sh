@@ -135,7 +135,7 @@ function init_gen_tools()
     # dev tools
     create_link_to_bin ${gen_tools_dir}/01.dev_tools/01.adb_tools/01.adbSelCmd.sh  adbs
     create_link_to_bin ${gen_tools_dir}/01.dev_tools/01.adb_tools/03.adbDebug.sh   adbDebug.sh
-    create_link_to_bin ${gen_tools_dir}/01.dev_tools/01.adb_tools/02.adb_device.sh _adb_device.sh
+    create_link_to_bin ${gen_tools_dir}/01.dev_tools/01.adb_tools/02.adb_dev_op.sh _adb_dev_op.sh
 
     create_link_to_bin ${gen_tools_dir}/01.dev_tools/03.sysParaMon.py      _sysParaMon.py
     create_link_to_bin ${gen_tools_dir}/01.dev_tools/04.usbinfo.sh         m_usbinfo.sh

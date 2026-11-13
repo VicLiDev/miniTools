@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #########################################################################
-# File Name: adb_device.sh
+# File Name: adb_dev_op.sh
 # Author: Hongjin Li
 # mail: 872648180@qq.com
 # Created Time: Wed 30 Sep 2026 06:50:00 PM CST
@@ -9,9 +9,9 @@
 # usage:
 #     d=$(dirname "$(readlink -f "$0")")
 #     prj_root_dir=$(git -C "$d" rev-parse --show-toplevel)
-#     source ${prj_root_dir}/02.gen_tools/01.dev_tools/01.adb_tools/02.adb_device.sh
+#     source ${prj_root_dir}/02.gen_tools/01.dev_tools/01.adb_tools/02.adb_dev_op.sh
 #     or after run init_tools.sh
-#     source ${HOME}/bin/_adb_device.sh
+#     source ${HOME}/bin/_adb_dev_op.sh
 #
 # adb 设备操作通用封装: 适用于任何支持 adb 的设备 (Android / 带 adbd 的 Linux 等).
 # 先 adev_select 选中设备, 之后所有操作走 adev_adb.

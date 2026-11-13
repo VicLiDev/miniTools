@@ -98,7 +98,7 @@ __bom=$'\xEF\xBB\xBF'   # UTF-8 BOM, 解析片源列表时剥离
 # 日志库 (log_setup/log/log_pass/...) / CSV 写出 / adb 设备操作
 source "${HOME}/bin/_log.sh"
 source "${HOME}/bin/_csv.sh"
-source "${HOME}/bin/_adb_device.sh"
+source "${HOME}/bin/_adb_dev_op.sh"
 
 # 校验层比对工具 (独立 CLI): 软解 + yuv 比对
 __cmp_yuv="${HOME}/bin/m_cmp_yuv.sh"
@@ -705,7 +705,7 @@ function producer_cleanup_once()
 }
 
 # ---- 设备与工具 (mpi_dec_test 后端共用) ----
-# 设备 I/O 底层实现抽离到通用库 02.gen_tools/01.dev_tools/01.adb_tools/02.adb_device.sh:
+# 设备 I/O 底层实现抽离到通用库 02.gen_tools/01.dev_tools/01.adb_tools/02.adb_dev_op.sh:
 #   adev_select/adev_valid/adev_run/adev_shell/adev_push/adev_pull/
 #   adev_find_exe/adev_file_size/adev_free_kb/adev_run_capture
 #   (选中设备后走 adev_adb)
