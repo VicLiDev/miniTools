@@ -60,7 +60,7 @@ function _sn_display()
     [ -n "${_header}" ] && _sn_log_hl "${_header}"
     for ((_i = 0; _i < ${#_list_ref[@]}; _i++))
     do
-        _sn_log_hl "  ${_i}. ${_list_ref[${_i}]}"
+        _sn_log_hl "$(printf ' %2d. %s' "${_i}" "${_list_ref[${_i}]}")"
     done
 }
 
