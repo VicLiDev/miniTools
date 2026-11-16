@@ -89,6 +89,11 @@ devChipList=()
 selectList=()
 devUsbPathList=()
 
+# 设备表列格式串: 表头与内容共用这一份, 保证列永远对齐。
+# gen_dev_info_list 会按实际字段长度重算各列宽 (见该函数内注释),
+# 这里的默认值仅在尚未生成设备列表时 (如空列表) 使用。
+dev_col_fmt="%-8s %-4s %-18s %-12s %s"
+
 # ===================== 远程模式 / ssh 隧道配置 =====================
 #
 # 【ADB client/server 架构】
@@ -416,9 +421,10 @@ function stop_ssh_tunnel()
 # -------------------- general --------------------
 
 # 设备表表头 (调用方决定输出到 stdout/stderr)
+# 与内容共用 dev_col_fmt, 前缀宽度 5 与列表项 "  0. " 一致
 function print_dev_header()
 {
-    printf "  %1s  %-8s %-4s %-18s %-12s %s\n" "#" CHIP TID SERIAL USB DTS
+    printf "  %1s  ${dev_col_fmt}\n" "#" CHIP TID SERIAL USB DTS
 }
 
 # 从 adb devices -l 输出中提取 serID/tpid/usb 三元组 (逐行对齐, 缺项留空)。
@@ -483,14 +489,43 @@ function gen_dev_info_list()
         # 芯片名称: 取板级名首个 "-" 之前的部分 (如 rk3588, rv1126b, rk3588s)
         local chipTmp=${nameTmp%%-*}
         devChipList[${i}]=${chipTmp}
-        # 字段顺序: 芯片 -> TrsptID -> serID -> usb 路径 -> 设备树(板级名)
-        selectList[${i}]=$(printf \
-            "%-8s %-4s %-18s %-12s %s" \
+    done
+    rm -rf "${_tmpdir}"
+
+    # 列宽按"表头标题"与"各设备实际字段"的最大长度取值, 下限为历史固定宽度,
+    # 保证同一批设备输出稳定。不能写死: transport_id 会随重连累加 (已是 6 位),
+    # 超过固定宽度时 printf 会撑破该列, 把后面的 SERIAL/USB/DTS 整体挤偏。
+    local _w_chip=0 _w_tid=0 _w_ser=0 _w_usb=0 _len
+    for ((i = 0; i < ${#devTPIDList[@]}; i++))
+    do
+        _len=${#devChipList[${i}]}
+        [ ${_len} -gt ${_w_chip} ] && _w_chip=${_len}
+        _len=${#devTPIDList[${i}]}
+        [ ${_len} -gt ${_w_tid} ] && _w_tid=${_len}
+        _len=${#devSerIDList[${i}]}
+        [ ${_len} -gt ${_w_ser} ] && _w_ser=${_len}
+        # 展示时 USB 为空会补 "--", 按补位后的长度算
+        _len=${#devUsbPathList[${i}]}
+        [ ${_len} -lt 2 ] && _len=2
+        [ ${_len} -gt ${_w_usb} ] && _w_usb=${_len}
+    done
+    # 下限 8/4/18/12 与历史输出保持一致, 仅在字段超宽时扩张。
+    # printf 的字段宽度无法通过参数传入, 故按算好的宽度拼出格式串。
+    [ ${_w_chip} -lt 8 ] && _w_chip=8
+    [ ${_w_tid}  -lt 4 ] && _w_tid=4
+    [ ${_w_ser}  -lt 18 ] && _w_ser=18
+    [ ${_w_usb}  -lt 12 ] && _w_usb=12
+    dev_col_fmt="%-${_w_chip}s %-${_w_tid}s %-${_w_ser}s %-${_w_usb}s %s"
+
+    # 字段顺序: 芯片 -> TrsptID -> serID -> usb 路径 -> 设备树(板级名)
+    selectList=()
+    for ((i = 0; i < ${#devTPIDList[@]}; i++))
+    do
+        selectList[${i}]=$(printf "${dev_col_fmt}" \
             "${devChipList[${i}]:--}" "${devTPIDList[${i}]}" \
             "${devSerIDList[${i}]}" "${devUsbPathList[${i}]:--}" \
             "${devNameList[${i}]:--}")
     done
-    rm -rf "${_tmpdir}"
 }
 
 function gen_adb_cmd()
