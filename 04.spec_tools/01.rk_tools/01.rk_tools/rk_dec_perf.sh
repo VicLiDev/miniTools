@@ -30,7 +30,7 @@ cmd_out_dir="rk_dec_perf_out"
 cmd_extra_args=""
 cmd_frames=""      # 固定解码帧数 (-n); 空 = 解完整码流
 cmd_hw_stat="0"    # 1 = 统计内核硬件解码时间 (mpp_dev_debug)
-hw_rows=()         # 硬件统计: spec name cnt avg_us min_us max_us avg_fps max_fps min_fps
+hw_rows=()         # 硬件统计: spec name cnt avg_us min_us max_us avg_fps max_fps min_fps rsl br
 hw_dbg_old=""      # 原始 mpp_dev_debug 值, 退出时恢复
 hw_csv=""
 hw_cnt=0; hw_avg_us=0; hw_min_us=0; hw_max_us=0
@@ -553,7 +553,7 @@ function perf_one()
     _record "${spec}" "${src}" "PASS" "${note}"
 
     if [ "${cmd_hw_stat}" = "1" ] && [ "${hw_cnt}" -gt 0 ] 2>/dev/null; then
-        hw_rows+=("${spec}"$'\t'"${name}"$'\t'"${hw_cnt}"$'\t'"${hw_avg_us}"$'\t'"${hw_min_us}"$'\t'"${hw_max_us}"$'\t'"${hw_avg_fps}"$'\t'"${hw_max_fps}"$'\t'"${hw_min_fps}")
+        hw_rows+=("${spec}"$'\t'"${name}"$'\t'"${hw_cnt}"$'\t'"${hw_avg_us}"$'\t'"${hw_min_us}"$'\t'"${hw_max_us}"$'\t'"${hw_avg_fps}"$'\t'"${hw_max_fps}"$'\t'"${hw_min_fps}"$'\t'"${g_rsl:--}"$'\t'"${g_br:-N/A}")
         csv_append "${hw_csv}" "${spec}" "${name}" "${hw_cnt}" "${hw_avg_us}" \
             "${hw_min_us}" "${hw_max_us}" "${hw_avg_fps}" "${hw_max_fps}" "${hw_min_fps}"
         log "hw: avg ${hw_avg_fps} fps (max ${hw_max_fps}, min ${hw_min_fps})"
@@ -698,16 +698,16 @@ function main()
 
     if [ "${#hw_rows[@]}" -gt 0 ]; then
         local -a hargs=()
-        local hr h0 h1 h2 h3 h4 h5 h6 h7 h8
+        local hr h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
 
         log_summary ""
         log_summary "==== hardware decode stats (kernel mpp_dev_debug) ===="
-        hargs=("spec|hw max/min fps|hw avg fps|name")
+        hargs=("spec|hw max/min fps|hw avg fps|分辨率|码率|片源名字")
         for hr in "${hw_rows[@]}"; do
-            IFS=$'\t' read -r h0 h1 h2 h3 h4 h5 h6 h7 h8 <<< "${hr}"
-            hargs+=("${h0}|${h7}/${h8}|${h6}|${h1}")
+            IFS=$'\t' read -r h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 <<< "${hr}"
+            hargs+=("${h0}|${h7}/${h8}|${h6}|${h9:--}|${h10:-N/A}|${h1}")
         done
-        log_table -t summary -c cyan -C cyan -a "l,r,r,l" "${hargs[@]}"
+        log_table -t summary -c cyan -C cyan -a "l,r,r,l,r,l" "${hargs[@]}"
     fi
     [ "${est_seen}" = "1" ] && log_summary \
         "注: ~ 为估算码率 (裸流无码率元数据, 按 文件大小*帧率/帧数 计算)"
