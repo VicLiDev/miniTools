@@ -11,7 +11,7 @@ spec_l=()
 dev_dir=""
 quit_err="false"
 
-dev_info_l=(`adbs -l | awk '{print $1}'`)
+dev_info_l=(`adbs -l | awk '$1 ~ /^[0-9]+$/ {print $1}'`)
 strm_list=()
 
 strm_list_hevc=(
