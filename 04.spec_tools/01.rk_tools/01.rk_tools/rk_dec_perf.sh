@@ -76,11 +76,10 @@ Usage: $0 -l <list> [options]
   -o <dir>         output dir (default: ${cmd_out_dir})
   --extra <args>   extra mpi_dec_test args, e.g. "-o out.yuv"
   --frames <n>     decode fixed frame count (mpi_dec_test -n); short
-  --hw               analyze hardware decode time (mpp_dev_debug=260, needs root)
+                   streams loop to reach n, default 0 = whole stream
+  --hw             analyze hardware decode time (mpp_dev_debug=260, needs root)
   --reader-buf <n>  reader_buf_size for mpi_dec_test (default 1048576)
   --env "K=V ..."   extra env for the test binary (e.g. mpp_dec_debug=0x2)
-
-                   streams loop to reach n, default 0 = whole stream
   --timeout <sec>  per-stream decode timeout (default: ${cmd_timeout_sec})
   -k               keep stream file on device
   -v / -q          verbose / quiet
@@ -101,6 +100,7 @@ DDR frequency (devfreq, needs root; some SoCs use fixed clocks):
   # no devfreq (fixed clocks):
   cat /sys/kernel/debug/clk/clk_summary | grep -iE "ddr|dmc"
   common: 540000000 / 1320000000 / 1968000000 / 2736000000
+
 Codec types: h264 h265 vp9 av1 avs2 avs mpeg2 mpeg4 vp8 mjpeg
 
 Env: RK_DEC_PERF_WORKDIR  device work dir (default: auto detect)
