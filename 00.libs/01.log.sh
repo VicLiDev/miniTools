@@ -35,6 +35,16 @@
 #          log_title "<msg>"             标题 (上下各一条分隔线)
 #          log_kv <key> <value> [width]  键值对 (width 可选 1-1000, 对齐 key)
 #          log_step <n> <total> "<msg>"  [n/total] 前缀
+#          log_table [-d <delim>] [-a <aligns>] [-s <char>] [-n] [-t <target>]
+#                    [-c <color>] [-C <color>] [-b <color>] <header> [row...]
+#                                        动态对齐表格: 列宽按内容自适应, 中文按 2 列,
+#                                        忽略 ANSI 颜色, 行尾不留空格;
+#                                        -d 字段分隔符(默认 "|"), -a 每列对齐如
+#                                        "l,r,r" (l 左 r 右, 缺省左), -s 分隔线
+#                                        字符(默认 "-", 传空串关闭), -n 不打印
+#                                        末行分隔线, -t 去向(struct|summary|
+#                                        out|err|file, 默认 struct),
+#                                        -c/-C/-b 依次为表头/分隔线/数据行颜色
 #          (非法 len/width 会告警并回退: sep 用 40, kv 转为不对齐; step 的 n>total 会告警)
 #          结构辅助目标为 file 但未配置日志文件时, 自动回退 stderr 以免静默丢弃
 #     6. 配置:
@@ -549,6 +559,213 @@ function log_step()
         echo "log: step ${_n} exceeds total ${_total}" >&2
     fi
     _log_struct "[${_n}/${_total}] ${*:3}"
+}
+
+# ---------------------------------------------------------------------------
+#  表格
+# ---------------------------------------------------------------------------
+
+# 显示宽度: 中文/全角字符按 2 列, 其余按 1 列.
+# UTF-8 下 ${#s} 按字符数, LC_ALL=C 下按字节数; 非 ASCII 字符统一按 2 列估算
+# (3 字节中文最常见, 2/4 字节字符会有偏差, 但不会破坏对齐的整体观感).
+function _log_dwidth()
+{
+    local _s="${1:-}" _n _b
+
+    _n=${#_s}
+    local LC_ALL=C
+    _b=${#_s}
+    printf '%s' $(( _n + (_b - _n) / 2 ))
+}
+
+# 按显示宽度对齐一个单元格, 结果写入全局 _log_cell.
+# 计算宽度前先去掉 ANSI 颜色(颜色不占列宽), 输出仍保留原串.
+function _log_fit()
+{
+    local _t="${1:-}" _w="${2:-0}" _al="${3:-l}" _d _pad
+
+    _log_strip_ansi "${_t}"
+    _d=$(_log_dwidth "${_log_plain}")
+    _pad=$(( _w - _d ))
+    [ "${_pad}" -lt 0 ] && _pad=0
+    if [ "${_al}" = "r" ]; then
+        printf -v _log_cell '%*s%s' "${_pad}" '' "${_t}"
+    else
+        printf -v _log_cell '%s%*s' "${_t}" "${_pad}" ''
+    fi
+}
+
+# 表格行按去向输出: struct(默认) | summary | out | err | file
+function _log_table_emit()
+{
+    case "${1:-struct}" in
+        summary) log_summary "${2:-}" ;;
+        out)     log_out "${2:-}" ;;
+        err)     log_info "${2:-}" ;;
+        file)    log_fonly "${2:-}" ;;
+        struct)  _log_struct "${2:-}" ;;
+        *)       echo "log: log_table: invalid target '${1}', use struct" >&2
+                 _log_struct "${2:-}" ;;
+    esac
+}
+
+# 表格配色: 按去向判断终端, 结果写入全局 _log_tcolor (空串 = 不上色).
+# 与 log_color 的区别: 不走命令替换, 故在函数内部也能正确判定 stdout 是否终端.
+function _log_table_color()
+{
+    local _t="${1:-struct}" _c="${2:-}"
+
+    _log_tcolor=""
+    [ -n "${_c}" ] || return 0
+    [ "${_log_color}" = "auto" ] && _log_apply_color
+    _log_color_to_ansi "${_c}"
+    [ -n "${_log_ansi}" ] || return 0
+    if [ "${_log_color}" = "auto" ]; then
+        case "${_t}" in
+            summary|out) [ -t 1 ] || return 0 ;;
+            *)           [ -t 2 ] || return 0 ;;
+        esac
+    fi
+    _log_tcolor="${_log_ansi}"
+}
+
+# log_table [-d <delim>] [-a <aligns>] [-s <char>] [-c <color>] [-C <color>]
+#           [-b <color>] [-n] [-t <target>] <header> [row...]
+#   第一行是表头, 其余每条参数是一行数据; 字段用 -d 分隔(默认 "|").
+#   -d: 字段分隔符, 单个字符(默认 "|"), 也可传 $'\t'.
+#   -a: 每列对齐, 逗号分隔, l=左 r=右, 如 "l,r,r"; 缺省列按左对齐.
+#   -s: 分隔线字符(默认 "-"), 传空串关闭分隔线.
+#   -c: 表头颜色(green|red|yellow|cyan|dim, 或 ANSI 序列), 默认不上色.
+#   -C: 分隔线颜色, 默认不上色.
+#   -b: 数据行颜色, 默认不上色.
+#   -n: 不打印末行之后的分隔线(表头下的分隔线仍保留).
+#   -t: 输出去向, 默认 struct(跟随 log_set_struct), 也可用 summary/out/err/file.
+#   列宽按内容自适应(中文按 2 列), 自动忽略 ANSI 颜色, 并去掉行尾空格.
+#   颜色: auto 模式下只在终端生效, 重定向输出与日志文件始终是纯文本.
+#   注意: 字段内容不要包含分隔符本身.
+function log_table()
+{
+    local _d="|" _al="" _sc="-" _tg="struct" _nob="0" _hc="" _cc="" _bc=""
+    local -a _rows=() _f=() _w=() _alv=()
+    local _row _line _sep _cell _v _dw _total _n _i _idx _rest
+
+    while [ $# -gt 0 ]; do
+        case "${1}" in
+            -d) _d="${2-}"; shift 2 ;;
+            -a) _al="${2-}"; shift 2 ;;
+            -s) _sc="${2-}"; shift 2 ;;
+            -c) _hc="${2-}"; shift 2 ;;
+            -C) _cc="${2-}"; shift 2 ;;
+            -b) _bc="${2-}"; shift 2 ;;
+            -n) _nob="1"; shift ;;
+            -t) _tg="${2-}"; shift 2 ;;
+            --) shift; break ;;
+            -?*) echo "log: log_table: unknown option '${1}'" >&2; return 1 ;;
+            *)   break ;;
+        esac
+    done
+    if [ $# -lt 1 ]; then
+        echo "log: log_table: header required" >&2
+        return 1
+    fi
+    if [ -z "${_d}" ]; then
+        echo "log: log_table: empty delimiter, use '|'" >&2
+        _d="|"
+    fi
+    _rows=("$@")
+
+    # 列数: 表头与各行的最大字段数
+    _n=0
+    for _row in "${_rows[@]}"; do
+        IFS="${_d}" read -r -a _f <<< "${_row}"
+        if [ "${#_f[@]}" -gt "${_n}" ]; then _n=${#_f[@]}; fi
+    done
+    [ "${_n}" -gt 0 ] || return 0
+
+    # 各列宽度: 取内容(去 ANSI 后)的最大显示宽度
+    for (( _i = 0; _i < _n; _i++ )); do
+        _w[_i]=0
+        _alv[_i]="l"
+    done
+    for _row in "${_rows[@]}"; do
+        IFS="${_d}" read -r -a _f <<< "${_row}"
+        for (( _i = 0; _i < ${#_f[@]}; _i++ )); do
+            _log_strip_ansi "${_f[_i]}"
+            _dw=$(_log_dwidth "${_log_plain}")
+            if [ "${_dw}" -gt "${_w[_i]}" ]; then _w[_i]=${_dw}; fi
+        done
+    done
+
+    # 对齐方式: "l,r,r"; 不足的列按左对齐, 多余的忽略
+    if [ -n "${_al}" ]; then
+        _rest="${_al}"
+        _i=0
+        while [ -n "${_rest}" ] && [ "${_i}" -lt "${_n}" ]; do
+            case "${_rest}" in
+                *,*) _v="${_rest%%,*}"; _rest="${_rest#*,}" ;;
+                *)   _v="${_rest}"; _rest="" ;;
+            esac
+            _v="${_v//[[:space:]]/}"
+            if [ "${_v}" = "r" ] || [ "${_v}" = "R" ]; then
+                _alv[_i]="r"
+            fi
+            _i=$(( _i + 1 ))
+        done
+    fi
+
+    # 分隔线总宽度 = 各列宽度 + 列间两个空格
+    _total=$(( (_n - 1) * 2 ))
+    for (( _i = 0; _i < _n; _i++ )); do
+        _total=$(( _total + _w[_i] ))
+    done
+
+    for (( _idx = 0; _idx < ${#_rows[@]}; _idx++ )); do
+        IFS="${_d}" read -r -a _f <<< "${_rows[_idx]}"
+        _line=""
+        for (( _i = 0; _i < _n; _i++ )); do
+            _cell="${_f[_i]-}"
+            _log_fit "${_cell}" "${_w[_i]}" "${_alv[_i]}"
+            if [ "${_i}" -gt 0 ]; then _line+="  "; fi
+            _line+="${_log_cell}"
+        done
+        # 去掉行尾空格, 避免日志文件里出现无意义空白
+        while [ -n "${_line}" ] && [ "${_line: -1}" = " " ]; do
+            _line="${_line% }"
+        done
+        # 表头按 -c 上色, 数据行按 -b 上色 (宽度已按去色文本算好, 颜色不影响对齐)
+        if [ "${_idx}" -eq 0 ] && [ -n "${_hc}" ]; then
+            _log_table_color "${_tg}" "${_hc}"
+            if [ -n "${_log_tcolor}" ]; then
+                _line="${_log_tcolor}${_line}${_log_nc}"
+            fi
+        elif [ "${_idx}" -gt 0 ] && [ -n "${_bc}" ]; then
+            _log_table_color "${_tg}" "${_bc}"
+            if [ -n "${_log_tcolor}" ]; then
+                _line="${_log_tcolor}${_line}${_log_nc}"
+            fi
+        fi
+        _log_table_emit "${_tg}" "${_line}"
+        # 表头后一条分隔线
+        if [ "${_idx}" -eq 0 ] && [ -n "${_sc}" ]; then
+            printf -v _sep '%*s' "${_total}" ''
+            _sep="${_sep// /${_sc}}"
+            _log_table_color "${_tg}" "${_cc}"
+            if [ -n "${_log_tcolor}" ]; then
+                _sep="${_log_tcolor}${_sep}${_log_nc}"
+            fi
+            _log_table_emit "${_tg}" "${_sep}"
+        fi
+    done
+    # 末行后的分隔线
+    if [ "${_nob}" = "0" ] && [ -n "${_sc}" ] && [ "${#_rows[@]}" -gt 1 ]; then
+        printf -v _sep '%*s' "${_total}" ''
+        _sep="${_sep// /${_sc}}"
+        _log_table_color "${_tg}" "${_cc}"
+        if [ -n "${_log_tcolor}" ]; then
+            _sep="${_log_tcolor}${_sep}${_log_nc}"
+        fi
+        _log_table_emit "${_tg}" "${_sep}"
+    fi
 }
 
 # 库加载时应用一次颜色策略, 使 auto 在 log_setup 之前也生效

@@ -41,6 +41,7 @@ has()    { grep -qF -- "$2" "$1"; }
 hasnt()  { ! grep -qF -- "$2" "$1"; }
 has_re() { grep -qE -- "$2" "$1"; }
 has_esc(){ grep -q -- "${esc}" "$1"; }
+hasnt_esc(){ ! grep -q -- "${esc}" "$1"; }
 
 LOGFILE=""
 
@@ -144,6 +145,22 @@ case_summary()
     log_summary "SUMMARY-msg"
 }
 
+case_table()
+{
+    log_setup "${LOGFILE}"
+    log_table -t out -a "l,r,r" -c cyan -C cyan \
+        "spec|hw avg fps|name" \
+        "h264|53.67|高码率-243M-鸭子飞了.h264" \
+        "h265|149.12|H265_3840x2160_100M.h265"
+}
+
+case_table_body()
+{
+    log_setup "${LOGFILE}"
+    log_set_color on
+    log_table -t out -a "l,r" -c cyan -C cyan -b green "spec|fps" "h264|53.67"
+}
+
 # ---------------------------------------------------------------------------
 #  断言
 # ---------------------------------------------------------------------------
@@ -199,6 +216,18 @@ run_case "summary 不受 quiet 影响" case_summary
 chk "info 被抑制"              hasnt "${err}" "info-msg"
 chk "summary 上 stdout"        has "${out}" "SUMMARY-msg"
 chk "summary 写文件"           has "${log}" "SUMMARY-msg"
+
+run_case "动态对齐表格" case_table
+chk "表头"                     has   "${out}" "hw avg fps"
+chk "数字列右对齐"             has_re "${out}" 'h264 +53\.67'
+chk "中文列不串列"             has_re "${out}" '鸭子飞了\.h264$'
+chk "分隔线"                   has_re "${out}" '^-----'
+chk "auto 下不上色"            hasnt_esc "${out}"
+
+run_case "数据行上色" case_table_body
+chk "表头为青色"                has "${out}" "$(printf '\033[1;36mspec')"
+chk "数据行为绿色"              has "${out}" "$(printf '\033[1;32mh264')"
+chk "分隔线为青色"              has "${out}" "$(printf '\033[1;36m----')"
 
 # ---------------------------------------------------------------------------
 
