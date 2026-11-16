@@ -427,6 +427,28 @@ function print_dev_header()
     printf "  %1s  ${dev_col_fmt}\n" "#" CHIP TID SERIAL USB DTS
 }
 
+# 设备表 (表头 + 设备行), 交给 log_table 动态对齐
+# 用法: print_dev_table [out|err] [idx...]
+#   idx 缺省为全部设备; 指定时只打印这些下标的设备 (用于 --soc 多匹配提示)
+function print_dev_table()
+{
+    local _target="${1:-out}"
+    shift 2>/dev/null || true
+    local -a _args=("#|CHIP|TID|SERIAL|USB|DTS") _idxs=()
+    local _i
+
+    if [ $# -gt 0 ]; then
+        _idxs=("$@")
+    else
+        for ((_i = 0; _i < ${#devTPIDList[@]}; _i++)); do _idxs+=("${_i}"); done
+    fi
+
+    for _i in "${_idxs[@]}"; do
+        _args+=("${_i}|${devChipList[${_i}]:--}|${devTPIDList[${_i}]:-}|${devSerIDList[${_i}]:-}|${devUsbPathList[${_i}]:--}|${devNameList[${_i}]:--}")
+    done
+    log_table -t "${_target}" -c cyan -C dim -b green -a "r,l,l,l,l,l" "${_args[@]}"
+}
+
 # 从 adb devices -l 输出中提取 serID/tpid/usb 三元组 (逐行对齐, 缺项留空)。
 # ⚠ 三条数组必须逐行对齐: 若用三条独立 awk 各自过滤, 某行缺 usb:/transport_id
 #   (网络设备/offline/unauthorized) 会导致后续索引整体错位, --proxy 包装脚本
@@ -662,13 +684,9 @@ function list_usb_serial_devs()
         exit 0
     fi
 
-    printf "%-3s %-12s %-10s %-10s %-8s %-22s %-23s\n" \
-           "#" "DEVICE" "DRIVER" "VID:PID" "BAUD" "PRODUCT" "PLATFORM"
-    # tr ' ' '-': 把空格替换为 '-', 生成与表头等宽的分隔线
-    # printf 输出空字符串按列宽左对齐, 填充的空格被 tr 全部替换为 '-'
-    local _sep=\
-        $(printf '%-3s %-12s %-10s %-10s %-8s %-22s %-23s' '' '' '' '' '' '' '' | tr ' ' '-')
-    printf "%s\n" "${_sep}"
+    # 表格交给 log_table 动态对齐: 列宽按表头与各设备实际内容取最大值,
+    # 不再截断 PRODUCT/PLATFORM, 也不需手工拼分隔线
+    local -a _rows=("#|DEVICE|DRIVER|VID:PID|BAUD|PRODUCT|PLATFORM")
 
     local idx=1
     for dev in "${tty_list[@]}"; do
@@ -751,16 +769,13 @@ function list_usb_serial_devs()
         local vidpid="${vendor_id}:${prod_id}"
         [ "${vidpid}" = ":" ] && vidpid="-"
 
-        # 截断过长字段以对齐
-        product="${product:0:21}"
-        platform="${platform:0:23}"
-
-        printf "%-3s %-12s %-10s %-10s %-8s %-22s %-23s\n" \
-               "${idx}" "${devname}" "${driver:-"-"}" "${vidpid}" \
-               "${baud}" "${product:-"-"}" "${platform:-"-"}"
+        # 行数据交给 log_table 统一对齐, 字段为空时显示 "-"
+        _rows+=("${idx}|${devname}|${driver:--}|${vidpid}|${baud}|${product:--}|${platform:--}")
 
         ((idx++))
     done
+
+    log_table -t out -c cyan -C dim -b green -a "r,l,l,l,r,l,l" "${_rows[@]}"
 
     echo ""
     echo "Total: ${#tty_list[@]} USB serial device(s)"
@@ -1024,6 +1039,7 @@ function proc_paras()
 }
 
 # ====== main ======
+source ${HOME}/bin/_log.sh
 source ${HOME}/bin/_select_node.sh
 
 function main()
@@ -1107,10 +1123,7 @@ function main()
             cmd_sel_idx="${soc_match_list[0]}"
         else
             echo "Multiple devices matching '${cmd_soc_info}', using the first one:" >&2
-            print_dev_header >&2
-            for idx in "${soc_match_list[@]}"; do
-                echo " [$idx] ${selectList[${idx}]}" >&2
-            done
+            print_dev_table err "${soc_match_list[@]}"
             cmd_sel_idx="${soc_match_list[0]}"
         fi
     fi
@@ -1118,11 +1131,7 @@ function main()
     if [ ${cmd_get_count} == "true" ]; then
         echo "${#selectList[@]}"
     elif [ "${cmd_list_devs}" == "true" ]; then
-        print_dev_header
-        for ((cur_idx = 0; cur_idx < ${#selectList[@]}; cur_idx++))
-        do
-            printf " %2d  %s\n" "${cur_idx}" "${selectList[${cur_idx}]}"
-        done
+        print_dev_table out
     else
         adbCmd=`gen_adb_cmd`
         [ -z "${adbCmd}" ] && exit 0
