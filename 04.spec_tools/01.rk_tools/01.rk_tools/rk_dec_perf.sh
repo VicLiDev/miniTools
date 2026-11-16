@@ -587,62 +587,18 @@ function overall_stats()
         }'
 }
 
-# 按显示宽度补空格 (bash ${#s} 在 UTF-8 下按字符数, 可直接处理中文表头)
-# 显示宽度: 中文/全角字符按 2 列计 (UTF-8 3 字节字符)
-function _dwidth()
-{
-    local s="${1}" n b
-
-    n=${#s}
-    local LC_ALL=C
-    b=${#s}
-    printf '%s' $(( n + (b - n) / 2 ))
-}
-
-function _pad()
-{
-    local s="${1}" n="$2" d
-
-    d=$(_dwidth "${s}")
-    printf '%s%*s' "${s}" $(( n > d ? n - d : 0 )) ''
-}
-
 # 结果表: 宽度按实际内容计算, 避免帧率位数变多后串列
 function print_table()
 {
-    local -a hdr=(spec "max/min fps" "avg fps" "分辨率" "码率")
-    local -a w=(4 11 7 6 4)
-    local -a cells
-    local r f0 f1 f2 f3 f4 f5 i line sep v d
+    local -a args=()
+    local r f0 f1 f2 f3 f4 f5
 
+    args=("spec|max/min fps|avg fps|分辨率|码率|片源名字")
     for r in "${res_rows[@]}"; do
         IFS=$'\t' read -r f0 f1 f2 f3 f4 f5 <<< "${r}"
-        cells=("${f0}" "${f1}" "${f2}" "${f3}" "${f4}")
-        for i in 0 1 2 3 4; do
-            v="${cells[i]}"
-            d=$(_dwidth "${v}")
-            [ "${d}" -gt "${w[i]}" ] && w[i]=${d}
-        done
+        args+=("${f0}|${f1}|${f2}|${f3}|${f4}|${f5}")
     done
-
-    line=""; sep=""
-    for i in 0 1 2 3 4; do
-        line+="$(_pad "${hdr[i]}" "${w[i]}")  "
-        sep+="$(printf '%*s' "${w[i]}" '' | tr ' ' '-')  "
-    done
-    log_summary "${line}片源名字"
-    log_summary "${sep}--------"
-
-    for r in "${res_rows[@]}"; do
-        IFS=$'\t' read -r f0 f1 f2 f3 f4 f5 <<< "${r}"
-        cells=("${f0}" "${f1}" "${f2}" "${f3}" "${f4}")
-        line=""
-        for i in 0 1 2 3 4; do
-            line+="$(_pad "${cells[i]}" "${w[i]}")  "
-        done
-        log_summary "${line}${f5}"
-    done
-    log_summary "${sep}--------"
+    log_table -t summary -c cyan -C cyan -a "l,r,r,r,r,l" "${args[@]}"
 }
 
 # ==================== 主流程 ====================
@@ -741,14 +697,17 @@ function main()
     print_table
 
     if [ "${#hw_rows[@]}" -gt 0 ]; then
+        local -a hargs=()
+        local hr h0 h1 h2 h3 h4 h5 h6 h7 h8
+
         log_summary ""
         log_summary "==== hardware decode stats (kernel mpp_dev_debug) ===="
-        log_summary "spec  hw max/min fps  hw avg fps  name"
-        for r in "${hw_rows[@]}"; do
-            IFS=$'\t' read -r f0 f1 f2 f3 f4 f5 f6 f7 f8 <<< "${r}"
-            log_summary "$(printf '%-5s %-14s %-9s %s' \
-                "${f0}" "${f7}/${f8}" "${f6}" "${f1}")"
+        hargs=("spec|hw max/min fps|hw avg fps|name")
+        for hr in "${hw_rows[@]}"; do
+            IFS=$'\t' read -r h0 h1 h2 h3 h4 h5 h6 h7 h8 <<< "${hr}"
+            hargs+=("${h0}|${h7}/${h8}|${h6}|${h1}")
         done
+        log_table -t summary -c cyan -C cyan -a "l,r,r,l" "${hargs[@]}"
     fi
     [ "${est_seen}" = "1" ] && log_summary \
         "注: ~ 为估算码率 (裸流无码率元数据, 按 文件大小*帧率/帧数 计算)"
