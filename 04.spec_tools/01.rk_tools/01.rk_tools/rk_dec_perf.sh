@@ -32,6 +32,10 @@ cmd_frames=""      # 固定解码帧数 (-n); 空 = 解完整码流
 cmd_hw_stat="0"    # 1 = 统计内核硬件解码时间 (mpp_dev_debug)
 hw_rows=()         # 硬件统计: spec name cnt avg_us min_us max_us avg_fps max_fps min_fps rsl br
 hw_dbg_old=""      # 原始 mpp_dev_debug 值, 退出时恢复
+hw_cap_pid=""      # /dev/kmsg 抓取进程 pid
+hw_cap_file=""     # 当前片源的 kmsg 文件
+hw_cap_t0=0        # 抓取起始 uptime (us), 用于过滤 kmsg 历史记录
+hw_err_cnt=0       # 当前片源内核报错行数
 hw_csv=""
 hw_cnt=0; hw_avg_us=0; hw_min_us=0; hw_max_us=0
 hw_avg_fps="-"; hw_max_fps="-"; hw_min_fps="-"
@@ -77,7 +81,8 @@ Usage: $0 -l <list> [options]
   --extra <args>   extra mpi_dec_test args, e.g. "-o out.yuv"
   --frames <n>     decode fixed frame count (mpi_dec_test -n); short
                    streams loop to reach n, default 0 = whole stream
-  --hw             analyze hardware decode time (mpp_dev_debug=260, needs root)
+  --hw             analyze hardware decode time (mpp_dev_debug=260, needs root;
+                   reads /dev/kmsg, keeps samples even if dmesg is flooded)
   --reader-buf <n>  reader_buf_size for mpi_dec_test (default 1048576)
   --env "K=V ..."   extra env for the test binary (e.g. mpp_dec_debug=0x2)
   --timeout <sec>  per-stream decode timeout (default: ${cmd_timeout_sec})
@@ -285,15 +290,21 @@ function pick_work_dir()
     return 0
 }
 
-# 解析 dmesg 中 rkvdec 每任务硬件耗时 (us), 计算硬件帧率
+# 解析 dmesg/kmsg 中 rkvdec 每任务硬件耗时 (us), 计算硬件帧率
+# 用法: hw_parse_dmesg <file> [t0_us]
+# t0_us > 0 时只统计 kmsg 中时间戳 >= t0 的记录, 过滤环形缓冲里的历史记录
 function hw_parse_dmesg()
 {
-    local out
+    local out t0="${2:-0}"
 
     hw_cnt=0; hw_avg_us=0; hw_min_us=0; hw_max_us=0
     hw_avg_fps="-"; hw_max_fps="-"; hw_min_fps="-"
-    out=$(LC_ALL=C awk '
+    out=$(LC_ALL=C awk -v t0="${t0}" '
         /rkvdec/ && /time:/ {
+            if (t0 > 0) {
+                n = split($1, a, ",")
+                if (n < 3 || a[3] + 0 < t0) next
+            }
             for (i = 1; i <= NF; i++) {
                 if ($i != "hw") continue
                 v = $(i + 1) + 0
@@ -314,6 +325,63 @@ function hw_parse_dmesg()
     hw_avg_fps=$(LC_ALL=C awk -v u="${hw_avg_us}" 'BEGIN { printf "%.2f", 1000000 / u }')
     hw_max_fps=$(LC_ALL=C awk -v u="${hw_min_us}" 'BEGIN { printf "%.2f", 1000000 / u }')
     hw_min_fps=$(LC_ALL=C awk -v u="${hw_max_us}" 'BEGIN { printf "%.2f", 1000000 / u }')
+}
+
+# 记录一个片源的硬件统计行; 无样本时填 "--" 并注明原因, 不跳过该行
+# 用法: hw_record_row <spec> <name> [note]
+function hw_record_row()
+{
+    local spec="$1" name="$2" note="${3-}"
+    local rsl="${g_rsl:--}" br="${g_br:-N/A}"
+
+    [ "${cmd_hw_stat}" = "1" ] || return 0
+
+    if [ "${hw_cnt:-0}" -gt 0 ] 2>/dev/null; then
+        hw_rows+=("${spec}"$'\t'"${name}"$'\t'"${hw_cnt}"$'\t'"${hw_avg_us}"$'\t'\
+"${hw_min_us}"$'\t'"${hw_max_us}"$'\t'"${hw_avg_fps}"$'\t'"${hw_max_fps}"$'\t'\
+"${hw_min_fps}"$'\t'"${rsl}"$'\t'"${br}"$'\t'"${note}")
+        csv_append "${hw_csv}" "${spec}" "${name}" "${hw_cnt}" "${hw_avg_us}" \
+            "${hw_min_us}" "${hw_max_us}" "${hw_avg_fps}" "${hw_max_fps}" "${hw_min_fps}"
+        log "hw: avg ${hw_avg_fps} fps (max ${hw_max_fps}, min ${hw_min_fps})"
+    else
+        hw_rows+=("${spec}"$'\t'"${name}"$'\t'"--"$'\t'"--"$'\t'"--"$'\t'"--"$'\t'\
+"--"$'\t'"--"$'\t'"--"$'\t'"${rsl}"$'\t'"${br}"$'\t'"${note:-no hw sample}")
+        csv_append "${hw_csv}" "${spec}" "${name}" "--" "--" "--" "--" "--" "--" "--"
+        log_warn "hw: no sample${note:+ (${note})}"
+    fi
+}
+
+# 硬件统计: 后台流式抓取 /dev/kmsg
+# dmesg 只有 16KB 环形缓冲, 片源触发 iommu/dma-buf 报错时会打印大量
+# mpp_task_dump_mem_region, 把每任务的 time: 行全部冲掉; 直接读 /dev/kmsg
+# 写文件不受环形缓冲容量限制, 不会丢样本.
+function hw_cap_start()
+{
+    hw_cap_pid=""
+    hw_err_cnt=0
+    hw_cap_t0=0
+    [ "${cmd_hw_stat}" = "1" ] || return 0
+    hw_cap_file="${cmd_out_dir}/${g_idx}_${name}.kmsg"
+    : >"${hw_cap_file}" 2>/dev/null
+    _adev_need || return 0
+    # /dev/kmsg 会先吐出环形缓冲里的历史记录, 记下起始 uptime 供解析时过滤
+    hw_cap_t0=$(adev_shell "cat /proc/uptime" 2>/dev/null \
+        | awk '{printf "%d", $1 * 1000000}')
+    case "${hw_cap_t0}" in
+        ''|*[!0-9]*) hw_cap_t0=0 ;;
+    esac
+    ${adev_adb} shell cat /dev/kmsg >"${hw_cap_file}" 2>/dev/null &
+    hw_cap_pid=$!
+}
+
+# 停止抓取; 先等一小会儿再 kill, 避免丢掉 adb 通道里还没落盘的尾部数据
+function hw_cap_stop()
+{
+    [ -n "${hw_cap_pid}" ] || return 0
+    sleep 0.3
+    kill "${hw_cap_pid}" 2>/dev/null
+    wait "${hw_cap_pid}" 2>/dev/null
+    hw_cap_pid=""
 }
 
 # 恢复 mpp_dev_debug 原始值
@@ -408,6 +476,8 @@ function fail_stream()
     # 解码失败也尽量填分辨率/码率: 本地文件可直接探测
     [ -f "$2" ] && probe_stream "$2"
     _record "$1" "$2" "FAIL" "$3"
+    # 硬件表同样保留该片源, 用 -- 表示没有数据
+    hw_record_row "$1" "$(basename "$2")" "decode failed"
     return 1
 }
 
@@ -417,7 +487,7 @@ function perf_one()
 {
     local spec="$1" src="$2"
     local name ctype ret dev_in dec_log dec_logcat shell_cmd is_local=1
-    local sz avail msg mem_avail note dec_envs
+    local sz avail msg mem_avail note dec_envs hw_note
 
     g_idx=$(( g_idx + 1 ))
     name=$(basename "${src}")
@@ -426,6 +496,9 @@ function perf_one()
 
     # 每个片源重置, 失败时也可能探测出分辨率/码率
     g_rsl="-"; g_br="N/A"
+    hw_cnt=0; hw_avg_us=0; hw_min_us=0; hw_max_us=0
+    hw_avg_fps="-"; hw_max_fps="-"; hw_min_fps="-"
+    hw_err_cnt=0; hw_note=""
 
     ctype=$(mpp_codec_token "${spec}")
     [ -n "${ctype}" ] || { fail_stream "${spec}" "${src}" "invalid codec type"; return 1; }
@@ -488,19 +561,47 @@ function perf_one()
 
         [ "${cmd_hw_stat}" = "1" ] && adev_shell "dmesg -c >/dev/null 2>&1" >/dev/null 2>&1
 
+        hw_cap_start
         log_dbg "device decode: ${shell_cmd}"
         adev_run_capture_named "${shell_cmd}" "${cmd_out_dir}" "${g_idx}_${name}.perf"
         ret=$adev_ret
+        hw_cap_stop
 
         if [ "${cmd_hw_stat}" = "1" ]; then
             adev_shell "dmesg" > "${cmd_out_dir}/${g_idx}_${name}.dmesg" 2>/dev/null
-            hw_parse_dmesg "${cmd_out_dir}/${g_idx}_${name}.dmesg"
+            # 优先用 kmsg 全量抓取; 没有样本时回退到 dmesg (兼容无 /dev/kmsg 权限)
+            if grep -q 'time:' "${hw_cap_file}" 2>/dev/null; then
+                hw_parse_dmesg "${hw_cap_file}" "${hw_cap_t0}"
+            else
+                hw_parse_dmesg "${cmd_out_dir}/${g_idx}_${name}.dmesg"
+            fi
+            hw_err_cnt=$(grep -c -E 'iommu fault|mpp_task_dump_mem_region|dma_buf_map_attachment|alloc_task failed' \
+                "${hw_cap_file}" 2>/dev/null)
+            if [ "${hw_err_cnt:-0}" -gt 0 ] 2>/dev/null; then
+                log_warn "kernel error during decode (${hw_err_cnt} lines, see ${hw_cap_file})"
+            fi
+            if [ "${hw_cnt:-0}" -le 0 ] 2>/dev/null; then
+                if [ "${hw_err_cnt:-0}" -gt 0 ] 2>/dev/null; then
+                    hw_note="kernel error ${hw_err_cnt} lines"
+                else
+                    hw_note="no hw sample"
+                fi
+            fi
         fi
 
         # stdout 与 logcat 都看, 兼容 Linux/Android 两套日志去向
         mpp_fps_parse "${dec_log}" "${dec_logcat}"
         g_max=$mpp_max; g_min=$mpp_min; g_avg=$mpp_avg
         g_frames=$mpp_frames; g_time=$mpp_time
+
+        # 只有一半以下的任务拿到 hw 计时, 通常是解码过程中报错
+        if [ "${cmd_hw_stat}" = "1" ] && [ "${hw_cnt:-0}" -gt 0 ] 2>/dev/null \
+                && [ "${g_frames}" -gt 0 ] 2>/dev/null \
+                && [ "${hw_cnt}" -lt $(( g_frames / 2 )) ] 2>/dev/null; then
+            hw_note="partial ${hw_cnt}/${g_frames}"
+            log_warn "hw: partial sample ${hw_cnt}/${g_frames} frames," \
+                "avg fps unreliable"
+        fi
 
         # 片源太短 (<1s) 时没有每秒采样, 用 -n 3000 循环解码一次补齐 max/min
         case " ${cmd_extra_args} " in *" -n "*) break ;; esac
@@ -552,11 +653,8 @@ function perf_one()
     [ "${looped}" = "1" ] && note="looped -n ${run_frames}"
     _record "${spec}" "${src}" "PASS" "${note}"
 
-    if [ "${cmd_hw_stat}" = "1" ] && [ "${hw_cnt}" -gt 0 ] 2>/dev/null; then
-        hw_rows+=("${spec}"$'\t'"${name}"$'\t'"${hw_cnt}"$'\t'"${hw_avg_us}"$'\t'"${hw_min_us}"$'\t'"${hw_max_us}"$'\t'"${hw_avg_fps}"$'\t'"${hw_max_fps}"$'\t'"${hw_min_fps}"$'\t'"${g_rsl:--}"$'\t'"${g_br:-N/A}")
-        csv_append "${hw_csv}" "${spec}" "${name}" "${hw_cnt}" "${hw_avg_us}" \
-            "${hw_min_us}" "${hw_max_us}" "${hw_avg_fps}" "${hw_max_fps}" "${hw_min_fps}"
-        log "hw: avg ${hw_avg_fps} fps (max ${hw_max_fps}, min ${hw_min_fps})"
+    if [ "${cmd_hw_stat}" = "1" ]; then
+        hw_record_row "${spec}" "${name}" "${hw_note}"
     fi
     log "result: avg ${g_avg} fps, max ${g_max}, min ${g_min}" \
         "(frames ${g_frames}, time ${g_time} ms)"
@@ -622,7 +720,8 @@ function main()
     # 清理历史产物, 只保留本次结果
     rm -f "${cmd_out_dir}"/rk_dec_perf_*.log "${cmd_out_dir}"/perf_result.csv \
           "${cmd_out_dir}"/hw_result.csv "${cmd_out_dir}"/*.perf.log \
-          "${cmd_out_dir}"/*.perf.logcat "${cmd_out_dir}"/*.dmesg 2>/dev/null
+          "${cmd_out_dir}"/*.perf.logcat "${cmd_out_dir}"/*.dmesg \
+          "${cmd_out_dir}"/*.kmsg 2>/dev/null
 
     ts=$(date +%Y%m%d_%H%M%S)
     log_setup "${cmd_out_dir}/rk_dec_perf_${ts}.log" "${cmd_quiet}" "${cmd_verbose}"
@@ -698,16 +797,18 @@ function main()
 
     if [ "${#hw_rows[@]}" -gt 0 ]; then
         local -a hargs=()
-        local hr h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
+        local hr h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 hmm
 
         log_summary ""
         log_summary "==== hardware decode stats (kernel mpp_dev_debug) ===="
-        hargs=("spec|hw max/min fps|hw avg fps|分辨率|码率|片源名字")
+        hargs=("spec|hw max/min fps|hw avg fps|分辨率|码率|片源名字|备注")
         for hr in "${hw_rows[@]}"; do
-            IFS=$'\t' read -r h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 <<< "${hr}"
-            hargs+=("${h0}|${h7}/${h8}|${h6}|${h9:--}|${h10:-N/A}|${h1}")
+            IFS=$'\t' read -r h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 <<< "${hr}"
+            # 无样本时整列都用 --, 不显示 "--/--"
+            if [ "${h6}" = "--" ]; then hmm="--"; else hmm="${h7}/${h8}"; fi
+            hargs+=("${h0}|${hmm}|${h6}|${h9:--}|${h10:-N/A}|${h1}|${h11}")
         done
-        log_table -t summary -c cyan -C cyan -a "l,r,r,l,r,l" "${hargs[@]}"
+        log_table -t summary -c cyan -C cyan -a "l,r,r,l,r,l,l" "${hargs[@]}"
     fi
     [ "${est_seen}" = "1" ] && log_summary \
         "注: ~ 为估算码率 (裸流无码率元数据, 按 文件大小*帧率/帧数 计算)"
