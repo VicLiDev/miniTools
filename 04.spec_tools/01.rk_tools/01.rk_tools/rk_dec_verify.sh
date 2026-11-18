@@ -130,6 +130,7 @@ function usage()
     echo "  -o <dir>            local output dir (default: rk_dec_verify_out)"
     echo "  --producer <id>     decoder backend that produces yuv/slt," \
          "default mpi_dec_test"
+    echo "  --dev-dir <dir>     device work dir (default: /data/tmp/rk_verify)"
     echo "  -k                  keep stream and decoded yuv on device"
     echo "  --save              keep local soft-decoded yuv"
     echo "  -v                  verbose output"
@@ -174,6 +175,7 @@ function parse_args()
             --soc)           want_val "$@"; cmd_adb_sel_paras="--soc $2"; shift 2 ;;
             -o|--outdir)     want_val "$@"; cmd_out_dir="$2"; shift 2 ;;
             --producer)      want_val "$@"; cmd_producer="$2"; shift 2 ;;
+            --dev-dir)       want_val "$@"; dev_work_dir="$2"; shift 2 ;;
             -k|--keep)       cmd_keep_dev="1"; shift ;;
             --save)          cmd_save_local="1"; shift ;;
             -v|--verbose)    cmd_verbose="1"; shift ;;
@@ -215,6 +217,25 @@ function parse_args()
     # 超时必须为非负整数 (作为设备端 timeout 参数)
     case "${cmd_timeout_sec}" in
         ''|*[!0-9]*) echo "Error: invalid timeout: ${cmd_timeout_sec}"; exit 1 ;;
+    esac
+
+    # 设备工作目录: cleanup 会 rm -rf 整个目录, 必须是专用的多级子目录
+    dev_work_dir="${dev_work_dir%/}"
+    case "${dev_work_dir}" in
+        ""|/|*[!A-Za-z0-9/._-]*)
+            echo "Error: invalid dev dir: ${dev_work_dir}"; exit 1 ;;
+        /*) : ;;
+        *)
+            echo "Error: dev dir must be absolute: ${dev_work_dir}"; exit 1 ;;
+    esac
+    case "/${dev_work_dir}/" in
+        */../*) echo "Error: invalid dev dir: ${dev_work_dir}"; exit 1 ;;
+    esac
+    case "${dev_work_dir#/}" in
+        */*) : ;;
+        *)
+            echo "Error: dev dir must be a sub directory: ${dev_work_dir}"
+            exit 1 ;;
     esac
 }
 
@@ -773,14 +794,14 @@ function check_dev_space()
 
     need_kb=$(( (strm_size + est_yuv) / 1024 + 1024 ))
     # adev_free_kb 已校验数字, 失败时返回非 0 且不输出
-    if ! avail_kb=$(adev_free_kb "/data"); then
-        log_warn "cannot get free space of device /data, skip space check"
+    if ! avail_kb=$(adev_free_kb "${dev_work_dir}"); then
+        log_warn "cannot get free space of ${dev_work_dir}, skip space check"
         return 0
     fi
     if [ "${avail_kb}" -lt "${need_kb}" ]; then
         need_mb=$((need_kb / 1024))
         avail_mb=$((avail_kb / 1024))
-        log_fail "insufficient space on device /data:" \
+        log_fail "insufficient space on device ${dev_work_dir}:" \
             "need ~${need_mb} MB, have ${avail_mb} MB"
         return 1
     fi
