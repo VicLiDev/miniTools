@@ -11,6 +11,7 @@
 cmd_sel_plt=""
 cmd_install="true"
 cmd_ins_dev=""
+cmd_use_def="false"
 
 sel_tag_mpp="rk_mpp_b: "
 sel_tag_mpp_ko="rk_mpp_ko_b: "
@@ -417,7 +418,8 @@ function push_ko_to_device()
 #                   如 riscv64-unknown-linux-musl-
 function query_ker_env()
 {
-    select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
+    select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir" "" \
+        "${cmd_use_def}"
 
     local info_list
     info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
@@ -591,67 +593,81 @@ function build_ko_develop2()
 
 function usage()
 {
-    echo "usage: $0 [-p|--plt 0...n] [-i|--install \"true\"|\"false\"] [-d|--dev install_dev_idx]"
+    local i
+    cat <<EOF
+Usage: rkBuildMpp.sh [options]
+
+  -p|--plt <index>     Build the target of the given index instead of
+                       asking interactively (see the list below)
+  -i|--install <bool>  Push the build result to the device after building
+                       (true|false, default: true)
+  -d|--dev <index>     Device index used by the push/insmod steps
+                       (default: the one chosen by adbs)
+  -y|--yes             Accept the cached/default choice of interactive
+                       prompts instead of asking
+  -h|--help            Show this help
+
+Build targets:
+EOF
+    for i in "${!plt_lst[@]}"; do
+        printf '  %2d  %s\n' "${i}" "${plt_lst[${i}]}"
+    done
 }
 
-function proc_paras()
+function parse_args()
 {
-    # 双中括号提供了针对字符串比较的高级特性，使用双中括号 [[ ]] 进行字符串比较时，
-    # 可以把右边的项看做一个模式，故而可以在 [[ ]] 中使用正则表达式：
-    # if [[ hello == hell* ]]; then
-    #
-    # 位置参数可以用shift命令左移。比如shift 3表示原来的$4现在变成$1，原来的$5现在变成
-    # $2等等，原来的$1、$2、$3丢弃，$0不移动。不带参数的shift命令相当于shift 1。
-
-    # proc cmd paras
-    while [[ $# -gt 0 ]]; do
-        key="$1"
-        case ${key} in
-            -h|--help)
-                usage
-                exit 0
-                ;;
-            -p|--plt)
-                cmd_sel_plt="$2"
-                shift # move to next para
-                ;;
-            -i|--install)
-                cmd_install="$2"
-                shift # move to next para
-                ;;
-            -d|--dev)
-                cmd_ins_dev="$2"
-                shift # move to next para
-                ;;
+    # 带值的选项解析完自身再 shift 一次跳过它的值, 循环末尾统一 shift
+    while [[ ${#} -gt 0 ]]; do
+        case "${1}" in
+            -p|--plt)       cmd_sel_plt="${2}"; shift ;;
+            -i|--install)   cmd_install="${2}"; shift ;;
+            -d|--dev)       cmd_ins_dev="${2}"; shift ;;
+            -y|--yes)       cmd_use_def="true" ;;
+            -h|--help)      usage; exit 0 ;;
             *)
-                # unknow para
-                echo "unknow para: ${key}"
+                echo "Unknown option: ${1}"
                 usage
                 exit 1
                 ;;
         esac
-        shift # move to next para
+        shift
     done
+
+    # 平台索引: 只允许数字, 且不能超出 plt_lst 的范围
+    if [ -n "${cmd_sel_plt}" ]; then
+        if [[ -n "${cmd_sel_plt//[0-9]/}" ]] \
+            || [ "${cmd_sel_plt}" -ge "${#plt_lst[@]}" ]; then
+            echo "Invalid platform index: ${cmd_sel_plt} (0-$(( ${#plt_lst[@]} - 1 )))"
+            exit 1
+        fi
+    fi
+
+    # 是否推送: 只允许 true/false
+    if [ "${cmd_install}" != "true" ] && [ "${cmd_install}" != "false" ]; then
+        echo "Invalid install flag: ${cmd_install} (true|false)"
+        exit 1
+    fi
 
     # print result
     echo "======> cmd paras <======"
     echo "cmd_sel_plt : ${cmd_sel_plt}"
     echo "cmd_install : ${cmd_install}"
     echo "cmd_ins_dev : ${cmd_ins_dev}"
+    echo "cmd_no_ask  : ${cmd_use_def}"
     echo
 }
 
 
 function main()
 {
+    parse_args "$@"
+
     cur_br=`git branch --show-current`
     echo "cur branch: $cur_br"
     source ${HOME}/bin/_select_node.sh
 
-    proc_paras $@
-
     if [ -z "${cmd_sel_plt}" ]; then
-        select_node "${sel_tag_mpp}" "plt_lst" "m_sel" "platform"
+        select_node "${sel_tag_mpp}" "plt_lst" "m_sel" "platform" "" "${cmd_use_def}"
     else
         m_sel="${plt_lst[${cmd_sel_plt}]}"
     fi
@@ -659,6 +675,6 @@ function main()
 }
 
 
-main $@
+main "$@"
 
 # set +e
