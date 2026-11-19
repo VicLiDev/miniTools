@@ -74,6 +74,42 @@ demo_lst=(
     mpp/base/test
     )
 
+# ko 产物列表: 核心模块加载, 测试模块只推送不加载
+# 当前是单 ko 构建, osal/sys/mpp_service 的源文件都并进 kmpp.ko;
+# 本地不存在的 ko 会被跳过
+mkf_core_ko_lst=(
+    ./kmpp.ko
+    )
+
+mkf_test_ko_lst=(
+    ./kmpp_test.ko
+    ./kmpp_cfg_test.ko
+    ./osal_test.ko
+    ./kmpi_vdec_test.ko
+    ./kmpi_venc_test.ko
+    ./kmpi_venc_cfg_test.ko
+    ./kmpi_vsp_test.ko
+    )
+
+cmk_core_ko_lst=(
+    ./build/kmpp.ko
+    )
+
+cmk_test_ko_lst=(
+    ./test/kmpp_test/build/kmpp_test.ko
+    ./test/kmpp_cfg_test/build/kmpp_cfg_test.ko
+    ./test/osal_test/build/osal_test.ko
+    ./test/kmpi_vdec_test/build/kmpi_vdec_test.ko
+    ./test/kmpi_venc_test/build/kmpi_venc_test.ko
+    ./test/kmpi_venc_cfg_test/build/kmpi_venc_cfg_test.ko
+    ./test/kmpi_vsp_test/build/kmpi_vsp_test.ko
+    ./test/sym_test/sym_test/build/sym_test.ko
+    ./test/sym_test/sym1/build/sym1.ko
+    ./test/sym_test/sym2/build/sym2.ko
+    ./test/sym_test/sym3/build/sym3.ko
+    ./test/sym_test/sym4/build/sym4.ko
+    )
+
 function push_bins_to_device()
 {
     adbCmd="${1}"
@@ -276,7 +312,7 @@ function build_lib_linux_x86_64()
 function rmmod_ko()
 {
     ko_mod_name="${1}"
-    if [ -n "`${adbCmd} shell lsmod | grep ${ko_mod_name}`" ]; then
+    if [ -n "`${adbCmd} shell lsmod | grep -E \"^${ko_mod_name} \"`" ]; then
         echo "rmmod old ${ko_mod_name}.ko"
         ${adbCmd} shell rmmod ${ko_mod_name}.ko
     fi
@@ -290,11 +326,56 @@ function insmod_ko()
     ${adbCmd} shell insmod ${ko_mod_dir}/${ko_mod_name}.ko
 }
 
+# 推送一组 ko 到设备的同一个目录, 本地不存在的 ko 跳过
+#   lst_name  列表名, 如 mkf_core_ko_lst、cmk_test_ko_lst
+#   dst_dir   设备目录, 如 /data
+function push_ko_list()
+{
+    adbCmd="${1}"
+    lst_name="${2}"
+    dst_dir="${3}"
+    local -n req_lst="${lst_name}"
+    local cur_file
+
+    for cur_file in "${req_lst[@]}"; do
+        [ -f "${cur_file}" ] || continue
+        echo "==> push <${cur_file}> to device <${dst_dir}>"
+        ${adbCmd} push "${cur_file}" "${dst_dir}"
+    done
+}
+
+# 卸载一组 ko, 元素本身也允许只写模块名
+#   lst_name  列表名, 如 cmk_test_ko_lst
+function rmmod_ko_list()
+{
+    lst_name="${1}"
+    local -n mod_lst="${lst_name}"
+    local cur_file
+
+    for cur_file in "${mod_lst[@]}"; do
+        rmmod_ko "`basename "${cur_file}" .ko`"
+    done
+}
+
+# 按顺序加载一组 ko, 本地不存在的 ko 跳过(没编出来自然也推不上去)
+#   lst_name  列表名, 如 mkf_core_ko_lst
+#   dst_dir   设备目录, 如 /data
+function insmod_ko_list()
+{
+    lst_name="${1}"
+    dst_dir="${2}"
+    local -n req_lst="${lst_name}"
+    local cur_file
+
+    for cur_file in "${req_lst[@]}"; do
+        [ -f "${cur_file}" ] || continue
+        insmod_ko "`basename "${cur_file}" .ko`" "${dst_dir}"
+    done
+}
+
 function push_ko_to_device()
 {
     build_sys="${1}"
-    build_type="${2}"
-    arch="${3}"
 
     adbCmd=""
     [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
@@ -306,99 +387,29 @@ function push_ko_to_device()
         return
     fi
 
+    local core_lst_name test_lst_name
     if [ "${build_sys}" = "mkf" ]; then
-        # test
-        ${adbCmd} push ./kmpp_test.ko           /data
-        ${adbCmd} push ./kmpi_vsp_test.ko       /data
-        ${adbCmd} push ./kmpi_enc_chan_test.ko  /data
-        ${adbCmd} push ./kmpi_enc_test.ko       /data
-        ${adbCmd} push ./osal_test.ko           /data
-        ${adbCmd} push ./kmpp_enc_test.ko       /data
-        ${adbCmd} push ./stub_test.ko           /data
-        # ko
-        if [ "${build_type}" = "multi" ]; then
-            ${adbCmd} push ./kmpp_osal.ko /data
-            ${adbCmd} push ./kmpp_sys.ko  /data
-            ${adbCmd} push ./rk_vcodec.ko /data
-        fi
-        ${adbCmd} push ./kmpp.ko /data
+        core_lst_name="mkf_core_ko_lst"
+        test_lst_name="mkf_test_ko_lst"
     elif [ "${build_sys}" = "cmk" ]; then
-        # test
-        ${adbCmd} push ./test/kmpp_test/build/kmpp_test.ko                   /data
-        ${adbCmd} push ./test/kmpi_vsp_test/build/kmpi_vsp_test.ko           /data
-        ${adbCmd} push ./test/kmpi_enc_chan_test/build/kmpi_enc_chan_test.ko /data
-        ${adbCmd} push ./test/kmpi_enc_test/build/kmpi_enc_test.ko           /data
-        ${adbCmd} push ./test/osal_test/build/osal_test.ko                   /data
-        ${adbCmd} push ./test/kmpp_enc_test/build/kmpp_enc_test.ko           /data
-        ${adbCmd} push ./test/sym_test/sym_test/build/sym_test.ko            /data
-        ${adbCmd} push ./test/sym_test/sym1/build/sym1.ko                    /data
-        ${adbCmd} push ./test/sym_test/sym2/build/sym2.ko                    /data
-        ${adbCmd} push ./test/sym_test/sym3/build/sym3.ko                    /data
-        ${adbCmd} push ./test/sym_test/sym4/build/sym4.ko                    /data
-        # ko
-        if [ "${build_type}" = "multi" ]; then
-            ${adbCmd} push ./osal/build/osal.ko             /data
-            ${adbCmd} push ./sys/build/sys.ko               /data
-            ${adbCmd} push ./mpp_service/build/rk_vcodec.ko /data
-        fi
-        ${adbCmd} push ./build/kmpp.ko /data
+        core_lst_name="cmk_core_ko_lst"
+        test_lst_name="cmk_test_ko_lst"
     else
         echo "build sys have not set"
         return
     fi
 
-    # rmmod
-    # test
-    rmmod_ko stub_test
-    rmmod_ko sym_test
-    rmmod_ko sym1
-    rmmod_ko sym2
-    rmmod_ko sym3
-    rmmod_ko sym4
-    rmmod_ko kmpp_test
-    rmmod_ko kmpi_vsp_test
-    rmmod_ko kmpi_enc_chan_test
-    rmmod_ko kmpi_enc_test
-    rmmod_ko osal_test
-    rmmod_ko kmpp_enc_test
-    # mod
-    rmmod_ko kmpp
-    rmmod_ko rk_vcodec
-    rmmod_ko kmpp_sys
-    rmmod_ko kmpp_osal
-    rmmod_ko sys
-    rmmod_ko osal
+    # push: 核心模块和测试模块都推上去
+    echo "======> push ko to dev <======"
+    push_ko_list "${adbCmd}" "${test_lst_name}" /data
+    push_ko_list "${adbCmd}" "${core_lst_name}" /data
 
-    # insmod
-    # mod
-    if [ "${build_type}" = "multi" ]; then
-        if [ "${build_sys}" = "mkf" ]; then
-            insmod_ko kmpp_osal /data
-            insmod_ko kmpp_sys  /data
-            insmod_ko rk_vcodec /data
-        elif [ "${build_sys}" = "cmk" ]; then
-            insmod_ko osal      /data
-            insmod_ko sys       /data
-            insmod_ko rk_vcodec /data
-        fi
-    fi
-    insmod_ko kmpp /data
-    # test
-    # insmod_ko kmpp_test          /data
-    # insmod_ko kmpi_vsp_test      /data
-    # insmod_ko kmpi_enc_chan_test /data
-    # insmod_ko kmpi_enc_test      /data
-    # insmod_ko osal_test          /data
-    # insmod_ko kmpp_enc_test      /data
-    # if [ "${build_sys}" = "mkf" ]; then
-    #     insmod_ko stub_test  /data
-    # elif [ "${build_sys}" = "cmk" ]; then
-    #     insmod_ko sym_test /data
-    #     insmod_ko sym1     /data
-    #     insmod_ko sym2     /data
-    #     insmod_ko sym3     /data
-    #     insmod_ko sym4     /data
-    # fi
+    # rmmod: 先卸测试模块, 再卸核心模块
+    rmmod_ko_list "${test_lst_name}"
+    rmmod_ko_list "${core_lst_name}"
+
+    # insmod: 只加载核心模块, 测试模块需要时手动加载
+    insmod_ko_list "${core_lst_name}" /data
 }
 
 # 查询内核构建环境: 交互选择内核目录, 再从 rkBuildKer.sh 的 --env 输出里
@@ -454,7 +465,7 @@ function build_ko_mkf()
 
         echo "======> push lib and demo to dev <======"
         # install
-        push_ko_to_device "mkf" "${mod_build_type}" "${m_arch}"
+        push_ko_to_device "mkf"
     else
         echo "======> build mpp failed! <======"
         return 1
@@ -510,7 +521,7 @@ function build_ko_cmk()
 
         echo "======> push lib and demo to dev <======"
         # install
-        push_ko_to_device "cmk" "${mod_build_type}" "${m_arch}"
+        push_ko_to_device "cmk"
     else
         echo "======> build mpp failed! <======"
         return 1
