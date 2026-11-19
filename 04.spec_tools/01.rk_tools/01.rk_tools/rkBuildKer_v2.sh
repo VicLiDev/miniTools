@@ -21,6 +21,7 @@ arg_mod="false"
 arg_kernel="false"
 arg_dry="false"
 arg_jobs=""
+arg_use_def="false"
 
 # 平台 ini 目录固定为 ~/bin/rk_ker_bd_ini
 ini_dir="${HOME}/bin/rk_ker_bd_ini"
@@ -78,6 +79,8 @@ Usage: rkBuildKer_v2.sh [options]
   --list              List all available platforms and exit
   --dry               Only print commands, do not execute
   --jobs <n>          Parallelism (default: nproc+1)
+  -y|--yes            Accept the cached/default choice of interactive
+                      prompts instead of asking
   -h|--help           Show this help
 EOF
 }
@@ -94,6 +97,7 @@ function parse_args()
             --kernel)   arg_kernel="true" ;;
             --dry)      arg_dry="true" ;;
             --jobs)     arg_jobs="${2}"; shift ;;
+            -y|--yes)   arg_use_def="true" ;;
             -h|--help)  usage; exit 0 ;;
             *) echo "Unknown option: ${1}"; usage; exit 1 ;;
         esac
@@ -327,7 +331,7 @@ function select_platform()
     else
         source "${HOME}/bin/_select_node.sh"
         local sel_name=""
-        select_node "rk_kernel_b: " "plt_names" "sel_name" "platform"
+        select_node "rk_kernel_b: " "plt_names" "sel_name" "platform" "" "${arg_use_def}"
         for i in "${!plt_names[@]}"; do
             [ "${plt_names[${i}]}" = "${sel_name}" ] && tgt_ini="${plt_files[${i}]}"
         done
@@ -456,7 +460,7 @@ function resolve_build_mode()
         if ! declare -F select_node >/dev/null 2>&1; then
             source "${HOME}/bin/_select_node.sh"
         fi
-        select_node "rk_kernel_b_m: " "build_mode_list" "mode" "build method"
+        select_node "rk_kernel_b_m: " "build_mode_list" "mode" "build method" "" "${arg_use_def}"
     else
         mode="build_kernel"
     fi
