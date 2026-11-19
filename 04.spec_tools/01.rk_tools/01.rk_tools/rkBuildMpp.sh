@@ -57,9 +57,9 @@ linux_toolchain_dir="${HOME}/Projects/prebuilts"
 
 function push_bins_to_device()
 {
-    adbCmd="$1"
-    file_dir="$2"
-    device_dir="$3"
+    adbCmd="${1}"
+    file_dir="${2}"
+    device_dir="${3}"
 
     ${adbCmd} shell "ls -d ${device_dir} > /dev/null 2>&1"
     [ "$?" -ne "0" ] && { echo "Error: device dir not exist: ${device_dir}"; return; }
@@ -287,7 +287,7 @@ function build_lib_linux_x86_64()
 
 function rmmod_ko()
 {
-    ko_mod_name="$1"
+    ko_mod_name="${1}"
     if [ -n "`${adbCmd} shell lsmod | grep ${ko_mod_name}`" ]; then
         echo "rmmod old ${ko_mod_name}.ko"
         ${adbCmd} shell rmmod ${ko_mod_name}.ko
@@ -296,17 +296,17 @@ function rmmod_ko()
 
 function insmod_ko()
 {
-    ko_mod_name="$1"
-    ko_mod_dir="$2"
+    ko_mod_name="${1}"
+    ko_mod_dir="${2}"
     echo "insmod ${ko_mod_name}.ko"
     ${adbCmd} shell insmod ${ko_mod_dir}/${ko_mod_name}.ko
 }
 
 function push_ko_to_device()
 {
-    build_sys="$1"
-    build_type="$2"
-    arch="$3"
+    build_sys="${1}"
+    build_type="${2}"
+    arch="${3}"
 
     adbCmd=""
     [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
@@ -439,8 +439,8 @@ function build_ko_mkf()
     echo "======> selected ${m_sel} <======"
     query_ker_env
 
-    m_arch="$1"
-    mod_build_type="$2"
+    m_arch="${1}"
+    mod_build_type="${2}"
     enable_one_ko="y"
 
     [ ${mod_build_type} = "one" ] && enable_one_ko="y"
@@ -498,8 +498,8 @@ function build_ko_cmk()
     echo "======> selected ${m_sel} <======"
     query_ker_env
 
-    m_arch="$1"
-    mod_build_type="$2"
+    m_arch="${1}"
+    mod_build_type="${2}"
     build_wk_dir=""
 
     echo "toolchains:  ${ker_toolchains}"
@@ -664,7 +664,7 @@ function parse_args()
 
 function main()
 {
-    parse_args "$@"
+    parse_args "${@}"
 
     cur_br=`git branch --show-current`
     echo "cur branch: $cur_br"
