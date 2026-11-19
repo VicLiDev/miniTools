@@ -130,7 +130,7 @@ function ini_read()
     fi
 }
 
-# ini_patches <file> -> 按数值键序打印 "键<TAB>sed表达式"
+# ini_patches <file> -> 按数值键序打印 "键<TAB>补丁表达式"
 function ini_patches()
 {
     [ -f "${1}" ] || return 0
@@ -233,13 +233,31 @@ function run()
     "${@}"
 }
 
+# 应用 [config_patch]:
+#   CONFIG_FOO=y|m|n   声明式: 先删掉该符号的旧行, 再追加一行(推荐)
+#                      不依赖 .config 当前内容(有没有这一行、是不是 is not set 都行),
+#                      这正是 sed 替换做不到的: 行不存在时 sed 会静默失效.
+#   其他               当作 sed 表达式执行, 兼容旧 ini
 function apply_config_patch()
 {
-    local idx expr patched
+    local idx expr sym
     while IFS=$'\t' read -r idx expr; do
         [ -z "${expr}" ] && continue
         echo "config_patch[${idx}]: ${expr}"
-        sed -i "${expr}" .config
+        case "${expr}" in
+        CONFIG_[A-Za-z0-9_]*=[ymn])
+            sym="${expr%%=*}"
+            sed -i "/^# ${sym} is not set\$/d;/^${sym}=/d" .config
+            if [ "${expr##*=}" = "n" ]; then
+                echo "# ${sym} is not set" >> .config
+            else
+                echo "${expr}" >> .config
+            fi
+            ;;
+        *)
+            sed -i "${expr}" .config
+            ;;
+        esac
     done < <(ini_patches "${tgt_ini}")
 }
 
