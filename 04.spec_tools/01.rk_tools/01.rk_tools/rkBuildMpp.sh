@@ -17,21 +17,25 @@ sel_tag_mpp="rk_mpp_b: "
 sel_tag_mpp_ko="rk_mpp_ko_b: "
 
 plt_lst=(
+    # branch: develp
     "lib_android_32"
     "lib_android_64"
     "lib_linux_32"
     "lib_linux_64"
     "lib_linux_riscv64"
     "lib_linux_x86_64"
-    "ko_kmpp_develop_mkf_arm32_one_ko"
-    "ko_kmpp_develop_mkf_arm32_multi_ko"
-    "ko_kmpp_develop_mkf_arm64_one_ko"
-    "ko_kmpp_develop_mkf_arm64_multi_ko"
-    "ko_kmpp_develop_cmk_arm32_one_ko"
-    "ko_kmpp_develop_cmk_arm32_multi_ko"
-    "ko_kmpp_develop_cmk_arm64_one_ko"
-    "ko_kmpp_develop_cmk_arm64_multi_ko"
+    # branch: kmpp_develop
+    "ko_mkf_arm32_one_ko"
+    "ko_mkf_arm32_multi_ko"
+    "ko_mkf_arm64_one_ko"
+    "ko_mkf_arm64_multi_ko"
+    "ko_cmk_arm32_one_ko"
+    "ko_cmk_arm32_multi_ko"
+    "ko_cmk_arm64_one_ko"
+    "ko_cmk_arm64_multi_ko"
+    # branch: kmpp
     "ko_kmpp"
+    # branch: devlop2
     "ko_develop2"
     )
 
@@ -430,7 +434,7 @@ function query_ker_env()
         | grep gcc$ | sed 's/gcc$//g')"
 }
 
-function build_ko_kmpp_develop_mkf()
+function build_ko_mkf()
 {
     echo "======> selected ${m_sel} <======"
     query_ker_env
@@ -469,27 +473,27 @@ function build_ko_kmpp_develop_mkf()
     fi
 }
 
-function build_ko_kmpp_develop_mkf_arm32_one_ko()
+function build_ko_mkf_arm32_one_ko()
 {
-    build_ko_kmpp_develop_mkf "arm" "one"
+    build_ko_mkf "arm" "one"
 }
 
-function build_ko_kmpp_develop_mkf_arm32_multi_ko()
+function build_ko_mkf_arm32_multi_ko()
 {
-    build_ko_kmpp_develop_mkf "arm" "multi"
+    build_ko_mkf "arm" "multi"
 }
 
-function build_ko_kmpp_develop_mkf_arm64_one_ko()
+function build_ko_mkf_arm64_one_ko()
 {
-    build_ko_kmpp_develop_mkf "arm64" "one"
+    build_ko_mkf "arm64" "one"
 }
 
-function build_ko_kmpp_develop_mkf_arm64_multi_ko()
+function build_ko_mkf_arm64_multi_ko()
 {
-    build_ko_kmpp_develop_mkf "arm64" "multi"
+    build_ko_mkf "arm64" "multi"
 }
 
-function build_ko_kmpp_develop_cmk()
+function build_ko_cmk()
 {
     echo "======> selected ${m_sel} <======"
     query_ker_env
@@ -525,24 +529,24 @@ function build_ko_kmpp_develop_cmk()
     fi
 }
 
-function build_ko_kmpp_develop_cmk_arm32_one_ko()
+function build_ko_cmk_arm32_one_ko()
 {
-    build_ko_kmpp_develop_cmk "arm" "one"
+    build_ko_cmk "arm" "one"
 }
 
-function build_ko_kmpp_develop_cmk_arm32_multi_ko()
+function build_ko_cmk_arm32_multi_ko()
 {
-    build_ko_kmpp_develop_cmk "arm" "multi"
+    build_ko_cmk "arm" "multi"
 }
 
-function build_ko_kmpp_develop_cmk_arm64_one_ko()
+function build_ko_cmk_arm64_one_ko()
 {
-    build_ko_kmpp_develop_cmk "arm64" "one"
+    build_ko_cmk "arm64" "one"
 }
 
-function build_ko_kmpp_develop_cmk_arm64_multi_ko()
+function build_ko_cmk_arm64_multi_ko()
 {
-    build_ko_kmpp_develop_cmk "arm64" "multi"
+    build_ko_cmk "arm64" "multi"
 }
 
 # 5.10 1106_linux
