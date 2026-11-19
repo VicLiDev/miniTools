@@ -409,7 +409,7 @@ function build_ko_kmpp_develop_mkf()
     echo "======> selected ${m_sel} <======"
     select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
 
-    info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env \
+    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
         | grep -E "toolchains|m_make"`
     toolchains="`echo -e ${info_list} | awk '{print $2}'`"
     make_cmd=${info_list#*m_make: }
@@ -473,7 +473,7 @@ function build_ko_kmpp_develop_cmk()
     echo "======> selected ${m_sel} <======"
     select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
 
-    info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env \
+    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
         | grep -E "toolchains|m_make"`
     toolchains="`echo -e ${info_list} | awk '{print $2}'`"
     make_cmd=${info_list#*m_make: }
@@ -534,7 +534,7 @@ function build_ko_kmpp()
     echo "======> selected ${m_sel} <======"
     select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
 
-    info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env \
+    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
         | grep -E "toolchains|m_make"`
     toolchains="`echo -e ${info_list} | awk '{print $2}'`"
     make_cmd=${info_list#*m_make: }
@@ -561,7 +561,7 @@ function build_ko_develop2()
     echo "======> selected ${m_sel} <======"
     select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
 
-    info_list=`echo -e "\n\n" | bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env \
+    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
         | grep -E "toolchains|m_make"`
     toolchains="`echo -e ${info_list} | awk '{print $2}'`"
     make_cmd=${info_list#*m_make: }
