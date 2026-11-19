@@ -16,7 +16,8 @@
 #        source ${HOME}/bin/select_node.sh
 #        or after run init_tools.sh
 #        source ${HOME}/bin/_select_node.sh
-#     2. select_node "<cache tag>" "<select list>" "<select result>" "<select tip>" ["<header>"]
+#     2. select_node "<cache tag>" "<select list>" "<select result>" "<select tip>" \
+#                    ["<header>"] ["<use_def>"]
 #
 # basename命令用于从文件名中剥离路径信息，只留下基本名称。
 # basename NAME [SUFFIX]
@@ -101,11 +102,28 @@ function select_node()
     local _res_name="$3"
     local _tip="$4"
     local _header="$5"      # 可选: 表头, 传给 _sn_display 显示在列表前
+    local _use_def="$6"     # 可选: "true" 时不交互, 直接用缓存/默认项
     local -n _lst_ref="${_lst_name}"
     local -n _sel_res="${_res_name}"
     local _def_idx _sel_idx
 
     _def_idx=$(_sn_rd_sel_cache "${_tag}" 0)
+
+    # use_def=true: 不打印列表、不读键盘, 直接返回默认项
+    if [ "${_use_def}" = "true" ]; then
+        _sel_idx="${_def_idx}"
+        # 缓存可能为空(缓存行没有值, 或 tag 为空)或来自旧版本的列表
+        # (已越界), 这两种情况都退回 0
+        if [ -z "${_sel_idx}" ] \
+            || [[ -n "${_sel_idx//[0-9]/}" ]] \
+            || [ "${_sel_idx}" -ge "${#_lst_ref[@]}" ]; then
+            _sn_log_err "invalid index ${_sel_idx} (scope 0-$(( ${#_lst_ref[@]} - 1 ))), use 0"
+            _sel_idx=0
+        fi
+        _sel_res=${_lst_ref[${_sel_idx}]}
+        _sn_log_ok "--> selected index:${_sel_idx}, ${_tip}:${_sel_res} (use default)"
+        return 0
+    fi
 
     _sn_display "${_lst_name}" "${_tip}" "${_header}"
 
