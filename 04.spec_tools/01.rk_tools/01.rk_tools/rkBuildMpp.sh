@@ -42,7 +42,11 @@ kdir_lst=(
     "${HOME}/Projects/kernel3"
     )
 
+# 内核构建环境, 由 query_ker_env 填充
 m_sel_kdir=""
+ker_toolchains=""
+ker_make_cmd=""
+ker_cross_cmp=""
 
 linux_toolchain_dir="${HOME}/Projects/prebuilts"
 
@@ -404,16 +408,31 @@ function push_ko_to_device()
     # fi
 }
 
+# 查询内核构建环境: 交互选择内核目录, 再从 rkBuildKer.sh 的 --env 输出里
+# 取出工具链和 make 命令. 结果放到全局变量, 供各 build_ko_* 使用:
+#   m_sel_kdir      选中的内核目录
+#   ker_toolchains  工具链目录
+#   ker_make_cmd    make 命令(已带 ARCH/CROSS_COMPILE)
+#   ker_cross_cmp   从工具链目录里的 gcc 反推出的交叉前缀,
+#                   如 riscv64-unknown-linux-musl-
+function query_ker_env()
+{
+    select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
+
+    local info_list
+    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
+        | grep -E "toolchains|m_make"`
+    ker_toolchains="`echo -e ${info_list} | awk '{print $2}'`"
+    ker_make_cmd=${info_list#*m_make: }
+    ker_cross_cmp="$(find ${ker_toolchains} -maxdepth 1 -type f \
+        | grep gcc$ | sed 's/gcc$//g')"
+}
+
 function build_ko_kmpp_develop_mkf()
 {
     echo "======> selected ${m_sel} <======"
-    select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
+    query_ker_env
 
-    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
-        | grep -E "toolchains|m_make"`
-    toolchains="`echo -e ${info_list} | awk '{print $2}'`"
-    make_cmd=${info_list#*m_make: }
-    cross_cmp="$(find ${toolchains} -maxdepth 1 -type f | grep gcc$ | sed 's/gcc$//g')"
     m_arch="$1"
     mod_build_type="$2"
     enable_one_ko="y"
@@ -421,10 +440,10 @@ function build_ko_kmpp_develop_mkf()
     [ ${mod_build_type} = "one" ] && enable_one_ko="y"
     [ ${mod_build_type} = "multi" ] && enable_one_ko="n"
 
-    echo "toolchains:  ${toolchains}"
-    echo "make_cmd:    ${make_cmd}"
+    echo "toolchains:  ${ker_toolchains}"
+    echo "make_cmd:    ${ker_make_cmd}"
     echo "kernel dir:  ${m_sel_kdir}"
-    echo "cross cmp:   ${cross_cmp}"
+    echo "cross cmp:   ${ker_cross_cmp}"
     echo "arch:        ${m_arch}"
     echo "module type: ${mod_build_type}"
 
@@ -432,7 +451,7 @@ function build_ko_kmpp_develop_mkf()
     cd `git rev-parse --show-toplevel`
     export BUILD_ONE_KO=${enable_one_ko}
     export KERNEL_DIR=${m_sel_kdir}
-    export CROSS_COMPILE=${cross_cmp}
+    export CROSS_COMPILE=${ker_cross_cmp}
     export ARCH=${m_arch}
     make all
 
@@ -471,18 +490,14 @@ function build_ko_kmpp_develop_mkf_arm64_multi_ko()
 function build_ko_kmpp_develop_cmk()
 {
     echo "======> selected ${m_sel} <======"
-    select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
+    query_ker_env
 
-    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
-        | grep -E "toolchains|m_make"`
-    toolchains="`echo -e ${info_list} | awk '{print $2}'`"
-    make_cmd=${info_list#*m_make: }
     m_arch="$1"
     mod_build_type="$2"
     build_wk_dir=""
 
-    echo "toolchains:  ${toolchains}"
-    echo "make_cmd:    ${make_cmd}"
+    echo "toolchains:  ${ker_toolchains}"
+    echo "make_cmd:    ${ker_make_cmd}"
     echo "kernel dir:  ${m_sel_kdir}"
     echo "arch:        ${m_arch}"
     echo "module type: ${mod_build_type}"
@@ -494,7 +509,7 @@ function build_ko_kmpp_develop_cmk()
     cd `git rev-parse --show-toplevel` \
         && cd ${build_wk_dir} \
         && ./make-Kbuild.sh --kernel ${m_sel_kdir} \
-            --toolchain ${toolchains}
+            --toolchain ${ker_toolchains}
 
     if [ $? -eq 0 ]; then
         [ "${cmd_install}" == "false" ] && return
@@ -532,19 +547,15 @@ function build_ko_kmpp_develop_cmk_arm64_multi_ko()
 function build_ko_kmpp()
 {
     echo "======> selected ${m_sel} <======"
-    select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
+    query_ker_env
 
-    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
-        | grep -E "toolchains|m_make"`
-    toolchains="`echo -e ${info_list} | awk '{print $2}'`"
-    make_cmd=${info_list#*m_make: }
-    echo "toolchains: ${toolchains}"
-    echo "make_cmd: ${make_cmd}"
+    echo "toolchains: ${ker_toolchains}"
+    echo "make_cmd: ${ker_make_cmd}"
 
     # build
-    kmpp_build_cmd="${make_cmd} ARCH=arm -C ${m_sel_kdir} M=`pwd` modules"
+    kmpp_build_cmd="${ker_make_cmd} ARCH=arm -C ${m_sel_kdir} M=`pwd` modules"
     echo "kmpp_build_cmd: ${kmpp_build_cmd}"
-    export PATH=${toolchains}:${PATH}
+    export PATH=${ker_toolchains}:${PATH}
     cd `git rev-parse --show-toplevel` \
         && ${kmpp_build_cmd}
 
@@ -559,20 +570,16 @@ function build_ko_kmpp()
 function build_ko_develop2()
 {
     echo "======> selected ${m_sel} <======"
-    select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir"
+    query_ker_env
 
-    info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
-        | grep -E "toolchains|m_make"`
-    toolchains="`echo -e ${info_list} | awk '{print $2}'`"
-    make_cmd=${info_list#*m_make: }
-    echo "toolchains: ${toolchains}"
-    echo "make_cmd: ${make_cmd}"
+    echo "toolchains: ${ker_toolchains}"
+    echo "make_cmd: ${ker_make_cmd}"
 
     # build
     cd `git rev-parse --show-toplevel` \
         && cd build/kmpp/aarch64 \
         && ./make-Kbuild.sh --kernel ${m_sel_kdir} \
-            --toolchain ${toolchains} --ndk ${toolchains}
+            --toolchain ${ker_toolchains} --ndk ${ker_toolchains}
 
     if [ $? -eq 0 ]; then
         echo "======> build mpp sucess! <======"
