@@ -479,25 +479,10 @@ function build_ko_mkf()
     fi
 }
 
-function build_ko_mkf_arm32_one_ko()
-{
-    build_ko_mkf "arm" "one"
-}
-
-function build_ko_mkf_arm32_multi_ko()
-{
-    build_ko_mkf "arm" "multi"
-}
-
-function build_ko_mkf_arm64_one_ko()
-{
-    build_ko_mkf "arm64" "one"
-}
-
-function build_ko_mkf_arm64_multi_ko()
-{
-    build_ko_mkf "arm64" "multi"
-}
+function build_ko_mkf_arm32_one_ko()   { build_ko_mkf "arm" "one"; }
+function build_ko_mkf_arm32_multi_ko() { build_ko_mkf "arm" "multi"; }
+function build_ko_mkf_arm64_one_ko()   { build_ko_mkf "arm64" "one"; }
+function build_ko_mkf_arm64_multi_ko() { build_ko_mkf "arm64" "multi"; }
 
 function build_ko_cmk()
 {
@@ -546,25 +531,10 @@ function build_ko_cmk()
     fi
 }
 
-function build_ko_cmk_arm32_one_ko()
-{
-    build_ko_cmk "arm" "one"
-}
-
-function build_ko_cmk_arm32_multi_ko()
-{
-    build_ko_cmk "arm" "multi"
-}
-
-function build_ko_cmk_arm64_one_ko()
-{
-    build_ko_cmk "arm64" "one"
-}
-
-function build_ko_cmk_arm64_multi_ko()
-{
-    build_ko_cmk "arm64" "multi"
-}
+function build_ko_cmk_arm32_one_ko()   { build_ko_cmk "arm" "one"; }
+function build_ko_cmk_arm32_multi_ko() { build_ko_cmk "arm" "multi"; }
+function build_ko_cmk_arm64_one_ko()   { build_ko_cmk "arm64" "one"; }
+function build_ko_cmk_arm64_multi_ko() { build_ko_cmk "arm64" "multi"; }
 
 # 5.10 1106_linux
 function build_ko_kmpp()
