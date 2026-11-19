@@ -314,7 +314,7 @@ function show_platform_list()
 {
     local i
     for i in "${!plt_names[@]}"; do
-        printf "%2d. %-20s (%s)\n" "${i}" "${plt_names[${i}]}" "$(basename "${plt_files[${i}]}")"
+        printf "%2d. %-22s (%s)\n" "${i}" "${plt_names[${i}]}" "$(basename "${plt_files[${i}]}")"
     done
 }
 
