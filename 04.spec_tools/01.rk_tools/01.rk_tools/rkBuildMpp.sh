@@ -49,6 +49,7 @@ kdir_lst=(
 
 # 内核构建环境, 由 query_ker_env 填充
 m_sel_kdir=""
+ker_arch=""
 ker_toolchains=""
 ker_make_cmd=""
 ker_cross_cmp=""
@@ -426,9 +427,11 @@ function query_ker_env()
 
     local info_list
     info_list=`bash ~/bin/rkBuildKer.sh --dir ${m_sel_kdir} --env -y \
-        | grep -E "toolchains|m_make"`
-    ker_toolchains="`echo -e ${info_list} | awk '{print $2}'`"
-    ker_make_cmd=${info_list#*m_make: }
+        | grep -E "arch:|toolchains|m_make"`
+    ker_arch="`echo "${info_list}" | sed -n 's/^arch:[[:space:]]*//p'`"
+    ker_toolchains="`echo "${info_list}" \
+        | sed -n 's/^toolchains:[[:space:]]*//p'`"
+    ker_make_cmd="`echo "${info_list}" | sed -n 's/^m_make:[[:space:]]*//p'`"
     ker_cross_cmp="$(find ${ker_toolchains} -maxdepth 1 -type f \
         | grep gcc$ | sed 's/gcc$//g')"
 }
@@ -449,15 +452,19 @@ function build_ko_mkf()
     echo "make_cmd:    ${ker_make_cmd}"
     echo "kernel dir:  ${m_sel_kdir}"
     echo "cross cmp:   ${ker_cross_cmp}"
-    echo "arch:        ${m_arch}"
+    echo "arch:        ${ker_arch}"
     echo "module type: ${mod_build_type}"
+    if [ "${m_arch}" != "${ker_arch}" ]; then
+        echo "warning: ${m_sel} is a ${m_arch} target, but the kernel is"
+        echo "         ${ker_arch}, build with ${ker_arch} instead"
+    fi
 
     # build
     cd `git rev-parse --show-toplevel`
     export BUILD_ONE_KO=${enable_one_ko}
     export KERNEL_DIR=${m_sel_kdir}
     export CROSS_COMPILE=${ker_cross_cmp}
-    export ARCH=${m_arch}
+    export ARCH=${ker_arch}
     make all
 
     if [ $? -eq 0 ]; then
@@ -504,12 +511,23 @@ function build_ko_cmk()
     echo "toolchains:  ${ker_toolchains}"
     echo "make_cmd:    ${ker_make_cmd}"
     echo "kernel dir:  ${m_sel_kdir}"
-    echo "arch:        ${m_arch}"
+    echo "arch:        ${ker_arch}"
     echo "module type: ${mod_build_type}"
+    if [ "${m_arch}" != "${ker_arch}" ]; then
+        echo "warning: ${m_sel} is a ${m_arch} target, but the kernel is"
+        echo "         ${ker_arch}, build with ${ker_arch} instead"
+    fi
 
-    # build
-    [ ${m_arch} = "arm" ]   && build_wk_dir="build/arm"
-    [ ${m_arch} = "arm64" ] && build_wk_dir="build/aarch64"
+    # build: 内核的 arch 名和构建目录名不同, 如 riscv 对应 build/riscv64
+    case "${ker_arch}" in
+        arm)    build_wk_dir="build/arm" ;;
+        arm64)  build_wk_dir="build/aarch64" ;;
+        riscv)  build_wk_dir="build/riscv64" ;;
+        *)
+            echo "no build dir for arch: ${ker_arch}"
+            return 1
+            ;;
+    esac
     export MODULE_TYPE=${mod_build_type}
     cd `git rev-parse --show-toplevel` \
         && cd ${build_wk_dir} \
@@ -556,9 +574,10 @@ function build_ko_kmpp()
 
     echo "toolchains: ${ker_toolchains}"
     echo "make_cmd: ${ker_make_cmd}"
+    echo "arch: ${ker_arch}"
 
     # build
-    kmpp_build_cmd="${ker_make_cmd} ARCH=arm -C ${m_sel_kdir} M=`pwd` modules"
+    kmpp_build_cmd="${ker_make_cmd} ARCH=${ker_arch} -C ${m_sel_kdir} M=`pwd` modules"
     echo "kmpp_build_cmd: ${kmpp_build_cmd}"
     export PATH=${ker_toolchains}:${PATH}
     cd `git rev-parse --show-toplevel` \
