@@ -25,14 +25,10 @@ plt_lst=(
     "lib_linux_riscv64"
     "lib_linux_x86_64"
     # branch: kmpp_develop
-    "ko_mkf_arm32_one_ko"
-    "ko_mkf_arm32_multi_ko"
-    "ko_mkf_arm64_one_ko"
-    "ko_mkf_arm64_multi_ko"
-    "ko_cmk_arm32_one_ko"
-    "ko_cmk_arm32_multi_ko"
-    "ko_cmk_arm64_one_ko"
-    "ko_cmk_arm64_multi_ko"
+    "ko_mkf_one_ko"
+    "ko_mkf_multi_ko"
+    "ko_cmk_one_ko"
+    "ko_cmk_multi_ko"
     # branch: kmpp
     "ko_kmpp"
     # branch: devlop2
@@ -441,8 +437,7 @@ function build_ko_mkf()
     echo "======> selected ${m_sel} <======"
     query_ker_env
 
-    m_arch="${1}"
-    mod_build_type="${2}"
+    mod_build_type="${1}"
     enable_one_ko="y"
 
     [ ${mod_build_type} = "one" ] && enable_one_ko="y"
@@ -454,10 +449,6 @@ function build_ko_mkf()
     echo "cross cmp:   ${ker_cross_cmp}"
     echo "arch:        ${ker_arch}"
     echo "module type: ${mod_build_type}"
-    if [ "${m_arch}" != "${ker_arch}" ]; then
-        echo "warning: ${m_sel} is a ${m_arch} target, but the kernel is"
-        echo "         ${ker_arch}, build with ${ker_arch} instead"
-    fi
 
     # build
     cd `git rev-parse --show-toplevel`
@@ -479,18 +470,15 @@ function build_ko_mkf()
     fi
 }
 
-function build_ko_mkf_arm32_one_ko()   { build_ko_mkf "arm" "one"; }
-function build_ko_mkf_arm32_multi_ko() { build_ko_mkf "arm" "multi"; }
-function build_ko_mkf_arm64_one_ko()   { build_ko_mkf "arm64" "one"; }
-function build_ko_mkf_arm64_multi_ko() { build_ko_mkf "arm64" "multi"; }
+function build_ko_mkf_one_ko()   { build_ko_mkf "one"; }
+function build_ko_mkf_multi_ko() { build_ko_mkf "multi"; }
 
 function build_ko_cmk()
 {
     echo "======> selected ${m_sel} <======"
     query_ker_env
 
-    m_arch="${1}"
-    mod_build_type="${2}"
+    mod_build_type="${1}"
     build_wk_dir=""
 
     echo "toolchains:  ${ker_toolchains}"
@@ -498,10 +486,6 @@ function build_ko_cmk()
     echo "kernel dir:  ${m_sel_kdir}"
     echo "arch:        ${ker_arch}"
     echo "module type: ${mod_build_type}"
-    if [ "${m_arch}" != "${ker_arch}" ]; then
-        echo "warning: ${m_sel} is a ${m_arch} target, but the kernel is"
-        echo "         ${ker_arch}, build with ${ker_arch} instead"
-    fi
 
     # build: 内核的 arch 名和构建目录名不同, 如 riscv 对应 build/riscv64
     case "${ker_arch}" in
@@ -531,10 +515,8 @@ function build_ko_cmk()
     fi
 }
 
-function build_ko_cmk_arm32_one_ko()   { build_ko_cmk "arm" "one"; }
-function build_ko_cmk_arm32_multi_ko() { build_ko_cmk "arm" "multi"; }
-function build_ko_cmk_arm64_one_ko()   { build_ko_cmk "arm64" "one"; }
-function build_ko_cmk_arm64_multi_ko() { build_ko_cmk "arm64" "multi"; }
+function build_ko_cmk_one_ko()   { build_ko_cmk "one"; }
+function build_ko_cmk_multi_ko() { build_ko_cmk "multi"; }
 
 # 5.10 1106_linux
 function build_ko_kmpp()
