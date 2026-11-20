@@ -297,7 +297,10 @@ function do_flash()
     elif [ "${flash_method}" = "adb" ]; then
         echo; echo "======> reload ${kmod_ko} <======"
         local adbCmd
-        adbCmd="$(adbs)"
+        # 本次调用带了 -y 时一并传给 adbs, 多设备时不再卡在交互提示
+        local -a _adbs=(adbs)
+        [ "${arg_use_def}" = "true" ] && _adbs+=(-y)
+        adbCmd="$("${_adbs[@]}")"
         [ -z "${adbCmd}" ] && return 0
         ${adbCmd} push "${kmod_dir}/${kmod_ko}" "${push_dir}"
         if ${adbCmd} shell lsmod | grep -q "$(basename "${kmod_ko}" .ko)"; then

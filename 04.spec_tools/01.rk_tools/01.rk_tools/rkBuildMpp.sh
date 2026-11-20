@@ -107,6 +107,17 @@ cmk_test_ko_lst=(
     ./test/sym_test/sym4/build/sym4.ko
     )
 
+function get_adb_cmd()
+{
+    local -a _adbs=(adbs)
+    [ "${cmd_use_def}" = "true" ] && _adbs+=(-y)
+    if [ -z "${cmd_ins_dev}" ]; then
+        "${_adbs[@]}"
+    else
+        "${_adbs[@]}" --idx "${cmd_ins_dev}"
+    fi
+}
+
 function push_bins_to_device()
 {
     adbCmd="${1}"
@@ -161,8 +172,7 @@ function build_lib_android_32()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=""
-        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        adbCmd=$(get_adb_cmd)
         [ -z "${adbCmd}" ] && exit 0
 
         push_bins_list "${adbCmd}" android_lib_lst /vendor/lib
@@ -186,8 +196,7 @@ function build_lib_android_64()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=""
-        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        adbCmd=$(get_adb_cmd)
         [ -z "${adbCmd}" ] && exit 0
 
         push_bins_list "${adbCmd}" android_lib_lst /vendor/lib64
@@ -217,8 +226,7 @@ function build_lib_linux_32()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=""
-        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        adbCmd=$(get_adb_cmd)
         [ -z "${adbCmd}" ] && exit 0
 
         push_bins_list "${adbCmd}" linux_lib_lst   /usr/lib
@@ -247,8 +255,7 @@ function build_lib_linux_64()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=""
-        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        adbCmd=$(get_adb_cmd)
         [ -z "${adbCmd}" ] && exit 0
 
         push_bins_list "${adbCmd}" linux_lib_lst   /usr/lib64
@@ -277,8 +284,7 @@ function build_lib_linux_riscv64()
         [ "${cmd_install}" == "false" ] && return
 
         echo "======> push lib and demo to dev <======"
-        adbCmd=""
-        [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+        adbCmd=$(get_adb_cmd)
         [ -z "${adbCmd}" ] && exit 0
 
         push_bins_list "${adbCmd}" linux_lib_lst   /usr/lib
@@ -374,8 +380,7 @@ function push_ko_to_device()
 {
     build_sys="${1}"
 
-    adbCmd=""
-    [ -z "${cmd_ins_dev}" ] && { adbCmd=$(adbs); } || { adbCmd=$(adbs --idx ${cmd_ins_dev}); }
+    adbCmd=$(get_adb_cmd)
     [ -z "${adbCmd}" ] && exit 0
 
     f_result=$(${adbCmd} shell 'if [ -f /oem/usr/ko/insmod_ko.sh ]; then echo exists; else echo missing; fi')
