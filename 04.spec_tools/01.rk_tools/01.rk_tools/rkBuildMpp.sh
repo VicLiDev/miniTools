@@ -48,7 +48,6 @@ m_sel_kdir=""
 ker_arch=""
 ker_toolchains=""
 ker_make_cmd=""
-ker_cross_cmp=""
 
 linux_toolchain_dir="${HOME}/Projects/prebuilts"
 
@@ -418,9 +417,7 @@ function push_ko_to_device()
 # 取出工具链和 make 命令. 结果放到全局变量, 供各 build_ko_* 使用:
 #   m_sel_kdir      选中的内核目录
 #   ker_toolchains  工具链目录
-#   ker_make_cmd    make 命令(已带 ARCH/CROSS_COMPILE)
-#   ker_cross_cmp   从工具链目录里的 gcc 反推出的交叉前缀,
-#                   如 riscv64-unknown-linux-musl-
+#   ker_make_cmd    make 命令(已带 CROSS_COMPILE 和编译器开关, 如 LLVM=1)
 function query_ker_env()
 {
     select_node "${sel_tag_mpp_ko}" "kdir_lst" "m_sel_kdir" "kernel dir" "" \
@@ -433,14 +430,22 @@ function query_ker_env()
     ker_toolchains="`echo "${info_list}" \
         | sed -n 's/^toolchains:[[:space:]]*//p'`"
     ker_make_cmd="`echo "${info_list}" | sed -n 's/^m_make:[[:space:]]*//p'`"
-    ker_cross_cmp="$(find ${ker_toolchains} -maxdepth 1 -type f \
-        | grep gcc$ | sed 's/gcc$//g')"
+
+    # 工具链目录必须进 PATH: LLVM=1 时 kbuild 调用 clang / llvm-strip 等,
+    # 这些由平台工具链目录提供, 不能依赖主机 PATH(主机 gcc/clang 版本不符).
+    local tc_path="${ker_toolchains// /:}"
+    [ -n "${tc_path}" ] && export PATH="${tc_path}:${PATH}"
+
+    if [ -z "${ker_make_cmd}" ]; then
+        echo "======> query kernel env failed, check the toolchain of ${m_sel_kdir} <======" >&2
+        return 1
+    fi
 }
 
 function build_ko_mkf()
 {
     echo "======> selected ${m_sel} <======"
-    query_ker_env
+    query_ker_env || return 1
 
     mod_build_type="${1}"
     enable_one_ko="y"
@@ -451,7 +456,6 @@ function build_ko_mkf()
     echo "toolchains:  ${ker_toolchains}"
     echo "make_cmd:    ${ker_make_cmd}"
     echo "kernel dir:  ${m_sel_kdir}"
-    echo "cross cmp:   ${ker_cross_cmp}"
     echo "arch:        ${ker_arch}"
     echo "module type: ${mod_build_type}"
 
@@ -459,9 +463,11 @@ function build_ko_mkf()
     cd `git rev-parse --show-toplevel`
     export BUILD_ONE_KO=${enable_one_ko}
     export KERNEL_DIR=${m_sel_kdir}
-    export CROSS_COMPILE=${ker_cross_cmp}
     export ARCH=${ker_arch}
-    make all
+    # ini 的 make 行是权威参数(已含 LLVM/CROSS_COMPILE), 直接透传
+    local make_extra="${ker_make_cmd#make}"
+    echo "make args:   ${make_extra}"
+    make all ${make_extra}
 
     if [ $? -eq 0 ]; then
         [ "${cmd_install}" == "false" ] && return
@@ -481,7 +487,7 @@ function build_ko_mkf_multi_ko() { build_ko_mkf "multi"; }
 function build_ko_cmk()
 {
     echo "======> selected ${m_sel} <======"
-    query_ker_env
+    query_ker_env || return 1
 
     mod_build_type="${1}"
     build_wk_dir=""
@@ -527,7 +533,7 @@ function build_ko_cmk_multi_ko() { build_ko_cmk "multi"; }
 function build_ko_kmpp()
 {
     echo "======> selected ${m_sel} <======"
-    query_ker_env
+    query_ker_env || return 1
 
     echo "toolchains: ${ker_toolchains}"
     echo "make_cmd: ${ker_make_cmd}"
@@ -536,7 +542,6 @@ function build_ko_kmpp()
     # build
     kmpp_build_cmd="${ker_make_cmd} ARCH=${ker_arch} -C ${m_sel_kdir} M=`pwd` modules"
     echo "kmpp_build_cmd: ${kmpp_build_cmd}"
-    export PATH=${ker_toolchains}:${PATH}
     cd `git rev-parse --show-toplevel` \
         && ${kmpp_build_cmd}
 
@@ -551,7 +556,7 @@ function build_ko_kmpp()
 function build_ko_develop2()
 {
     echo "======> selected ${m_sel} <======"
-    query_ker_env
+    query_ker_env || return 1
 
     echo "toolchains: ${ker_toolchains}"
     echo "make_cmd: ${ker_make_cmd}"
