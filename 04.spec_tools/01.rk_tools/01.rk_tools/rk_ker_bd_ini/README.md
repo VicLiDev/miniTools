@@ -19,12 +19,38 @@
 | arch | 是   | arm / arm64 / riscv       |
 
 ### [toolchain]
-| key              | 必填 | 说明                                                              |
-|------------------|------|-------------------------------------------------------------------|
-| path             | 是   | 工具链 bin 目录, 多个候选用 `\| ` 分隔; **所有存在的都加入 PATH** |
-| path_android_lt6 | 否   | android 平台且内核 VERSION `< 6` 时使用的工具链                   |
-| env              | 否   | 额外环境变量, `KEY=value` 用 `\| ` 分隔 (值支持 `~`)               |
-| make             | 是   | 编译命令模板, 如 `make CROSS_COMPILE=... LLVM=1`                  |
+| key              | 必填 | 说明                                                                    |
+|------------------|------|-------------------------------------------------------------------------|
+| path             | 是   | 工具链 bin 目录, 多个候选用 `\| ` 分隔; **所有存在的都加入 PATH**       |
+| path_android_lt6 | 否   | android 平台且内核 VERSION `< 6` 时使用的工具链                         |
+| cc               | 是   | 编译器族: `clang` / `gcc`; 只用于定位/校验编译器                        |
+| cross            | 是   | 交叉前缀如 `aarch64-linux-gnu-`; **必填**, 本机编译也显式写 host 前缀   |
+| extra            | 否   | make 额外参数; **clang 必须写 `LLVM=1 LLVM_IAS=1`**                     |
+| env              | 否   | 额外环境变量, `KEY=value` 用 `\| ` 分隔 (值支持 `~`)                    |
+
+> make 命令不再写在 ini 里, 只由字段机械拼接(无隐含策略):
+> `make CROSS_COMPILE=<cross> [<extra>]`。
+> `check_toolchain` 校验三件事: `<path>/clang`(或 `<path>/<cross>gcc`) 存在、
+> `cross` 与 `arch` 匹配(clang 平台)、`cc` 与 `extra` 的编译器开关一致
+> (`cc=clang` 必须有 `LLVM=`, `cc=gcc` 不能有)。
+> 因此 clang 平台的 `extra` 必须写 `LLVM=1 LLVM_IAS=1`, 示例:
+> `extra = LLVM=1 LLVM_IAS=1` 或 `extra = LT0=none LLVM=1 LLVM_IAS=1`。
+
+> clang 平台的 `cross` 也要显式写: 它不用于查找编译器, 只决定 clang 的
+> `--target=`。5.12 之前的内核没有架构表兜底, 空值会生成 `--target=`
+> 并报 "unknown target triple"; arm32/riscv 的架构表默认值还与工具链
+> ABI 不一致(`gnueabi` vs `gnueabihf`、`gnu` vs `musl`)。
+
+> 若工具链里只有带前缀的 clang(如 `aarch64-linux-gnu-clang`), `cc` 仍写
+> `clang`, 但 `extra` 必须写成 `CC=aarch64-linux-gnu-clang` 且**不要**写
+> `LLVM=1`(LLVM=1 会把它固定成无前缀的 `clang`)。此时校验查找的也是
+> `<path>/<cross>clang`。
+
+> 本机编译(x86 等)同样要写 `cross`: 不带前缀虽然能跑, 但会静默落到主机
+> gcc, 主机编译器与内核 `.config` 不一致时报的是一堆无关的编译错误。
+> 脚本不做"空前缀 = 主机 gcc"的回退, 缺 `cross` 直接报
+> `FAILED - no CROSS_COMPILE in [toolchain]`, 本机编译请显式写 host 前缀
+> (如 `cross = x86_64-linux-gnu-`)。
 
 > Rust-for-Linux(Android 16 / kernel 6.12)示例见 `rk3588_android16.ini`:
 > `path` 多目录(clang + rust + bindgen + kernel-build-tools) +

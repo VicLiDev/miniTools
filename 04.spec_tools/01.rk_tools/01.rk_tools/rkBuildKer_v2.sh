@@ -39,6 +39,9 @@ VERSION=0
 # 平台配置(load_platform_config, 来自 ini)
 tc_raw=""
 tc_lt6=""
+tc_cc=""
+tc_cross=""
+tc_extra=""
 make_val=""
 android_config=""
 config_raw=""
@@ -141,6 +144,7 @@ function ini_patches()
     ini_numbered "${1}" config_patch 2>/dev/null || true
 }
 
+# ---- 工具链 ----
 # 展开 ~ 并处理 | 分隔的多候选路径: 输出所有"存在"的目录(空格分隔)。
 # 用于 PATH(如 rust / bindgen / kernel-build-tools 需同时加入多个目录)。
 # 若候选都不存在, 回退为全部展开后的目录。
@@ -317,7 +321,8 @@ function show_platform_list()
 {
     local i
     for i in "${!plt_names[@]}"; do
-        printf "%2d. %-22s (%s)\n" "${i}" "${plt_names[${i}]}" "$(basename "${plt_files[${i}]}")"
+        printf "%2d. %-22s (%s)\n" "${i}" "${plt_names[${i}]}" \
+               "$(basename "${plt_files[${i}]}")"
     done
 }
 
@@ -346,7 +351,10 @@ function select_platform()
 function enter_kernel_dir()
 {
     [ -n "${arg_dir}" ] && cd "${arg_dir}"
-    [ -f "Makefile" ] || { echo "Warning: no Makefile in current directory (not a kernel tree?): $(pwd)" >&2; }
+    if [ ! -f "Makefile" ]; then
+        echo "Warning: no Makefile in current directory (not a kernel tree?):" \
+             "$(pwd)" >&2
+    fi
 }
 
 # 探测内核版本: KERNEL_VER 为完整版本, VERSION 为主版本号
@@ -361,6 +369,14 @@ function read_kernel_version()
     echo "VERSION    = ${VERSION}"
 }
 
+function gen_make_cmd()
+{
+    local cmd="make"
+    [ -n "${tc_cross}" ] && cmd="${cmd} CROSS_COMPILE=${tc_cross}"
+    [ -n "${tc_extra}" ] && cmd="${cmd} ${tc_extra}"
+    echo "${cmd}"
+}
+
 # 读取 ini 中的平台/构建/模块/烧录字段, 带默认值
 function load_platform_config()
 {
@@ -370,10 +386,16 @@ function load_platform_config()
     tgt_arch="$(ini_read "${tgt_ini}" platform arch)"
     tc_raw="$(ini_read "${tgt_ini}" toolchain path)"
     tc_lt6="$(ini_read "${tgt_ini}" toolchain path_android_lt6)"
-    make_val="$(ini_read "${tgt_ini}" toolchain make)"
+    tc_cc="$(ini_read "${tgt_ini}" toolchain cc)"
+    tc_cross="$(ini_read "${tgt_ini}" toolchain cross)"
+    tc_extra="$(ini_read "${tgt_ini}" toolchain extra)"
 
     [ -z "${tgt_arch}" ] && { echo "Missing platform.arch" >&2; exit 1; }
-    [ -z "${make_val}" ] && { echo "Missing toolchain.make" >&2; exit 1; }
+    case "${tc_cc}" in
+        clang|gcc) ;;
+        *) echo "Missing/invalid toolchain.cc (expect clang or gcc)" >&2; exit 1 ;;
+    esac
+    make_val="$(gen_make_cmd)"
 
     # android config 解析
     android_config=""
@@ -393,7 +415,8 @@ function load_platform_config()
     target_raw="$(ini_read "${tgt_ini}" build target)"
 
     # kmod 字段
-    kmod_dir="$(ini_read "${tgt_ini}" kmod dir)"; kmod_dir="${kmod_dir:-drivers/video/rockchip/mpp}"
+    kmod_dir="$(ini_read "${tgt_ini}" kmod dir)"
+    kmod_dir="${kmod_dir:-drivers/video/rockchip/mpp}"
     kmod_ko="$(ini_read "${tgt_ini}" kmod ko)"; kmod_ko="${kmod_ko:-rk_vcodec.ko}"
 
     # flash 字段
@@ -401,6 +424,84 @@ function load_platform_config()
     boot_img="$(ini_read "${tgt_ini}" flash boot_img)"; boot_img="${boot_img:-boot.img}"
     flash_reset="$(ini_read "${tgt_ini}" flash reset)"; flash_reset="${flash_reset:-true}"
     push_dir="$(ini_read "${tgt_ini}" flash push_dir)"; push_dir="${push_dir:-/data}"
+}
+
+# 校验工具链是否真的可用: 目录存在 + ini 声明的编译器确实在目录里.
+# 缺编译器时立刻报错, 而不是等到 kbuild 退化成主机 gcc 后报一堆无关的语法错误.
+function check_toolchain()
+{
+    local d kind="${tc_cc}" prefix="${tc_cross}" hit="" want=""
+
+    # cross 一律要求显式给出. 本机 x86 编译不带前缀虽然"能跑", 但会静默
+    # 落到主机 gcc: 主机 gcc 与内核 .config 的编译器/版本不一致时报出来的
+    # 是一堆无关的编译错误. 需要本机编译时显式写 host 前缀(如 x86_64-linux-gnu-),
+    # 让校验能真正落到具体编译器上.
+    # clang 侧同理: 空前缀在 5.12 之前的内核上没有架构表兜底, 会生成
+    # --target= 并报 unknown target triple; arm32 的默认 ABI 也不符.
+    if [ -z "${prefix}" ]; then
+        echo "toolchain check: FAILED - no CROSS_COMPILE in [toolchain]:" >&2
+        echo "    platform: ${tgt_name}" >&2
+        echo "    make:     ${make_val}" >&2
+        exit 1
+    fi
+
+    if [ "${kind}" = "clang" ]; then
+        local -a cands=(clang)
+        # 发行版/vendor 的交叉 clang 可能带前缀(如 aarch64-linux-gnu-clang).
+        # 但它只有在 extra 用 CC= 显式指定时才会被 kbuild 调用: LLVM=1 固定调
+        # 无前缀的 clang, 那种情况下不能拿前缀 clang 顶替, 否则校验通过而编译失败.
+        case "${tc_extra}" in
+            *CC=*clang*) cands+=("${prefix}clang") ;;
+        esac
+        want="${cands[*]}"
+        want="${want// / or }"
+        for d in ${toolchain}; do
+            for c in "${cands[@]}"; do
+                [ -x "${d}/${c}" ] && { hit="${d}/${c}"; break 2; }
+            done
+        done
+    else
+        want="${prefix}gcc"
+        for d in ${toolchain}; do
+            [ -x "${d}/${prefix}gcc" ] && { hit="${d}/${prefix}gcc"; break; }
+        done
+    fi
+
+    if [ -z "${hit}" ]; then
+        echo "toolchain check: FAILED - cannot find ${want}" >&2
+        echo "    platform:   ${tgt_name}" >&2
+        echo "    toolchains: ${toolchain}" >&2
+        echo "    make:       ${make_val}" >&2
+        exit 1
+    fi
+
+    # clang 模式下 CROSS_COMPILE 直接决定 --target, 与 arch 不符会编错架构
+    if [ "${kind}" = "clang" ]; then
+        case "${tgt_arch}:${prefix}" in
+            arm64:aarch64*|arm:arm*|riscv:riscv*) ;;
+            arm64:*|arm:*|riscv:*)
+                echo "toolchain check: FAILED - CROSS_COMPILE '${prefix}'" \
+                     "mismatches arch '${tgt_arch}'" >&2
+                exit 1
+                ;;
+        esac
+    fi
+
+    # cc 只决定"找哪个编译器"; 真正的编译器选择开关在 extra 里, 两者必须一致,
+    # 否则会出现"校验的是 clang, kbuild 用的是 gcc"的静默错配.
+    case "${tc_cc}:${tc_extra}" in
+        clang:*LLVM=*|clang:*CC=*clang*) ;;
+        gcc:*LLVM=*|gcc:*CC=*clang*)
+            echo "toolchain check: FAILED - cc=gcc but extra selects clang" >&2
+            exit 1
+            ;;
+        clang:*)
+            echo "toolchain check: FAILED - cc=clang but extra lacks LLVM=1" >&2
+            exit 1
+            ;;
+    esac
+
+    echo "toolchain check: ok (${kind}: ${hit})"
 }
 
 # 工具链选择 + PATH 注入 + [toolchain] env 环境变量
@@ -446,6 +547,8 @@ function setup_toolchain()
             export "${k}=${v}"
         done
     fi
+
+    check_toolchain
 }
 
 # 决定 build_kmod / build_kernel 及烧录方式
@@ -463,11 +566,15 @@ function resolve_build_mode()
         if ! declare -F select_node >/dev/null 2>&1; then
             source "${HOME}/bin/_select_node.sh"
         fi
-        select_node "rk_kernel_b_m: " "build_mode_list" "mode" "build method" "" "${arg_use_def}"
+        select_node "rk_kernel_b_m: " "build_mode_list" "mode" "build method" "" \
+                    "${arg_use_def}"
     else
         mode="build_kernel"
     fi
-    [ "${flash_method}" = "auto" ] && flash_method=$([ "${mode}" = "build_kmod" ] && echo adb || echo rkut)
+    if [ "${flash_method}" = "auto" ]; then
+        flash_method="rkut"
+        [ "${mode}" = "build_kmod" ] && flash_method="adb"
+    fi
     return 0
 }
 
@@ -486,7 +593,8 @@ function build_commands()
 
     config_cmd=( "${make_arr[@]}" ARCH="${tgt_arch}" "${config_toks[@]}" )
     build_cmd=( "${make_arr[@]}" ARCH="${tgt_arch}" "${target_toks[@]}" -j"${jobs}" )
-    kmod_cmd=( "${make_arr[@]}" ARCH="${tgt_arch}" -C "${PWD}" M="${PWD}/${kmod_dir}" modules -j"${jobs}" )
+    kmod_cmd=( "${make_arr[@]}" ARCH="${tgt_arch}" -C "${PWD}"
+               M="${PWD}/${kmod_dir}" modules -j"${jobs}" )
 }
 
 function print_summary()
