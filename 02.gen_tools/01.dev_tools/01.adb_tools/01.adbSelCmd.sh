@@ -81,6 +81,7 @@ cmd_soc_info=""
 cmd_root_remount="false"
 cmd_list_usb_serial="false"
 cmd_proxy_cmd=""
+cmd_use_def="false"
 
 devSerIDList=()
 devTPIDList=()
@@ -158,6 +159,7 @@ function help_info()
     echo "    --soc <info> Select device by device tree compatible info"
     echo "    -r           Root and remount devices with no info"
     echo "    -u           List USB serial port devices (ttyUSB/ttyACM)"
+    echo "    -y|--yes     Use the cached device index instead of asking"
     echo
     echo "proxy mode (run external adb-consuming tools on the selected device):"
     echo "    --proxy <cmd>  Run <cmd> with ADB env pinned to selected device"
@@ -556,7 +558,8 @@ function gen_adb_cmd()
 
     if [ "${cmd_sel_idx}" == "" ]; then
         if [ ${#devTPIDList[@]} -gt 1 ]; then
-            select_node "${sel_tag_adbs}" "selectList" "mSelectedDev" "device" "$(print_dev_header)"
+            select_node "${sel_tag_adbs}" "selectList" "mSelectedDev" \
+                "device" "$(print_dev_header)" "${cmd_use_def}"
             # select_node 只回传条目文本, 回查其在 selectList 中的下标
             for ((i = 0; i < ${#selectList[@]}; i++)); do
                 [ "${selectList[${i}]}" == "${mSelectedDev}" ] && { cmd_sel_idx=${i}; break; }
@@ -1010,18 +1013,19 @@ function proc_paras()
     while [[ $# -gt 0 ]]; do
         key="$1"
         case ${key} in
-            -h|--hlep) help_info; exit 0 ;;
+            -h|--help) help_info; exit 0 ;;
             -l)        cmd_list_devs="true" ;;
             -c)        cmd_get_count="true" ;;
             -s)        cmd_gen_s_style="true" ;;
             -r)        cmd_root_remount="true" ;;
             -u)        cmd_list_usb_serial="true" ;;
+            --idx)     cmd_sel_idx="$2"; shift ;;
+            --soc)     cmd_soc_info="$2"; shift ;;
+            -y|--yes)  cmd_use_def="true" ;;
             --proxy)   [ -z "$2" ] && \
                            { echo "[adbs] --proxy requires a command" >&2; exit 1; }
                        cmd_proxy_cmd="$2"; shift ;;
             --scrcpy)  cmd_proxy_cmd="scrcpy" ;;
-            --idx)     cmd_sel_idx="$2"; shift ;;
-            --soc)     cmd_soc_info="$2"; shift ;;
             # ---- 模式 / 隧道配置 (修改后落盘并退出) ----
             --mode)        cfg_mode="$2"; shift; cfg_changed="true" ;;
             --remote-host) cfg_remote_host="$2"; shift; cfg_changed="true" ;;
